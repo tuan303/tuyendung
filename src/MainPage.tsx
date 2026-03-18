@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
-  CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X
+  CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
@@ -20,6 +21,28 @@ interface Job {
 export default function MainPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const itemsPerPage = 4;
+  const totalPages = Math.ceil(jobs.length / itemsPerPage);
+
+  useEffect(() => {
+    if (jobs.length <= itemsPerPage) return;
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % totalPages);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [jobs.length, totalPages]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % totalPages);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + totalPages) % totalPages);
+  };
+
+  const visibleJobs = jobs.slice(currentSlide * itemsPerPage, (currentSlide + 1) * itemsPerPage);
 
   useEffect(() => {
     const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
@@ -105,46 +128,86 @@ export default function MainPage() {
       </div>
 
       {/* Featured Jobs */}
-      <div className="max-w-6xl mx-auto py-24 px-4">
+      <div className="max-w-6xl mx-auto py-24 px-4 relative">
         <div className="text-center mb-14">
           <h2 className="text-3xl font-bold text-[#1a2b4c] uppercase tracking-wide">Việc làm nổi bật</h2>
           <div className="w-16 h-1 bg-[#c8102e] mx-auto mt-4 rounded-full"></div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {jobs.length > 0 ? jobs.map((job) => (
-            <div key={job.id} onClick={() => setSelectedJob(job)} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group">
-              <div className="w-14 h-14 bg-[#0f4c3a] rounded-xl flex items-center justify-center shrink-0 group-hover:bg-[#c8102e] transition duration-300">
-                <span className="text-white font-bold text-sm">NS</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition">{job.title}</h3>
-                <p className="text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
-                <div className="text-gray-600 text-sm mb-3 line-clamp-2">{job.description}</div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
-                    <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
-                      <MapPin className="w-3 h-3 mr-1 shrink-0 text-gray-400" />
-                      <span>KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
+        <div className="relative px-0 sm:px-12">
+          {jobs.length > itemsPerPage && (
+            <>
+              <button 
+                onClick={prevSlide}
+                className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-white shadow-md rounded-full items-center justify-center text-gray-500 hover:text-[#c8102e] hover:shadow-lg transition z-10"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button 
+                onClick={nextSlide}
+                className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-white shadow-md rounded-full items-center justify-center text-gray-500 hover:text-[#c8102e] hover:shadow-lg transition z-10"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {visibleJobs.length > 0 ? visibleJobs.map((job) => (
+              <div key={job.id} onClick={() => setSelectedJob(job)} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group">
+                <div className="w-14 h-14 bg-[#0f4c3a] rounded-xl flex items-center justify-center shrink-0 group-hover:bg-[#c8102e] transition duration-300">
+                  <span className="text-white font-bold text-sm">NS</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition">{job.title}</h3>
+                  <p className="text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
+                  <div className="text-gray-600 text-sm mb-3 line-clamp-2">{job.description}</div>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
+                      <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                        <MapPin className="w-3 h-3 mr-1 shrink-0 text-gray-400" />
+                        <span>KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
-                    <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
-                      <span className="font-medium text-[#c8102e]">Hạn nộp: {job.deadline}</span>
+                    <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
+                      <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                        <span className="font-medium text-[#c8102e]">Hạn nộp: {job.deadline}</span>
+                      </div>
+                      {job.jdUrl && (
+                        <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded" onClick={(e) => e.stopPropagation()}>
+                          <FileText className="w-3 h-3 mr-1" />
+                          <span>Xem JD</span>
+                        </a>
+                      )}
                     </div>
-                    {job.jdUrl && (
-                      <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded" onClick={(e) => e.stopPropagation()}>
-                        <FileText className="w-3 h-3 mr-1" />
-                        <span>Xem JD</span>
-                      </a>
-                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          )) : (
-            <div className="col-span-full text-center text-gray-500 py-10">
-              Hiện tại chưa có vị trí tuyển dụng nào.
+            )) : (
+              <div className="col-span-full text-center text-gray-500 py-10">
+                Hiện tại chưa có vị trí tuyển dụng nào.
+              </div>
+            )}
+          </div>
+          
+          {/* Mobile Navigation Controls */}
+          {jobs.length > itemsPerPage && (
+            <div className="flex sm:hidden justify-center items-center space-x-4 mt-8">
+              <button 
+                onClick={prevSlide}
+                className="w-10 h-10 bg-white shadow-md rounded-full flex items-center justify-center text-gray-500 hover:text-[#c8102e]"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <span className="text-sm font-medium text-gray-500">
+                {currentSlide + 1} / {totalPages}
+              </span>
+              <button 
+                onClick={nextSlide}
+                className="w-10 h-10 bg-white shadow-md rounded-full flex items-center justify-center text-gray-500 hover:text-[#c8102e]"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
             </div>
           )}
         </div>
