@@ -177,8 +177,8 @@ export default function MainPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {visibleJobs.length > 0 ? visibleJobs.map((job) => (
               <div key={job.id} onClick={() => setSelectedJob(job)} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group">
-                <div className="w-14 h-14 bg-[#0f4c3a] rounded-xl flex items-center justify-center shrink-0 group-hover:bg-[#c8102e] transition duration-300">
-                  <span className="text-white font-bold text-sm">NS</span>
+                <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shrink-0 border border-gray-100 group-hover:border-[#c8102e] transition duration-300 overflow-hidden p-1">
+                  <img src="https://hoangmaistarschool.edu.vn/storage/general/logo.svg" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition">{job.title}</h3>
@@ -406,8 +406,8 @@ export default function MainPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
             <div className="col-span-1 lg:col-span-2">
               <div className="flex items-center space-x-4 mb-6">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0">
-                  <span className="text-[#c8102e] font-black text-lg">NS</span>
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 overflow-hidden p-1.5">
+                  <img src="https://hoangmaistarschool.edu.vn/storage/general/logo.svg" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div>
                   <div className="font-black text-xl tracking-wider">NGÔI SAO HOÀNG MAI</div>
@@ -482,8 +482,8 @@ export default function MainPage() {
           >
             <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-start sticky top-0 bg-white z-10">
               <div className="flex items-start space-x-4">
-                <div className="w-14 h-14 bg-[#0f4c3a] rounded-xl flex items-center justify-center shrink-0">
-                  <span className="text-white font-bold text-sm">NS</span>
+                <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden p-1">
+                  <img src="https://hoangmaistarschool.edu.vn/storage/general/logo.svg" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedJob.title}</h2>
