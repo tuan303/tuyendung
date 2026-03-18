@@ -64,20 +64,19 @@ export default function MainPage() {
       {/* Top Bar */}
       <div className="bg-[#c8102e] text-white py-2 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm">
-          <div className="flex items-center space-x-3 mb-3 md:mb-0">
-            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0">
-              <span className="text-[#c8102e] font-bold text-xs">NS</span>
-            </div>
-            <div>
-              <div className="font-bold leading-none tracking-wide">NGÔI SAO HOÀNG MAI</div>
-              <div className="text-[10px] text-white/90 uppercase mt-0.5">Tiểu học • THCS • THPT</div>
-            </div>
+          <div className="flex items-center mb-3 md:mb-0">
+            <img 
+              src="https://hoangmaistarschool.edu.vn/thongtin/LogoNSHM.png" 
+              alt="Ngôi Sao Hoàng Mai" 
+              className="h-10 md:h-12 object-contain" 
+              referrerPolicy="no-referrer"
+            />
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-3 md:gap-8 text-xs font-medium">
             <div className="flex items-center space-x-2">
               <MapPin className="w-4 h-4 shrink-0" />
-              <span className="text-center md:text-left">Địa chỉ: Lô TH & PT KĐT Kim Văn - Kim Lũ, Hà Nội</span>
+              <span className="text-center md:text-left">Địa chỉ: KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
             </div>
             <div className="flex items-center space-x-2">
               <Phone className="w-4 h-4 shrink-0" />
@@ -99,10 +98,10 @@ export default function MainPage() {
         <div className="absolute inset-0 bg-black/40"></div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-5xl w-full mx-4 flex flex-col items-center">
-            <h1 className="text-5xl sm:text-6xl md:text-[100px] leading-none font-black text-[#D31145] mb-4 sm:mb-6 tracking-widest uppercase drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)]">
+            <h1 className="text-5xl sm:text-6xl md:text-[100px] leading-none font-black text-[#d21235] mb-4 sm:mb-6 tracking-widest uppercase drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)]">
               Tuyển dụng
             </h1>
-            <div className="bg-[#213363] text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-[38px] font-black tracking-widest uppercase shadow-2xl text-center">
+            <div className="bg-[#213363] text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 rounded-xl sm:rounded-2xl text-[21px] sm:text-[23px] md:text-[41px] font-black tracking-widest uppercase shadow-2xl text-center">
               Trường Ngôi Sao Hoàng Mai
             </div>
           </div>
@@ -128,7 +127,7 @@ export default function MainPage() {
       </div>
 
       {/* Featured Jobs */}
-      <div className="max-w-6xl mx-auto py-24 px-4 relative">
+      <div className="max-w-6xl mx-auto py-16 px-4 relative">
         <div className="text-center mb-14">
           <h2 className="text-3xl font-bold text-[#1a2b4c] uppercase tracking-wide">Việc làm nổi bật</h2>
           <div className="w-16 h-1 bg-[#c8102e] mx-auto mt-4 rounded-full"></div>
@@ -214,14 +213,14 @@ export default function MainPage() {
       </div>
 
       {/* HR Policies */}
-      <div className="max-w-6xl mx-auto py-12 px-4">
-        <div className="text-center mb-20">
+      <div className="max-w-6xl mx-auto py-16 px-4">
+        <div className="text-center mb-16">
           <h2 className="text-sm font-bold text-[#c8102e] uppercase tracking-[0.2em] mb-3">Chính sách</h2>
           <h3 className="text-4xl font-black text-[#1a2b4c] uppercase tracking-wide">Nhân sự</h3>
         </div>
 
         {/* Policy 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center mb-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center mb-16">
           <div className="order-2 md:order-1">
             <div className="flex items-center space-x-5 mb-8">
               <div className="w-14 h-14 rounded-full bg-[#fdb913] flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-yellow-500/30 shrink-0">01</div>
@@ -237,7 +236,7 @@ export default function MainPage() {
         </div>
 
         {/* Policy 2 */}
-        <div className="bg-[#c8102e] rounded-[2.5rem] overflow-hidden mb-24 shadow-2xl">
+        <div className="bg-[#c8102e] rounded-[2.5rem] overflow-hidden mb-16 shadow-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="h-[400px] md:h-auto relative overflow-hidden">
               <img src="https://images.unsplash.com/photo-1577415124269-fc1140a69e91?q=80&w=1964&auto=format&fit=crop" alt="Environment" className="w-full h-full object-cover absolute inset-0 hover:scale-105 transition duration-700" />
@@ -259,7 +258,7 @@ export default function MainPage() {
         </div>
 
         {/* Policy 3 */}
-        <div className="bg-[#1a2b4c] rounded-[2.5rem] overflow-hidden mb-24 shadow-2xl">
+        <div className="bg-[#1a2b4c] rounded-[2.5rem] overflow-hidden mb-0 shadow-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center">
               <div className="flex items-center space-x-5 mb-10">
@@ -288,7 +287,7 @@ export default function MainPage() {
       </div>
 
       {/* Application Form & Instructions */}
-      <div className="max-w-6xl mx-auto px-4 mb-32">
+      <div className="max-w-6xl mx-auto px-4 mb-24">
         <div className="flex flex-col lg:flex-row rounded-[2.5rem] overflow-hidden shadow-2xl">
           {/* Left Form */}
           <div className="w-full lg:w-5/12 bg-[#c8102e] p-6 sm:p-10 md:p-14">
@@ -346,7 +345,7 @@ export default function MainPage() {
                     <h4 className="text-lg sm:text-xl font-bold text-white mb-2">Nộp trực tiếp</h4>
                     <p className="text-white/80 leading-relaxed text-sm sm:text-base">
                       Phòng Nhân sự - Trường Ngôi Sao Hoàng Mai<br/>
-                      Lô TH & PT KĐT Kim Văn - Kim Lũ, P. Đại Kim, Q. Hoàng Mai, Hà Nội
+                      KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội
                     </p>
                   </div>
                 </div>
@@ -429,7 +428,7 @@ export default function MainPage() {
               <ul className="space-y-4 text-white/70">
                 <li className="flex items-start space-x-3">
                   <MapPin className="w-5 h-5 shrink-0 text-[#c8102e] mt-0.5" />
-                  <span>Lô TH & PT KĐT Kim Văn - Kim Lũ, P. Đại Kim, Q. Hoàng Mai, Hà Nội</span>
+                  <span>KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <Phone className="w-5 h-5 shrink-0 text-[#c8102e]" />
