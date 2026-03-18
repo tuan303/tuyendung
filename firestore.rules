@@ -74,9 +74,30 @@ service cloud.firestore {
              data.authorUid is string;
     }
 
+    function isValidSiteContent(data) {
+      return data.keys().hasOnly(['heroBgImage', 'heroTitle', 'heroSubtitle', 'policy1Title', 'policy1Desc', 'policy1Image', 'policy2Title', 'policy2Quote', 'policy2Desc', 'policy2Image', 'policy3Title', 'policy3Benefits']) &&
+             validStringLength('heroBgImage', 1, 1000) &&
+             validStringLength('heroTitle', 1, 200) &&
+             validStringLength('heroSubtitle', 1, 200) &&
+             validStringLength('policy1Title', 1, 200) &&
+             validStringLength('policy1Desc', 1, 5000) &&
+             validStringLength('policy1Image', 1, 1000) &&
+             validStringLength('policy2Title', 1, 200) &&
+             validStringLength('policy2Quote', 1, 1000) &&
+             validStringLength('policy2Desc', 1, 5000) &&
+             validStringLength('policy2Image', 1, 1000) &&
+             validStringLength('policy3Title', 1, 200) &&
+             data.policy3Benefits is list;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /siteContent/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSiteContent(request.resource.data);
+    }
 
     match /jobs/{jobId} {
       allow read: if true;

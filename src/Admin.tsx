@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { LogOut, Plus, Trash2, FileText, MapPin } from 'lucide-react';
+import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate } from 'lucide-react';
+import SiteContentAdmin from './SiteContentAdmin';
 
 interface Job {
   id: string;
@@ -81,6 +82,7 @@ export default function Admin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'jobs' | 'content'>('jobs');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -273,17 +275,36 @@ export default function Admin() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-8 px-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Column: Form */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-24">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <Plus className="w-5 h-5 mr-2 text-[#c8102e]" />
-              Thêm vị trí mới
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-5">
+      <main className="max-w-7xl mx-auto py-8 px-4">
+        {/* Tabs */}
+        <div className="flex space-x-4 mb-8 border-b border-gray-200 pb-2">
+          <button
+            onClick={() => setActiveTab('jobs')}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 ${activeTab === 'jobs' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            <Briefcase className="w-5 h-5" />
+            <span>Quản lý Tuyển dụng</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('content')}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 ${activeTab === 'content' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            <LayoutTemplate className="w-5 h-5" />
+            <span>Quản lý Giao diện</span>
+          </button>
+        </div>
+
+        {activeTab === 'jobs' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column: Form */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-24">
+                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                  <Plus className="w-5 h-5 mr-2 text-[#c8102e]" />
+                  Thêm vị trí mới
+                </h2>
+                
+                <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vị trí tuyển dụng *</label>
                 <input 
@@ -372,6 +393,10 @@ export default function Admin() {
             </div>
           </div>
         </div>
+        </div>
+        ) : (
+          <SiteContentAdmin />
+        )}
 
       </main>
     </div>

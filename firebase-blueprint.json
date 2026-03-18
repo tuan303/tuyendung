@@ -35,9 +35,35 @@
         }
       },
       "required": ["title", "description", "requirements", "deadline", "createdAt", "authorUid"]
+    },
+    "SiteContent": {
+      "title": "Site Content",
+      "description": "Content for the main page modules",
+      "type": "object",
+      "properties": {
+        "heroBgImage": { "type": "string" },
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "policy1Title": { "type": "string" },
+        "policy1Desc": { "type": "string" },
+        "policy1Image": { "type": "string" },
+        "policy2Title": { "type": "string" },
+        "policy2Quote": { "type": "string" },
+        "policy2Desc": { "type": "string" },
+        "policy2Image": { "type": "string" },
+        "policy3Title": { "type": "string" },
+        "policy3Benefits": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["heroBgImage", "heroTitle", "heroSubtitle", "policy1Title", "policy1Desc", "policy1Image", "policy2Title", "policy2Quote", "policy2Desc", "policy2Image", "policy3Title", "policy3Benefits"]
     }
   },
   "firestore": {
+    "siteContent/{docId}": {
+      "schema": {
+        "$ref": "#/entities/SiteContent"
+      },
+      "description": "Singleton collection for site content"
+    },
     "jobs/{jobId}": {
       "schema": {
         "$ref": "#/entities/Job"

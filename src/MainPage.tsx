@@ -4,8 +4,9 @@ import {
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { db } from './firebase';
+import { defaultContent } from './SiteContentAdmin';
 
 interface Job {
   id: string;
@@ -22,6 +23,7 @@ export default function MainPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [siteContent, setSiteContent] = useState(defaultContent);
 
   const itemsPerPage = 4;
   const totalPages = Math.ceil(jobs.length / itemsPerPage);
@@ -54,6 +56,26 @@ export default function MainPage() {
       setJobs(jobsData);
     }, (error) => {
       console.error("Error fetching jobs:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const docRef = doc(db, 'siteContent', 'main');
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setSiteContent({
+          ...defaultContent,
+          ...data,
+          policy3Benefits: Array.isArray(data.policy3Benefits) 
+            ? data.policy3Benefits.join('\n') 
+            : data.policy3Benefits || defaultContent.policy3Benefits
+        });
+      }
+    }, (error) => {
+      console.error("Error fetching site content:", error);
     });
 
     return () => unsubscribe();
@@ -93,16 +115,16 @@ export default function MainPage() {
       {/* Hero Section */}
       <div 
         className="relative h-[450px] bg-cover bg-center" 
-        style={{ backgroundImage: 'url(https://hoangmaistarschool.edu.vn/thongtin/nen.jpg)' }}
+        style={{ backgroundImage: `url(${siteContent.heroBgImage})` }}
       >
         <div className="absolute inset-0 bg-black/40"></div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-5xl w-full mx-4 flex flex-col items-center">
             <h1 className="text-5xl sm:text-6xl md:text-[100px] leading-none font-black text-[#d21235] mb-4 sm:mb-6 tracking-widest uppercase drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)]">
-              Tuyển dụng
+              {siteContent.heroTitle}
             </h1>
             <div className="bg-[#213363] text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 rounded-xl sm:rounded-2xl text-[21px] sm:text-[23px] md:text-[41px] font-black tracking-widest uppercase shadow-2xl text-center">
-              Trường Ngôi Sao Hoàng Mai
+              {siteContent.heroSubtitle}
             </div>
           </div>
         </div>
@@ -224,14 +246,14 @@ export default function MainPage() {
           <div className="order-2 md:order-1">
             <div className="flex items-center space-x-5 mb-8">
               <div className="w-14 h-14 rounded-full bg-[#fdb913] flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-yellow-500/30 shrink-0">01</div>
-              <h4 className="text-2xl font-bold text-[#c8102e] uppercase tracking-wide">Đào tạo và phát triển</h4>
+              <h4 className="text-2xl font-bold text-[#c8102e] uppercase tracking-wide">{siteContent.policy1Title}</h4>
             </div>
-            <p className="text-gray-600 leading-relaxed text-lg">
-              Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.
+            <p className="text-gray-600 leading-relaxed text-lg whitespace-pre-wrap">
+              {siteContent.policy1Desc}
             </p>
           </div>
           <div className="order-1 md:order-2 rounded-3xl overflow-hidden shadow-2xl h-[400px] md:h-[500px]">
-            <img src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop" alt="Training" className="w-full h-full object-cover hover:scale-105 transition duration-700" />
+            <img src={siteContent.policy1Image} alt="Training" className="w-full h-full object-cover hover:scale-105 transition duration-700" />
           </div>
         </div>
 
@@ -239,19 +261,19 @@ export default function MainPage() {
         <div className="bg-[#c8102e] rounded-[2.5rem] overflow-hidden mb-16 shadow-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="h-[400px] md:h-auto relative overflow-hidden">
-              <img src="https://images.unsplash.com/photo-1577415124269-fc1140a69e91?q=80&w=1964&auto=format&fit=crop" alt="Environment" className="w-full h-full object-cover absolute inset-0 hover:scale-105 transition duration-700" />
+              <img src={siteContent.policy2Image} alt="Environment" className="w-full h-full object-cover absolute inset-0 hover:scale-105 transition duration-700" />
               <div className="absolute inset-0 bg-[#c8102e]/20 mix-blend-multiply"></div>
             </div>
             <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center">
               <div className="flex items-center space-x-5 mb-8">
                 <div className="w-14 h-14 rounded-full bg-[#fdb913] flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-yellow-500/30 shrink-0">02</div>
-                <h4 className="text-2xl font-bold text-white uppercase tracking-wide">Môi trường làm việc</h4>
+                <h4 className="text-2xl font-bold text-white uppercase tracking-wide">{siteContent.policy2Title}</h4>
               </div>
-              <p className="text-white/95 leading-relaxed font-medium italic mb-8 text-lg">
-                "Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: <span className="font-bold">Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng</span>."
+              <p className="text-white/95 leading-relaxed font-medium italic mb-8 text-lg whitespace-pre-wrap">
+                {siteContent.policy2Quote}
               </p>
-              <p className="text-white/80 leading-relaxed">
-                Bên cạnh đó, với cơ sở vật chất, trang thiết bị hiện đại và nền tảng công nghệ tiên tiến cũng là những ưu thế giúp Giáo viên và Học sinh Trường Ngôi Sao Hoàng Mai tối ưu hiệu quả dạy và học.
+              <p className="text-white/80 leading-relaxed whitespace-pre-wrap">
+                {siteContent.policy2Desc}
               </p>
             </div>
           </div>
@@ -263,15 +285,13 @@ export default function MainPage() {
             <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center">
               <div className="flex items-center space-x-5 mb-10">
                 <div className="w-14 h-14 rounded-full bg-[#fdb913] flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-yellow-500/30 shrink-0">03</div>
-                <h4 className="text-2xl font-bold text-white uppercase tracking-wide">Chính sách phúc lợi</h4>
+                <h4 className="text-2xl font-bold text-white uppercase tracking-wide">{siteContent.policy3Title}</h4>
               </div>
               <ul className="space-y-6">
-                {[
-                  'Mức lương và quyền lợi cạnh tranh tùy thuộc vào kinh nghiệm và năng lực.',
-                  'Tài trợ ăn sáng, ăn trưa tại trường, tham gia BHXH, BHYT... và bảo hiểm chăm sóc sức khỏe.',
-                  'Hỗ trợ học phí cho con em CBNV lên tới 100%.',
-                  'Thưởng các ngày Lễ tết, thưởng năm học, tham quan nghỉ mát hàng năm.'
-                ].map((item, idx) => (
+                {(typeof siteContent.policy3Benefits === 'string' 
+                  ? siteContent.policy3Benefits.split('\n') 
+                  : siteContent.policy3Benefits
+                ).filter(Boolean).map((item: string, idx: number) => (
                   <li key={idx} className="flex items-start space-x-4">
                     <CheckCircle2 className="w-6 h-6 text-[#fdb913] shrink-0 mt-0.5" />
                     <span className="text-white/90 leading-relaxed text-lg">{item}</span>
@@ -306,8 +326,8 @@ export default function MainPage() {
                 <input type="email" placeholder="Email *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
               </div>
               <div className="relative">
-                <select className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg appearance-none cursor-pointer" required>
-                  <option value="" disabled selected>Vị trí ứng tuyển *</option>
+                <select defaultValue="" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg appearance-none cursor-pointer" required>
+                  <option value="" disabled>Vị trí ứng tuyển *</option>
                   <option value="gv-toan" className="text-gray-800">Giáo viên Toán</option>
                   <option value="gv-van" className="text-gray-800">Giáo viên Ngữ Văn</option>
                   <option value="gv-anh" className="text-gray-800">Giáo viên Tiếng Anh</option>
