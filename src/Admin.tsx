@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { LogOut, Plus, Trash2, FileText, MapPin } from 'lucide-react';
@@ -26,6 +26,8 @@ export default function Admin() {
   const [requirements, setRequirements] = useState('');
   const [deadline, setDeadline] = useState('');
   const [jdUrl, setJdUrl] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -53,13 +55,15 @@ export default function Admin() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Chuyển đổi username thành email giả lập để dùng với Firebase
+    const email = username === 'admin_nshm' ? 'admin_nshm@nshm.edu.vn' : username;
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       console.error("Login error:", error);
-      alert("Đăng nhập thất bại.");
+      alert("Sai tài khoản hoặc mật khẩu!");
     }
   };
 
@@ -129,20 +133,41 @@ export default function Admin() {
           </div>
           <h1 className="text-2xl font-bold text-[#1a2b4c] mb-2">Quản trị Tuyển dụng</h1>
           <p className="text-gray-500 mb-8">Đăng nhập để quản lý các vị trí tuyển dụng</p>
-          <button 
-            onClick={handleLogin}
-            className="w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition flex items-center justify-center space-x-3"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-            <span>Đăng nhập với Google</span>
-          </button>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input
+                type="text"
+                placeholder="Tài khoản"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition text-left"
+                required
+              />
+            </div>
+            <div>
+              <input
+                type="password"
+                placeholder="Mật khẩu"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition text-left"
+                required
+              />
+            </div>
+            <button 
+              type="submit"
+              className="w-full bg-[#c8102e] text-white font-bold py-3 rounded-xl hover:bg-red-700 transition shadow-md"
+            >
+              Đăng nhập
+            </button>
+          </form>
         </div>
       </div>
     );
   }
 
-  // Check if user is admin (tuan303@gmail.com)
-  if (user.email !== 'tuan303@gmail.com') {
+  // Check if user is admin
+  if (user.email !== 'tuan303@gmail.com' && user.email !== 'admin_nshm@nshm.edu.vn') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-gray-100">

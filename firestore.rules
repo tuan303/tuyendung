@@ -27,7 +27,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && request.auth.token.email == "tuan303@gmail.com" && request.auth.token.email_verified == true;
+      return isAuthenticated() && (
+        (request.auth.token.email == "tuan303@gmail.com" && request.auth.token.email_verified == true) ||
+        request.auth.token.email == "admin_nshm@nshm.edu.vn"
+      );
     }
 
     function isDocOwner() {
