@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "Job": {
+      "title": "Job Posting",
+      "description": "A job posting for the school",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Vị trí tuyển dụng"
+        },
+        "description": {
+          "type": "string",
+          "description": "Mô tả công việc"
+        },
+        "requirements": {
+          "type": "string",
+          "description": "Yêu cầu ứng viên"
+        },
+        "deadline": {
+          "type": "string",
+          "description": "Hạn nộp hồ sơ (dd/mm/yy)"
+        },
+        "jdUrl": {
+          "type": "string",
+          "description": "Đính kèm JD (URL)"
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "Thời gian tạo để sắp xếp mới nhất lên đầu"
+        },
+        "authorUid": {
+          "type": "string",
+          "description": "ID của người tạo (admin)"
+        }
+      },
+      "required": ["title", "description", "requirements", "deadline", "createdAt", "authorUid"]
+    }
+  },
+  "firestore": {
+    "jobs/{jobId}": {
+      "schema": {
+        "$ref": "#/entities/Job"
+      },
+      "description": "Collection of job postings"
+    }
+  }
+}

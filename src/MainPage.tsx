@@ -1,0 +1,393 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
+  CheckCircle2, Upload, ChevronDown, Facebook, Youtube 
+} from 'lucide-react';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from './firebase';
+
+interface Job {
+  id: string;
+  title: string;
+  description: string;
+  requirements: string;
+  deadline: string;
+  jdUrl?: string;
+  createdAt: any;
+  authorUid: string;
+}
+
+export default function MainPage() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const jobsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Job[];
+      setJobs(jobsData);
+    }, (error) => {
+      console.error("Error fetching jobs:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+      {/* Top Bar */}
+      <div className="bg-[#c8102e] text-white py-2 px-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm">
+          <div className="flex items-center space-x-3 mb-3 md:mb-0">
+            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0">
+              <span className="text-[#c8102e] font-bold text-xs">NS</span>
+            </div>
+            <div>
+              <div className="font-bold leading-none tracking-wide">NGÔI SAO HOÀNG MAI</div>
+              <div className="text-[10px] text-white/90 uppercase mt-0.5">Tiểu học • THCS • THPT</div>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 text-xs font-medium">
+            <div className="flex items-center space-x-2">
+              <MapPin className="w-4 h-4" />
+              <span>Địa chỉ: Lô TH & PT KĐT Kim Văn - Kim Lũ, Hà Nội</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Phone className="w-4 h-4" />
+              <span>Hotline: 1900 888 689 ext: 3</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Mail className="w-4 h-4" />
+              <span>Email: tuyendung@hoangmaistarschool.edu.vn</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <div 
+        className="relative h-[450px] bg-cover bg-center" 
+        style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop)' }}
+      >
+        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-[#0f4c3a] border border-white/30 p-10 rounded-xl text-center max-w-2xl w-full mx-4 shadow-2xl">
+            <h1 className="text-5xl md:text-6xl font-black text-white mb-8 tracking-widest uppercase drop-shadow-md">Tuyển dụng</h1>
+            <div className="inline-flex items-center justify-center space-x-4 bg-black/30 px-6 py-3 rounded-lg border border-white/10">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0">
+                <span className="text-[#0f4c3a] font-bold text-sm">NS</span>
+              </div>
+              <div className="text-left">
+                <div className="text-white font-bold leading-tight tracking-wide">NGÔI SAO HOÀNG MAI</div>
+                <div className="text-white/80 text-xs uppercase mt-0.5">Tiểu học • THCS • THPT</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="max-w-5xl mx-auto -mt-16 relative z-10 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 shadow-2xl rounded-xl overflow-hidden bg-white">
+          <div className="py-8 px-6 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition border-b md:border-b-0 md:border-r border-gray-100 group">
+            <Building2 className="w-8 h-8 text-gray-400 mb-4 group-hover:text-[#c8102e] transition" />
+            <span className="font-bold text-gray-700 uppercase tracking-wide text-sm leading-relaxed">Giới thiệu về<br/>Ngôi Sao Hoàng Mai</span>
+          </div>
+          <div className="bg-[#c8102e] py-8 px-6 text-center flex flex-col items-center justify-center cursor-pointer shadow-inner">
+            <MousePointerClick className="w-8 h-8 text-white mb-4" />
+            <span className="font-bold text-white uppercase tracking-wide text-sm leading-relaxed">Vị trí<br/>Tuyển dụng</span>
+          </div>
+          <div className="py-8 px-6 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition border-t md:border-t-0 md:border-l border-gray-100 group">
+            <FileText className="w-8 h-8 text-gray-400 mb-4 group-hover:text-[#c8102e] transition" />
+            <span className="font-bold text-gray-700 uppercase tracking-wide text-sm leading-relaxed">Tin tức<br/>Sự kiện</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Featured Jobs */}
+      <div className="max-w-6xl mx-auto py-24 px-4">
+        <div className="text-center mb-14">
+          <h2 className="text-3xl font-bold text-[#1a2b4c] uppercase tracking-wide">Việc làm nổi bật</h2>
+          <div className="w-16 h-1 bg-[#c8102e] mx-auto mt-4 rounded-full"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {jobs.length > 0 ? jobs.map((job) => (
+            <div key={job.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group">
+              <div className="w-14 h-14 bg-[#0f4c3a] rounded-xl flex items-center justify-center shrink-0 group-hover:bg-[#c8102e] transition duration-300">
+                <span className="text-white font-bold text-sm">NS</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition">{job.title}</h3>
+                <p className="text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium">NGOI SAO HOANG MAI EDUCATION</p>
+                <div className="text-gray-600 text-sm mb-3 line-clamp-2">{job.description}</div>
+                <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
+                  <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                    <MapPin className="w-3 h-3 mr-1 shrink-0 text-gray-400" />
+                    <span>Hà Nội</span>
+                  </div>
+                  <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                    <span className="font-medium text-[#c8102e]">Hạn nộp: {job.deadline}</span>
+                  </div>
+                  {job.jdUrl && (
+                    <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded" onClick={(e) => e.stopPropagation()}>
+                      <FileText className="w-3 h-3 mr-1" />
+                      <span>Xem JD</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          )) : (
+            <div className="col-span-full text-center text-gray-500 py-10">
+              Hiện tại chưa có vị trí tuyển dụng nào.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* HR Policies */}
+      <div className="max-w-6xl mx-auto py-12 px-4">
+        <div className="text-center mb-20">
+          <h2 className="text-sm font-bold text-[#c8102e] uppercase tracking-[0.2em] mb-3">Chính sách</h2>
+          <h3 className="text-4xl font-black text-[#1a2b4c] uppercase tracking-wide">Nhân sự</h3>
+        </div>
+
+        {/* Policy 1 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center mb-24">
+          <div className="order-2 md:order-1">
+            <div className="flex items-center space-x-5 mb-8">
+              <div className="w-14 h-14 rounded-full bg-[#fdb913] flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-yellow-500/30 shrink-0">01</div>
+              <h4 className="text-2xl font-bold text-[#c8102e] uppercase tracking-wide">Đào tạo và phát triển</h4>
+            </div>
+            <p className="text-gray-600 leading-relaxed text-lg">
+              Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.
+            </p>
+          </div>
+          <div className="order-1 md:order-2 rounded-3xl overflow-hidden shadow-2xl h-[400px] md:h-[500px]">
+            <img src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop" alt="Training" className="w-full h-full object-cover hover:scale-105 transition duration-700" />
+          </div>
+        </div>
+
+        {/* Policy 2 */}
+        <div className="bg-[#c8102e] rounded-[2.5rem] overflow-hidden mb-24 shadow-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="h-[400px] md:h-auto relative overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1577415124269-fc1140a69e91?q=80&w=1964&auto=format&fit=crop" alt="Environment" className="w-full h-full object-cover absolute inset-0 hover:scale-105 transition duration-700" />
+              <div className="absolute inset-0 bg-[#c8102e]/20 mix-blend-multiply"></div>
+            </div>
+            <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center">
+              <div className="flex items-center space-x-5 mb-8">
+                <div className="w-14 h-14 rounded-full bg-[#fdb913] flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-yellow-500/30 shrink-0">02</div>
+                <h4 className="text-2xl font-bold text-white uppercase tracking-wide">Môi trường làm việc</h4>
+              </div>
+              <p className="text-white/95 leading-relaxed font-medium italic mb-8 text-lg">
+                "Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: <span className="font-bold">Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng</span>."
+              </p>
+              <p className="text-white/80 leading-relaxed">
+                Bên cạnh đó, với cơ sở vật chất, trang thiết bị hiện đại và nền tảng công nghệ tiên tiến cũng là những ưu thế giúp Giáo viên và Học sinh Trường Ngôi Sao Hoàng Mai tối ưu hiệu quả dạy và học.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Policy 3 */}
+        <div className="bg-[#1a2b4c] rounded-[2.5rem] overflow-hidden mb-24 shadow-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center">
+              <div className="flex items-center space-x-5 mb-10">
+                <div className="w-14 h-14 rounded-full bg-[#fdb913] flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-yellow-500/30 shrink-0">03</div>
+                <h4 className="text-2xl font-bold text-white uppercase tracking-wide">Chính sách phúc lợi</h4>
+              </div>
+              <ul className="space-y-6">
+                {[
+                  'Mức lương và quyền lợi cạnh tranh tùy thuộc vào kinh nghiệm và năng lực.',
+                  'Tài trợ ăn sáng, ăn trưa tại trường, tham gia BHXH, BHYT... và bảo hiểm chăm sóc sức khỏe.',
+                  'Hỗ trợ học phí cho con em CBNV lên tới 100%.',
+                  'Thưởng các ngày Lễ tết, thưởng năm học, tham quan nghỉ mát hàng năm.'
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-start space-x-4">
+                    <CheckCircle2 className="w-6 h-6 text-[#fdb913] shrink-0 mt-0.5" />
+                    <span className="text-white/90 leading-relaxed text-lg">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="h-[400px] md:h-auto p-8 md:p-12 flex items-center justify-center bg-white/5 relative">
+              <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop" alt="Welfare" className="w-full h-full object-cover rounded-2xl shadow-2xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Application Form & Instructions */}
+      <div className="max-w-6xl mx-auto px-4 mb-32">
+        <div className="flex flex-col lg:flex-row rounded-[2.5rem] overflow-hidden shadow-2xl">
+          {/* Left Form */}
+          <div className="w-full lg:w-5/12 bg-[#c8102e] p-10 md:p-14">
+            <h3 className="text-3xl font-black text-white mb-3 uppercase tracking-wide">Ứng tuyển online</h3>
+            <p className="text-white/80 mb-10 text-sm font-medium">Yêu cầu ứng viên điền đúng và đủ thông tin theo mẫu:</p>
+            
+            <form className="space-y-6">
+              <div>
+                <input type="text" placeholder="Họ và tên *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <input type="text" placeholder="Ngày sinh *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
+                <input type="tel" placeholder="Điện thoại *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
+              </div>
+              <div>
+                <input type="email" placeholder="Email *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
+              </div>
+              <div className="relative">
+                <select className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg appearance-none cursor-pointer" required>
+                  <option value="" disabled selected>Vị trí ứng tuyển *</option>
+                  <option value="gv-toan" className="text-gray-800">Giáo viên Toán</option>
+                  <option value="gv-van" className="text-gray-800">Giáo viên Ngữ Văn</option>
+                  <option value="gv-anh" className="text-gray-800">Giáo viên Tiếng Anh</option>
+                  <option value="nv-vp" className="text-gray-800">Nhân viên Văn phòng</option>
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60 pointer-events-none" />
+              </div>
+              
+              <div className="pt-4">
+                <label className="block text-white/90 text-sm font-medium mb-3">Đính kèm CV (PDF, DOCX) *</label>
+                <div className="border-2 border-dashed border-white/30 rounded-xl p-6 text-center hover:bg-white/5 transition cursor-pointer group">
+                  <Upload className="w-8 h-8 text-white/60 mx-auto mb-3 group-hover:text-white transition" />
+                  <p className="text-white/80 text-sm group-hover:text-white transition">Kéo thả file hoặc <span className="font-bold underline">chọn file</span></p>
+                </div>
+              </div>
+
+              <button type="submit" className="w-full bg-white text-[#c8102e] font-bold uppercase tracking-widest py-4 rounded-xl mt-8 hover:bg-gray-100 transition shadow-lg hover:shadow-xl active:scale-[0.98]">
+                Nộp hồ sơ
+              </button>
+            </form>
+          </div>
+
+          {/* Right Instructions */}
+          <div className="w-full lg:w-7/12 bg-[#0f4c3a] p-10 md:p-14 lg:p-20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+            
+            <div className="relative z-10">
+              <h3 className="text-3xl font-black text-white mb-12 uppercase tracking-wide">Hướng dẫn nộp hồ sơ</h3>
+              
+              <div className="space-y-10">
+                <div className="flex items-start space-x-6">
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 border border-white/20">1</div>
+                  <div>
+                    <h4 className="text-xl font-bold text-white mb-2">Nộp trực tiếp</h4>
+                    <p className="text-white/80 leading-relaxed">
+                      Phòng Nhân sự - Trường Ngôi Sao Hoàng Mai<br/>
+                      Lô TH & PT KĐT Kim Văn - Kim Lũ, P. Đại Kim, Q. Hoàng Mai, Hà Nội
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-6">
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 border border-white/20">2</div>
+                  <div>
+                    <h4 className="text-xl font-bold text-white mb-2">Nộp qua Email</h4>
+                    <p className="text-white/80 leading-relaxed mb-2">
+                      Gửi CV và Đơn ứng tuyển về địa chỉ email:
+                    </p>
+                    <a href="mailto:tuyendung@hoangmaistarschool.edu.vn" className="inline-block bg-[#c8102e] text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition shadow-md">
+                      tuyendung@hoangmaistarschool.edu.vn
+                    </a>
+                    <p className="text-white/60 text-sm mt-3 italic">Tiêu đề email: [Vị trí ứng tuyển] - [Họ và tên]</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-6">
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 border border-white/20">3</div>
+                  <div>
+                    <h4 className="text-xl font-bold text-white mb-2">Ứng tuyển trực tuyến</h4>
+                    <p className="text-white/80 leading-relaxed">
+                      Điền đầy đủ thông tin vào form ứng tuyển bên cạnh và đính kèm CV của bạn. Chúng tôi sẽ liên hệ lại trong thời gian sớm nhất.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-[#1a2b4c] text-white pt-20 pb-10 border-t-4 border-[#c8102e]">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+            <div className="col-span-1 lg:col-span-2">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0">
+                  <span className="text-[#c8102e] font-black text-lg">NS</span>
+                </div>
+                <div>
+                  <div className="font-black text-xl tracking-wider">NGÔI SAO HOÀNG MAI</div>
+                  <div className="text-white/70 text-xs uppercase tracking-widest mt-1">Hệ thống giáo dục</div>
+                </div>
+              </div>
+              <p className="text-white/70 leading-relaxed mb-8 max-w-md">
+                Ngôi Sao Hoàng Mai tự hào là môi trường giáo dục tiên tiến, nơi ươm mầm tài năng và phát triển toàn diện cho học sinh.
+              </p>
+              <div className="flex space-x-4">
+                <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#c8102e] transition">
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#c8102e] transition">
+                  <Youtube className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-lg mb-6 uppercase tracking-wider relative inline-block">
+                Liên kết
+                <div className="absolute -bottom-2 left-0 w-1/2 h-1 bg-[#c8102e] rounded-full"></div>
+              </h4>
+              <ul className="space-y-4 text-white/70">
+                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Trang chủ</a></li>
+                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Giới thiệu</a></li>
+                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Tuyển sinh</a></li>
+                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Tuyển dụng</a></li>
+                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Liên hệ</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-lg mb-6 uppercase tracking-wider relative inline-block">
+                Liên hệ
+                <div className="absolute -bottom-2 left-0 w-1/2 h-1 bg-[#c8102e] rounded-full"></div>
+              </h4>
+              <ul className="space-y-4 text-white/70">
+                <li className="flex items-start space-x-3">
+                  <MapPin className="w-5 h-5 shrink-0 text-[#c8102e] mt-0.5" />
+                  <span>Lô TH & PT KĐT Kim Văn - Kim Lũ, P. Đại Kim, Q. Hoàng Mai, Hà Nội</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Phone className="w-5 h-5 shrink-0 text-[#c8102e]" />
+                  <span>1900 888 689 ext: 3</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Mail className="w-5 h-5 shrink-0 text-[#c8102e]" />
+                  <span>tuyendung@hoangmaistarschool.edu.vn</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-white/50 text-sm">
+            <p>&copy; 2026 Ngôi Sao Hoàng Mai. All rights reserved.</p>
+            <div className="flex space-x-6 mt-4 md:mt-0">
+              <a href="#" className="hover:text-white transition">Điều khoản</a>
+              <a href="#" className="hover:text-white transition">Bảo mật</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

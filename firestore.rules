@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: jobs
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required, length < 100) - Vị trí tuyển dụng
+    //   - description: string (required, length < 5000) - Mô tả công việc
+    //   - requirements: string (required, length < 5000) - Yêu cầu ứng viên
+    //   - deadline: string (required, length < 20) - Hạn nộp hồ sơ (dd/mm/yy)
+    //   - jdUrl: string (optional, length < 500) - Đính kèm JD (URL)
+    //   - createdAt: timestamp (required) - Thời gian tạo
+    //   - authorUid: string (required) - ID của người tạo (admin)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.email == "tuan303@gmail.com" && request.auth.token.email_verified == true;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.authorUid;
+    }
+
+    function uidUnchanged() {
+      return !('authorUid' in request.resource.data) || request.resource.data.authorUid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('authorUid' in request.resource.data) || request.resource.data.authorUid == resource.data.authorUid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidJob(data) {
+      return data.keys().hasOnly(['title', 'description', 'requirements', 'deadline', 'jdUrl', 'createdAt', 'authorUid']) &&
+             validStringLength('title', 1, 100) &&
+             validStringLength('description', 1, 5000) &&
+             validStringLength('requirements', 1, 5000) &&
+             validStringLength('deadline', 1, 20) &&
+             isValidOptionalString('jdUrl', 0, 500) &&
+             data.createdAt is timestamp &&
+             data.authorUid is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow create: if isAdmin() && hasRequiredFields(['title', 'description', 'requirements', 'deadline', 'createdAt', 'authorUid']) && isValidJob(request.resource.data) && uidUnchanged();
+      allow update: if isAdmin() && isValidJob(request.resource.data) && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+  }
+}
