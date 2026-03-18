@@ -32,6 +32,10 @@
         "authorUid": {
           "type": "string",
           "description": "ID của người tạo (admin)"
+        },
+        "isHidden": {
+          "type": "boolean",
+          "description": "Trạng thái ẩn/hiện"
         }
       },
       "required": ["title", "description", "requirements", "deadline", "createdAt", "authorUid"]

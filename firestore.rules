@@ -15,6 +15,7 @@ service cloud.firestore {
     //   - jdUrl: string (optional, length < 500) - Đính kèm JD (URL)
     //   - createdAt: timestamp (required) - Thời gian tạo
     //   - authorUid: string (required) - ID của người tạo (admin)
+    //   - isHidden: boolean (optional) - Trạng thái ẩn/hiện
     //
     // ===============================================================
 
@@ -63,15 +64,20 @@ service cloud.firestore {
               request.resource.data[field].size() <= maxLen);
     }
 
+    function isValidOptionalBoolean(field) {
+      return !(field in request.resource.data) || request.resource.data[field] is bool;
+    }
+
     function isValidJob(data) {
-      return data.keys().hasOnly(['title', 'description', 'requirements', 'deadline', 'jdUrl', 'createdAt', 'authorUid']) &&
+      return data.keys().hasOnly(['title', 'description', 'requirements', 'deadline', 'jdUrl', 'createdAt', 'authorUid', 'isHidden']) &&
              validStringLength('title', 1, 100) &&
              validStringLength('description', 1, 5000) &&
              validStringLength('requirements', 1, 5000) &&
              validStringLength('deadline', 1, 20) &&
              isValidOptionalString('jdUrl', 0, 500) &&
              data.createdAt is timestamp &&
-             data.authorUid is string;
+             data.authorUid is string &&
+             isValidOptionalBoolean('isHidden');
     }
 
     function isValidSiteContent(data) {

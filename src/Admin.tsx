@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate } from 'lucide-react';
+import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff } from 'lucide-react';
 import SiteContentAdmin from './SiteContentAdmin';
 
 interface Job {
@@ -14,22 +14,35 @@ interface Job {
   jdUrl?: string;
   createdAt: any;
   authorUid: string;
+  isHidden?: boolean;
 }
 
-const JobCard = ({ job, onDelete }: { job: Job, onDelete: (id: string) => void }) => {
+const JobCard = ({ job, onDelete, onToggleHide }: { job: Job, onDelete: (id: string) => void, onToggleHide: (id: string, isHidden: boolean) => void }) => {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition group relative">
-      <button 
-        onClick={() => onDelete(job.id)}
-        className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition p-2 hover:bg-red-50 rounded-lg"
-        title="Xóa"
-      >
-        <Trash2 className="w-5 h-5" />
-      </button>
+    <div className={`border rounded-xl p-5 transition group relative ${job.isHidden ? 'border-gray-200 bg-gray-50 opacity-75' : 'border-gray-200 hover:border-gray-300'}`}>
+      <div className="absolute top-4 right-4 flex space-x-2">
+        <button 
+          onClick={() => onToggleHide(job.id, !!job.isHidden)}
+          className={`transition p-2 rounded-lg ${job.isHidden ? 'text-blue-500 hover:bg-blue-50' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'}`}
+          title={job.isHidden ? "Hiện" : "Ẩn"}
+        >
+          {job.isHidden ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+        </button>
+        <button 
+          onClick={() => onDelete(job.id)}
+          className="text-gray-400 hover:text-red-500 transition p-2 hover:bg-red-50 rounded-lg"
+          title="Xóa"
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
+      </div>
       
-      <h3 className="font-bold text-lg text-[#1a2b4c] mb-2 pr-12">{job.title}</h3>
+      <h3 className="font-bold text-lg text-[#1a2b4c] mb-2 pr-24 flex items-center">
+        {job.title}
+        {job.isHidden && <span className="ml-3 text-xs font-semibold bg-gray-200 text-gray-600 px-2 py-1 rounded-md">Đã ẩn</span>}
+      </h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
         <div>
@@ -175,6 +188,17 @@ export default function Admin() {
         console.error("Error deleting job:", error);
         alert("Lỗi khi xóa: " + error.message);
       }
+    }
+  };
+
+  const handleToggleHide = async (id: string, currentIsHidden: boolean) => {
+    try {
+      await updateDoc(doc(db, 'jobs', id), {
+        isHidden: !currentIsHidden
+      });
+    } catch (error: any) {
+      console.error("Error toggling job visibility:", error);
+      alert("Lỗi khi cập nhật trạng thái: " + error.message);
     }
   };
 
@@ -387,7 +411,7 @@ export default function Admin() {
                 </div>
               ) : (
                 jobs.map((job) => (
-                  <JobCard key={job.id} job={job} onDelete={handleDelete} />
+                  <JobCard key={job.id} job={job} onDelete={handleDelete} onToggleHide={handleToggleHide} />
                 ))
               )}
             </div>

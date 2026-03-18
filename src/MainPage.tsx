@@ -17,6 +17,7 @@ interface Job {
   jdUrl?: string;
   createdAt: any;
   authorUid: string;
+  isHidden?: boolean;
 }
 
 export default function MainPage() {
@@ -53,7 +54,7 @@ export default function MainPage() {
         id: doc.id,
         ...doc.data()
       })) as Job[];
-      setJobs(jobsData);
+      setJobs(jobsData.filter(job => !job.isHidden));
     }, (error) => {
       console.error("Error fetching jobs:", error);
     });
