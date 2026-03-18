@@ -223,7 +223,8 @@ export default function Admin() {
   }
 
   // Check if user is admin
-  if (user.email !== 'tuan303@gmail.com' && user.email !== 'admin_nshm@nshm.edu.vn') {
+  const allowedEmails = ['tuan303@gmail.com', 'admin_nshm@nshm.edu.vn', 'tuyendung@hoangmaistarschool.edu.vn'];
+  if (!allowedEmails.includes(user.email)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-gray-100">
