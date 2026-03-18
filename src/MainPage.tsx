@@ -75,10 +75,10 @@ export default function MainPage() {
         <div className="absolute inset-0 bg-black/40"></div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-5xl w-full mx-4 flex flex-col items-center">
-            <h1 className="text-5xl sm:text-6xl md:text-[100px] leading-none font-black text-[#D31145] mb-4 sm:mb-6 tracking-widest uppercase drop-shadow-[0_4px_8px_rgba(255,255,255,0.6)]">
+            <h1 className="text-5xl sm:text-6xl md:text-[100px] leading-none font-black text-[#D31145] mb-4 sm:mb-6 tracking-widest uppercase drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)]">
               Tuyển dụng
             </h1>
-            <div className="bg-[#213363] text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-[38px] font-black tracking-widest uppercase shadow-2xl text-center">
+            <div className="bg-[#213363] text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 rounded-xl sm:rounded-2xl text-xl sm:text-2xl md:text-[44px] font-black tracking-widest uppercase shadow-2xl text-center">
               Trường Ngôi Sao Hoàng Mai
             </div>
           </div>
