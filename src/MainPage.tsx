@@ -50,17 +50,17 @@ export default function MainPage() {
             </div>
           </div>
           
-          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 text-xs font-medium">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-8 text-xs font-medium">
             <div className="flex items-center space-x-2">
-              <MapPin className="w-4 h-4" />
-              <span>Địa chỉ: Lô TH & PT KĐT Kim Văn - Kim Lũ, Hà Nội</span>
+              <MapPin className="w-4 h-4 shrink-0" />
+              <span className="text-center md:text-left">Địa chỉ: Lô TH & PT KĐT Kim Văn - Kim Lũ, Hà Nội</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Phone className="w-4 h-4" />
+              <Phone className="w-4 h-4 shrink-0" />
               <span>Hotline: 1900 888 689 ext: 3</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Mail className="w-4 h-4" />
+              <Mail className="w-4 h-4 shrink-0" />
               <span>Email: tuyendung@hoangmaistarschool.edu.vn</span>
             </div>
           </div>
@@ -70,20 +70,16 @@ export default function MainPage() {
       {/* Hero Section */}
       <div 
         className="relative h-[450px] bg-cover bg-center" 
-        style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop)' }}
+        style={{ backgroundImage: 'url(https://hoangmaistarschool.edu.vn/thongtin/nen.jpg)' }}
       >
         <div className="absolute inset-0 bg-black/40"></div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-[#0f4c3a] border border-white/30 p-10 rounded-xl text-center max-w-2xl w-full mx-4 shadow-2xl">
-            <h1 className="text-5xl md:text-6xl font-black text-white mb-8 tracking-widest uppercase drop-shadow-md">Tuyển dụng</h1>
-            <div className="inline-flex items-center justify-center space-x-4 bg-black/30 px-6 py-3 rounded-lg border border-white/10">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0">
-                <span className="text-[#0f4c3a] font-bold text-sm">NS</span>
-              </div>
-              <div className="text-left">
-                <div className="text-white font-bold leading-tight tracking-wide">NGÔI SAO HOÀNG MAI</div>
-                <div className="text-white/80 text-xs uppercase mt-0.5">Tiểu học • THCS • THPT</div>
-              </div>
+          <div className="text-center max-w-5xl w-full mx-4 flex flex-col items-center">
+            <h1 className="text-5xl sm:text-6xl md:text-[100px] leading-none font-black text-[#D31145] mb-4 sm:mb-6 tracking-widest uppercase drop-shadow-[0_4px_8px_rgba(255,255,255,0.6)]">
+              Tuyển dụng
+            </h1>
+            <div className="bg-[#213363] text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-[38px] font-black tracking-widest uppercase shadow-2xl text-center">
+              Trường Ngôi Sao Hoàng Mai
             </div>
           </div>
         </div>
@@ -92,18 +88,18 @@ export default function MainPage() {
       {/* Navigation Tabs */}
       <div className="max-w-5xl mx-auto -mt-16 relative z-10 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 shadow-2xl rounded-xl overflow-hidden bg-white">
-          <div className="py-8 px-6 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition border-b md:border-b-0 md:border-r border-gray-100 group">
+          <a href="https://hoangmaistarschool.edu.vn/thongtin/Profile.pdf" target="_blank" rel="noreferrer" className="py-8 px-6 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition border-b md:border-b-0 md:border-r border-gray-100 group">
             <Building2 className="w-8 h-8 text-gray-400 mb-4 group-hover:text-[#c8102e] transition" />
             <span className="font-bold text-gray-700 uppercase tracking-wide text-sm leading-relaxed">Giới thiệu về<br/>Ngôi Sao Hoàng Mai</span>
-          </div>
+          </a>
           <div className="bg-[#c8102e] py-8 px-6 text-center flex flex-col items-center justify-center cursor-pointer shadow-inner">
             <MousePointerClick className="w-8 h-8 text-white mb-4" />
             <span className="font-bold text-white uppercase tracking-wide text-sm leading-relaxed">Vị trí<br/>Tuyển dụng</span>
           </div>
-          <div className="py-8 px-6 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition border-t md:border-t-0 md:border-l border-gray-100 group">
+          <a href="https://hoangmaistarschool.edu.vn/blog" target="_blank" rel="noreferrer" className="py-8 px-6 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition border-t md:border-t-0 md:border-l border-gray-100 group">
             <FileText className="w-8 h-8 text-gray-400 mb-4 group-hover:text-[#c8102e] transition" />
             <span className="font-bold text-gray-700 uppercase tracking-wide text-sm leading-relaxed">Tin tức<br/>Sự kiện</span>
-          </div>
+          </a>
         </div>
       </div>
 
@@ -227,15 +223,15 @@ export default function MainPage() {
       <div className="max-w-6xl mx-auto px-4 mb-32">
         <div className="flex flex-col lg:flex-row rounded-[2.5rem] overflow-hidden shadow-2xl">
           {/* Left Form */}
-          <div className="w-full lg:w-5/12 bg-[#c8102e] p-10 md:p-14">
-            <h3 className="text-3xl font-black text-white mb-3 uppercase tracking-wide">Ứng tuyển online</h3>
+          <div className="w-full lg:w-5/12 bg-[#c8102e] p-6 sm:p-10 md:p-14">
+            <h3 className="text-2xl sm:text-3xl font-black text-white mb-3 uppercase tracking-wide">Ứng tuyển online</h3>
             <p className="text-white/80 mb-10 text-sm font-medium">Yêu cầu ứng viên điền đúng và đủ thông tin theo mẫu:</p>
             
             <form className="space-y-6">
               <div>
                 <input type="text" placeholder="Họ và tên *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
               </div>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <input type="text" placeholder="Ngày sinh *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
                 <input type="tel" placeholder="Điện thoại *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
               </div>
@@ -268,44 +264,44 @@ export default function MainPage() {
           </div>
 
           {/* Right Instructions */}
-          <div className="w-full lg:w-7/12 bg-[#0f4c3a] p-10 md:p-14 lg:p-20 relative overflow-hidden">
+          <div className="w-full lg:w-7/12 bg-[#0f4c3a] p-6 sm:p-10 md:p-14 lg:p-20 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
             
             <div className="relative z-10">
-              <h3 className="text-3xl font-black text-white mb-12 uppercase tracking-wide">Hướng dẫn nộp hồ sơ</h3>
+              <h3 className="text-2xl sm:text-3xl font-black text-white mb-8 sm:mb-12 uppercase tracking-wide">Hướng dẫn nộp hồ sơ</h3>
               
-              <div className="space-y-10">
-                <div className="flex items-start space-x-6">
-                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 border border-white/20">1</div>
+              <div className="space-y-8 sm:space-y-10">
+                <div className="flex items-start space-x-4 sm:space-x-6">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-lg sm:text-xl shrink-0 border border-white/20">1</div>
                   <div>
-                    <h4 className="text-xl font-bold text-white mb-2">Nộp trực tiếp</h4>
-                    <p className="text-white/80 leading-relaxed">
+                    <h4 className="text-lg sm:text-xl font-bold text-white mb-2">Nộp trực tiếp</h4>
+                    <p className="text-white/80 leading-relaxed text-sm sm:text-base">
                       Phòng Nhân sự - Trường Ngôi Sao Hoàng Mai<br/>
                       Lô TH & PT KĐT Kim Văn - Kim Lũ, P. Đại Kim, Q. Hoàng Mai, Hà Nội
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-6">
-                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 border border-white/20">2</div>
-                  <div>
-                    <h4 className="text-xl font-bold text-white mb-2">Nộp qua Email</h4>
-                    <p className="text-white/80 leading-relaxed mb-2">
+                <div className="flex items-start space-x-4 sm:space-x-6">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-lg sm:text-xl shrink-0 border border-white/20">2</div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-lg sm:text-xl font-bold text-white mb-2">Nộp qua Email</h4>
+                    <p className="text-white/80 leading-relaxed mb-2 text-sm sm:text-base">
                       Gửi CV và Đơn ứng tuyển về địa chỉ email:
                     </p>
-                    <a href="mailto:tuyendung@hoangmaistarschool.edu.vn" className="inline-block bg-[#c8102e] text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition shadow-md">
+                    <a href="mailto:tuyendung@hoangmaistarschool.edu.vn" className="inline-block bg-[#c8102e] text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium hover:bg-red-700 transition shadow-md break-all text-sm sm:text-base max-w-full">
                       tuyendung@hoangmaistarschool.edu.vn
                     </a>
-                    <p className="text-white/60 text-sm mt-3 italic">Tiêu đề email: [Vị trí ứng tuyển] - [Họ và tên]</p>
+                    <p className="text-white/60 text-xs sm:text-sm mt-3 italic">Tiêu đề email: [Vị trí ứng tuyển] - [Họ và tên]</p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-6">
-                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 border border-white/20">3</div>
+                <div className="flex items-start space-x-4 sm:space-x-6">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-lg sm:text-xl shrink-0 border border-white/20">3</div>
                   <div>
-                    <h4 className="text-xl font-bold text-white mb-2">Ứng tuyển trực tuyến</h4>
-                    <p className="text-white/80 leading-relaxed">
+                    <h4 className="text-lg sm:text-xl font-bold text-white mb-2">Ứng tuyển trực tuyến</h4>
+                    <p className="text-white/80 leading-relaxed text-sm sm:text-base">
                       Điền đầy đủ thông tin vào form ứng tuyển bên cạnh và đính kèm CV của bạn. Chúng tôi sẽ liên hệ lại trong thời gian sớm nhất.
                     </p>
                   </div>
