@@ -5,7 +5,8 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
-import { db } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from './firebase';
 import { defaultContent } from './SiteContentAdmin';
 
 interface Job {
@@ -26,6 +27,15 @@ export default function MainPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [siteContent, setSiteContent] = useState(defaultContent);
 
+  // Form state
+  const [name, setName] = useState('');
+  const [dob, setDob] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [position, setPosition] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const itemsPerPage = 4;
   const totalPages = Math.ceil(jobs.length / itemsPerPage);
 
@@ -43,6 +53,75 @@ export default function MainPage() {
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + totalPages) % totalPages);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (validTypes.includes(selectedFile.type)) {
+        setFile(selectedFile);
+      } else {
+        alert("Vui lòng chọn file PDF hoặc DOCX.");
+      }
+    }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !dob || !phone || !email || !position || !file) {
+      alert("Vui lòng điền đầy đủ thông tin và đính kèm CV.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let downloadURL = '';
+      try {
+        // 1. Upload file to Firebase Storage
+        const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
+        await uploadBytes(fileRef, file);
+        downloadURL = await getDownloadURL(fileRef);
+      } catch (uploadError) {
+        console.warn("Could not upload file to storage, falling back to manual attachment:", uploadError);
+        // If upload fails (e.g. no storage rules), we continue but ask user to attach manually
+      }
+
+      // 2. Prepare email content
+      const subject = `[Ứng tuyển] ${position} - ${name}`;
+      const body = `
+Họ và tên: ${name}
+Ngày sinh: ${dob}
+Điện thoại: ${phone}
+Email: ${email}
+Vị trí ứng tuyển: ${position}
+
+${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm file CV của bạn vào email này trước khi gửi)`}
+      `.trim();
+
+      // 3. Open mailto link
+      const mailtoLink = `mailto:tuyendung@hoangmaistarschool.edu.vn?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailtoLink;
+
+      // 4. Reset form
+      setName('');
+      setDob('');
+      setPhone('');
+      setEmail('');
+      setPosition('');
+      setFile(null);
+      
+      if (downloadURL) {
+        alert("Cảm ơn bạn đã ứng tuyển! Vui lòng kiểm tra ứng dụng email của bạn để gửi hồ sơ.");
+      } else {
+        alert("Cảm ơn bạn đã ứng tuyển! Vui lòng đính kèm file CV của bạn vào email vừa được mở ra trước khi gửi nhé.");
+      }
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      alert("Có lỗi xảy ra khi gửi hồ sơ. Vui lòng thử lại sau.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const visibleJobs = jobs.slice(currentSlide * itemsPerPage, (currentSlide + 1) * itemsPerPage);
@@ -315,38 +394,46 @@ export default function MainPage() {
             <h3 className="text-2xl sm:text-3xl font-black text-white mb-3 uppercase tracking-wide">Ứng tuyển online</h3>
             <p className="text-white/80 mb-10 text-sm font-medium">Yêu cầu ứng viên điền đúng và đủ thông tin theo mẫu:</p>
             
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleFormSubmit}>
               <div>
-                <input type="text" placeholder="Họ và tên *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Họ và tên *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <input type="text" placeholder="Ngày sinh *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
-                <input type="tel" placeholder="Điện thoại *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
+                <input type="text" value={dob} onChange={(e) => setDob(e.target.value)} placeholder="Ngày sinh *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Điện thoại *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
               </div>
               <div>
-                <input type="email" placeholder="Email *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg" required />
               </div>
               <div className="relative">
-                <select defaultValue="" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg appearance-none cursor-pointer" required>
+                <select value={position} onChange={(e) => setPosition(e.target.value)} className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition rounded-t-lg appearance-none cursor-pointer" required>
                   <option value="" disabled>Vị trí ứng tuyển *</option>
-                  <option value="gv-toan" className="text-gray-800">Giáo viên Toán</option>
-                  <option value="gv-van" className="text-gray-800">Giáo viên Ngữ Văn</option>
-                  <option value="gv-anh" className="text-gray-800">Giáo viên Tiếng Anh</option>
-                  <option value="nv-vp" className="text-gray-800">Nhân viên Văn phòng</option>
+                  {jobs.map((job) => (
+                    <option key={job.id} value={job.title} className="text-gray-800">{job.title}</option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60 pointer-events-none" />
               </div>
               
-              <div className="pt-4">
+              <div className="pt-4 relative">
                 <label className="block text-white/90 text-sm font-medium mb-3">Đính kèm CV (PDF, DOCX) *</label>
-                <div className="border-2 border-dashed border-white/30 rounded-xl p-6 text-center hover:bg-white/5 transition cursor-pointer group">
+                <div className="border-2 border-dashed border-white/30 rounded-xl p-6 text-center hover:bg-white/5 transition cursor-pointer group relative overflow-hidden">
+                  <input 
+                    type="file" 
+                    accept=".pdf,.docx" 
+                    onChange={handleFileChange} 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    required 
+                  />
                   <Upload className="w-8 h-8 text-white/60 mx-auto mb-3 group-hover:text-white transition" />
-                  <p className="text-white/80 text-sm group-hover:text-white transition">Kéo thả file hoặc <span className="font-bold underline">chọn file</span></p>
+                  <p className="text-white/80 text-sm group-hover:text-white transition">
+                    {file ? <span className="font-bold text-white">{file.name}</span> : <>Kéo thả file hoặc <span className="font-bold underline">chọn file</span></>}
+                  </p>
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-white text-[#c8102e] font-bold uppercase tracking-widest py-4 rounded-xl mt-8 hover:bg-gray-100 transition shadow-lg hover:shadow-xl active:scale-[0.98]">
-                Nộp hồ sơ
+              <button type="submit" disabled={isSubmitting} className={`w-full bg-white text-[#c8102e] font-bold uppercase tracking-widest py-4 rounded-xl mt-8 transition shadow-lg ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-gray-100 hover:shadow-xl active:scale-[0.98]'}`}>
+                {isSubmitting ? 'Đang xử lý...' : 'Nộp hồ sơ'}
               </button>
             </form>
           </div>
