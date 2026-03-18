@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
-  CheckCircle2, Upload, ChevronDown, Facebook, Youtube 
+  CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
@@ -19,6 +19,7 @@ interface Job {
 
 export default function MainPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
@@ -78,7 +79,7 @@ export default function MainPage() {
             <h1 className="text-5xl sm:text-6xl md:text-[100px] leading-none font-black text-[#D31145] mb-4 sm:mb-6 tracking-widest uppercase drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)]">
               Tuyển dụng
             </h1>
-            <div className="bg-[#213363] text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 rounded-xl sm:rounded-2xl text-xl sm:text-2xl md:text-[44px] font-black tracking-widest uppercase shadow-2xl text-center">
+            <div className="bg-[#213363] text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 rounded-xl sm:rounded-2xl text-lg sm:text-xl md:text-[38px] font-black tracking-widest uppercase shadow-2xl text-center">
               Trường Ngôi Sao Hoàng Mai
             </div>
           </div>
@@ -112,28 +113,32 @@ export default function MainPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {jobs.length > 0 ? jobs.map((job) => (
-            <div key={job.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group">
+            <div key={job.id} onClick={() => setSelectedJob(job)} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group">
               <div className="w-14 h-14 bg-[#0f4c3a] rounded-xl flex items-center justify-center shrink-0 group-hover:bg-[#c8102e] transition duration-300">
                 <span className="text-white font-bold text-sm">NS</span>
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition">{job.title}</h3>
-                <p className="text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium">NGOI SAO HOANG MAI EDUCATION</p>
+                <p className="text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
                 <div className="text-gray-600 text-sm mb-3 line-clamp-2">{job.description}</div>
-                <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
-                  <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
-                    <MapPin className="w-3 h-3 mr-1 shrink-0 text-gray-400" />
-                    <span>Hà Nội</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
+                    <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                      <MapPin className="w-3 h-3 mr-1 shrink-0 text-gray-400" />
+                      <span>KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
+                    </div>
                   </div>
-                  <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
-                    <span className="font-medium text-[#c8102e]">Hạn nộp: {job.deadline}</span>
+                  <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
+                    <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                      <span className="font-medium text-[#c8102e]">Hạn nộp: {job.deadline}</span>
+                    </div>
+                    {job.jdUrl && (
+                      <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded" onClick={(e) => e.stopPropagation()}>
+                        <FileText className="w-3 h-3 mr-1" />
+                        <span>Xem JD</span>
+                      </a>
+                    )}
                   </div>
-                  {job.jdUrl && (
-                    <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded" onClick={(e) => e.stopPropagation()}>
-                      <FileText className="w-3 h-3 mr-1" />
-                      <span>Xem JD</span>
-                    </a>
-                  )}
                 </div>
               </div>
             </div>
@@ -384,6 +389,84 @@ export default function MainPage() {
           </div>
         </div>
       </footer>
+
+      {/* Job Details Modal */}
+      {selectedJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedJob(null)}>
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-start sticky top-0 bg-white z-10">
+              <div className="flex items-start space-x-4">
+                <div className="w-14 h-14 bg-[#0f4c3a] rounded-xl flex items-center justify-center shrink-0">
+                  <span className="text-white font-bold text-sm">NS</span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedJob.title}</h2>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded mb-3">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
+                      <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                        <MapPin className="w-3 h-3 mr-1 shrink-0 text-gray-400" />
+                        <span>KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
+                      <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                        <span className="font-medium text-[#c8102e]">Hạn nộp: {selectedJob.deadline}</span>
+                      </div>
+                      {selectedJob.jdUrl && (
+                        <a href={selectedJob.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded">
+                          <FileText className="w-3 h-3 mr-1" />
+                          <span>Xem JD</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedJob(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 md:p-8 space-y-8">
+              <div>
+                <h3 className="text-lg font-bold text-[#1a2b4c] mb-3 uppercase tracking-wide flex items-center">
+                  <div className="w-2 h-6 bg-[#c8102e] rounded-full mr-3"></div>
+                  Mô tả công việc
+                </h3>
+                <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                  {selectedJob.description}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-bold text-[#1a2b4c] mb-3 uppercase tracking-wide flex items-center">
+                  <div className="w-2 h-6 bg-[#fdb913] rounded-full mr-3"></div>
+                  Yêu cầu ứng viên
+                </h3>
+                <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                  {selectedJob.requirements}
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => setSelectedJob(null)}
+                className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-300 transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
