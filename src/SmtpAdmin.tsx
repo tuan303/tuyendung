@@ -81,9 +81,9 @@ export default function SmtpAdmin() {
       });
 
       setMessage({ text: 'Lưu cấu hình thành công!', type: 'success' });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving SMTP settings:", error);
-      setMessage({ text: 'Lỗi khi lưu cấu hình', type: 'error' });
+      setMessage({ text: `Lỗi khi lưu cấu hình: ${error.message || 'Lỗi không xác định'}`, type: 'error' });
     } finally {
       setIsSaving(false);
     }

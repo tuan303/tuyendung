@@ -20,13 +20,13 @@ const firebaseConfig = {
 const clientApp = initializeClientApp(firebaseConfig, "serverApp");
 const clientDb = getClientFirestore(clientApp);
 
-const ENCRYPTION_KEY = process.env.GEMINI_API_KEY ? crypto.createHash('sha256').update(String(process.env.GEMINI_API_KEY)).digest('base64').substring(0, 32) : '12345678901234567890123456789012';
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(String(process.env.GEMINI_API_KEY || '12345678901234567890123456789012')).digest();
 const IV_LENGTH = 16;
 
 function encrypt(text: string) {
   if (!text) return text;
   let iv = crypto.randomBytes(IV_LENGTH);
-  let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+  let cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
   return iv.toString('hex') + ':' + encrypted.toString('hex');
@@ -38,7 +38,7 @@ function decrypt(text: string) {
     let textParts = text.split(':');
     let iv = Buffer.from(textParts.shift()!, 'hex');
     let encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+    let decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
