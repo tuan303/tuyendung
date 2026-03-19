@@ -204,10 +204,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             />
           </a>
           
-          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-8 text-xs font-medium">
+          <div className="flex flex-col items-start md:flex-row md:items-center justify-center gap-3 md:gap-8 text-xs font-medium">
             <div className="flex items-center space-x-2">
               <MapPin className="w-4 h-4 shrink-0" />
-              <span className="text-center md:text-left">Địa chỉ: KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
+              <span className="text-left">Địa chỉ: KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
             </div>
             <div className="flex items-center space-x-2">
               <Phone className="w-4 h-4 shrink-0" />
