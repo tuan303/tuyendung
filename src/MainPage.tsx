@@ -181,7 +181,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
 
   return (
     <div 
-      className={`min-h-screen transition-all duration-500 ${getFontClass(siteContent.fontFamily)}`}
+      className={`min-h-screen transition-all duration-500 pb-[env(safe-area-inset-bottom)] ${getFontClass(siteContent.fontFamily)}`}
       style={{ 
         backgroundColor: siteContent.backgroundColor,
         color: siteContent.textColor,
@@ -190,7 +190,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
     >
       {/* Top Bar */}
       <div 
-        className="text-white py-2 px-4 transition-colors duration-500"
+        className="text-white py-2 px-4 transition-colors duration-500 pt-[max(0.5rem,env(safe-area-inset-top))]"
         style={{ backgroundColor: siteContent.primaryColor }}
       >
         <div className="mx-auto flex flex-col md:flex-row justify-between items-center text-sm" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
@@ -480,17 +480,17 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     <form className="space-y-6" onSubmit={handleFormSubmit}>
                       <div>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Họ và tên *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
+                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Họ và tên *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                        <input type="text" value={dob} onChange={(e) => setDob(e.target.value)} placeholder="Ngày sinh *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
-                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Điện thoại *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
+                        <input type="text" value={dob} onChange={(e) => setDob(e.target.value)} placeholder="Ngày sinh *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
+                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Điện thoại *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
                       </div>
                       <div>
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
                       </div>
                       <div className="relative">
-                        <select value={position} onChange={(e) => setPosition(e.target.value)} className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition appearance-none cursor-pointer" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required>
+                        <select value={position} onChange={(e) => setPosition(e.target.value)} className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition appearance-none cursor-pointer text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required>
                           <option value="" disabled>Vị trí ứng tuyển *</option>
                           {jobs.map((job) => (
                             <option key={job.id} value={job.title} className="text-gray-800">{job.title}</option>
@@ -673,9 +673,9 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
 
       {/* Job Details Modal */}
       {selectedJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedJob(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] bg-black/60 backdrop-blur-sm" onClick={() => setSelectedJob(null)}>
           <div 
-            className="bg-white shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden flex flex-col"
+            className="bg-white shadow-2xl w-full max-w-2xl max-h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] overflow-y-auto overflow-x-hidden flex flex-col"
             style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -710,7 +710,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
               </div>
               <button 
                 onClick={() => setSelectedJob(null)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
+                className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
               >
                 <X className="w-6 h-6" />
               </button>
