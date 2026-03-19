@@ -3,9 +3,50 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import nodemailer from "nodemailer";
 import cors from "cors";
-import fs from "fs/promises";
+import crypto from "crypto";
+import { initializeApp as initializeClientApp } from "firebase/app";
+import { getFirestore as getClientFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
-const SMTP_CONFIG_FILE = path.join(process.cwd(), 'smtp-config.json');
+const firebaseConfig = {
+  apiKey: "AIzaSyBtsC_4jAhCI7YJd8J-SiTYg9t7WH6Mvm8",
+  authDomain: "graphic-pattern-482103-m6.firebaseapp.com",
+  projectId: "graphic-pattern-482103-m6",
+  storageBucket: "graphic-pattern-482103-m6.firebasestorage.app",
+  messagingSenderId: "525030358816",
+  appId: "1:525030358816:web:31f20398d053bee7c3a145",
+  measurementId: "G-B7XB9K7X2N"
+};
+
+const clientApp = initializeClientApp(firebaseConfig, "serverApp");
+const clientDb = getClientFirestore(clientApp);
+
+const ENCRYPTION_KEY = process.env.GEMINI_API_KEY ? crypto.createHash('sha256').update(String(process.env.GEMINI_API_KEY)).digest('base64').substring(0, 32) : '12345678901234567890123456789012';
+const IV_LENGTH = 16;
+
+function encrypt(text: string) {
+  if (!text) return text;
+  let iv = crypto.randomBytes(IV_LENGTH);
+  let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+  let encrypted = cipher.update(text);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
+}
+
+function decrypt(text: string) {
+  if (!text || !text.includes(':')) return text;
+  try {
+    let textParts = text.split(':');
+    let iv = Buffer.from(textParts.shift()!, 'hex');
+    let encryptedText = Buffer.from(textParts.join(':'), 'hex');
+    let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (e) {
+    console.error("Decryption error:", e);
+    return "";
+  }
+}
 
 async function startServer() {
   const app = express();
@@ -14,29 +55,27 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
-  // API route to get SMTP settings (only for admin)
-  app.get("/api/settings/smtp", async (req, res) => {
+  // API route to encrypt password (only for admin)
+  app.post("/api/encrypt-password", async (req, res) => {
     try {
-      const data = await fs.readFile(SMTP_CONFIG_FILE, 'utf-8');
-      res.json(JSON.parse(data));
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        res.json({}); // Return empty if file doesn't exist
-      } else {
-        res.status(500).json({ error: "Failed to read SMTP settings" });
-      }
+      const { password } = req.body;
+      const encryptedPass = encrypt(password);
+      res.json({ encryptedPassword: encryptedPass });
+    } catch (error) {
+      console.error("Failed to encrypt password:", error);
+      res.status(500).json({ error: "Failed to encrypt password" });
     }
   });
 
-  // API route to save SMTP settings (only for admin)
-  app.post("/api/settings/smtp", async (req, res) => {
+  // API route to decrypt password (only for admin)
+  app.post("/api/decrypt-password", async (req, res) => {
     try {
-      const { host, port, user, pass, recipient } = req.body;
-      const config = { host, port, user, pass, recipient };
-      await fs.writeFile(SMTP_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
-      res.json({ success: true });
+      const { encryptedPassword } = req.body;
+      const decryptedPass = decrypt(encryptedPassword);
+      res.json({ decryptedPassword: decryptedPass });
     } catch (error) {
-      res.status(500).json({ error: "Failed to save SMTP settings" });
+      console.error("Failed to decrypt password:", error);
+      res.status(500).json({ error: "Failed to decrypt password" });
     }
   });
 
@@ -49,18 +88,21 @@ async function startServer() {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Fetch SMTP settings from local file
-      let smtpSettings;
-      try {
-        const data = await fs.readFile(SMTP_CONFIG_FILE, 'utf-8');
-        smtpSettings = JSON.parse(data);
-      } catch (error: any) {
+      // Fetch SMTP settings from Firestore
+      const docRef = doc(clientDb, "settings", "smtp");
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
         return res.status(500).json({ error: "SMTP settings not configured" });
       }
+
+      const smtpSettings = docSnap.data();
       
       if (!smtpSettings || !smtpSettings.host || !smtpSettings.port || !smtpSettings.user || !smtpSettings.pass || !smtpSettings.recipient) {
         return res.status(500).json({ error: "Incomplete SMTP settings" });
       }
+      
+      const decryptedPass = decrypt(smtpSettings.pass);
 
       // Create Nodemailer transporter
       const transporter = nodemailer.createTransport({
@@ -69,7 +111,7 @@ async function startServer() {
         secure: parseInt(smtpSettings.port) === 465, // true for 465, false for other ports
         auth: {
           user: smtpSettings.user,
-          pass: smtpSettings.pass,
+          pass: decryptedPass,
         },
       });
 

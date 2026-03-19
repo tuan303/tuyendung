@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Save } from 'lucide-react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 export default function SmtpAdmin() {
   const [host, setHost] = useState('');
@@ -15,14 +17,28 @@ export default function SmtpAdmin() {
     const fetchSmtpSettings = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/settings/smtp');
-        if (response.ok) {
-          const data = await response.json();
+        const docRef = doc(db, 'settings', 'smtp');
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
           setHost(data.host || '');
           setPort(data.port || '');
           setUser(data.user || '');
-          setPass(data.pass || '');
           setRecipient(data.recipient || '');
+          
+          if (data.pass) {
+            // Decrypt password
+            const response = await fetch('/api/decrypt-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ encryptedPassword: data.pass }),
+            });
+            if (response.ok) {
+              const result = await response.json();
+              setPass(result.decryptedPassword || '');
+            }
+          }
         }
       } catch (error) {
         console.error("Error fetching SMTP settings:", error);
@@ -41,25 +57,30 @@ export default function SmtpAdmin() {
     setMessage({ text: '', type: '' });
 
     try {
-      const response = await fetch('/api/settings/smtp', {
+      // Encrypt password
+      const encryptResponse = await fetch('/api/encrypt-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          host,
-          port,
-          user,
-          pass,
-          recipient
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass }),
+      });
+      
+      if (!encryptResponse.ok) {
+        throw new Error('Failed to encrypt password');
+      }
+      
+      const { encryptedPassword } = await encryptResponse.json();
+
+      // Save to Firestore
+      const docRef = doc(db, 'settings', 'smtp');
+      await setDoc(docRef, {
+        host,
+        port,
+        user,
+        pass: encryptedPassword,
+        recipient
       });
 
-      if (response.ok) {
-        setMessage({ text: 'Lưu cấu hình thành công!', type: 'success' });
-      } else {
-        throw new Error('Failed to save');
-      }
+      setMessage({ text: 'Lưu cấu hình thành công!', type: 'success' });
     } catch (error) {
       console.error("Error saving SMTP settings:", error);
       setMessage({ text: 'Lỗi khi lưu cấu hình', type: 'error' });

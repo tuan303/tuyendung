@@ -112,6 +112,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /settings/smtp {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /settings/{docId} {
       allow read, write: if isAdmin();
     }
