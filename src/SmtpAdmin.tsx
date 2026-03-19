@@ -206,9 +206,8 @@ export default function SmtpAdmin() {
             type="button"
             onClick={async () => {
             try {
-              // Test API ping
-              const pingRes = await fetch('/api/ping');
-              const pingStatus = pingRes.status;
+              // Test root ping
+              const pingRes = await fetch('/ping');
               const pingText = await pingRes.text();
               
               // Test API test
@@ -222,7 +221,7 @@ export default function SmtpAdmin() {
                 apiData = `RAW: ${apiText.substring(0, 50)}`;
               }
               
-              alert(`API PING Status: ${pingStatus}\nAPI PING Data: ${pingText}\nAPI Test Status: ${apiStatus}\nAPI Test Data: ${apiData}`);
+              alert(`PING: ${pingText}\nAPI Status: ${apiStatus}\nAPI Data: ${apiData}`);
             } catch (e: any) {
               alert(`API Test Failed: ${e.message}`);
             }
