@@ -79,33 +79,25 @@ async function startServer() {
     res.send("pong");
   });
 
+  const apiRouter = express.Router();
+
   // API ping
-  app.get(["/api/ping", "/api/ping/"], (req, res) => {
+  apiRouter.get(["/ping", "/ping/"], (req, res) => {
     console.log("Hit /api/ping");
     res.json({ message: "api-pong", time: new Date().toISOString() });
   });
 
-  // Debug middleware for API routes
-  app.use("/api", (req, res, next) => {
-    console.log(`[API Request] ${req.method} ${req.url}`);
-    next();
-  });
-
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
   // Test route
-  app.get(["/api/test", "/api/test/"], (req, res) => {
+  apiRouter.get(["/test", "/test/"], (req, res) => {
     res.json({ message: "API is working", time: new Date().toISOString() });
   });
 
   // API route to encrypt password (only for admin)
-  app.get(["/api/encrypt-password", "/api/encrypt-password/"], (req, res) => {
+  apiRouter.get(["/encrypt-password", "/encrypt-password/"], (req, res) => {
     res.json({ message: "Use POST to encrypt" });
   });
 
-  app.post(["/api/encrypt-password", "/api/encrypt-password/"], async (req, res) => {
+  apiRouter.post(["/encrypt-password", "/encrypt-password/"], async (req, res) => {
     console.log("Processing encryption request...");
     try {
       const { password } = req.body;
@@ -126,7 +118,7 @@ async function startServer() {
   });
 
   // API route to decrypt password (only for admin)
-  app.post(["/api/decrypt-password", "/api/decrypt-password/"], async (req, res) => {
+  apiRouter.post(["/decrypt-password", "/decrypt-password/"], async (req, res) => {
     try {
       const { encryptedPassword } = req.body;
       if (!encryptedPassword) {
@@ -141,7 +133,7 @@ async function startServer() {
   });
 
   // API route to send email
-  app.post(["/api/send-email", "/api/send-email/"], async (req, res) => {
+  apiRouter.post(["/send-email", "/send-email/"], async (req, res) => {
     try {
       const { name, dob, phone, email, position, downloadURL } = req.body;
 
@@ -215,6 +207,9 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Không có CV đính k
       res.status(500).json({ error: "Failed to send email", details: error instanceof Error ? error.message : String(error) });
     }
   });
+
+  // Mount API router
+  app.use("/api", apiRouter);
 
   // Catch-all for /api to detect 404/405 - MUST BE AFTER ALL API ROUTES
   app.all("/api/*", (req, res) => {

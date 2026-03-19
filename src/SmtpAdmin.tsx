@@ -205,28 +205,33 @@ export default function SmtpAdmin() {
           <button
             type="button"
             onClick={async () => {
-            try {
-              // Test API ping
-              const pingRes = await fetch('/api/ping');
-              const pingStatus = pingRes.status;
-              const pingText = await pingRes.text();
-              
-              // Test API test
-              const apiRes = await fetch('/api/test');
-              const apiStatus = apiRes.status;
-              const apiText = await apiRes.text();
-              let apiData = 'N/A';
               try {
-                apiData = JSON.stringify(JSON.parse(apiText));
-              } catch (e) {
-                apiData = `RAW: ${apiText.substring(0, 50)}`;
+                console.log("Testing API connectivity...");
+                // Test API ping
+                const pingRes = await fetch('/api/ping');
+                const pingStatus = pingRes.status;
+                const pingText = await pingRes.text();
+                console.log("Ping response:", pingStatus, pingText);
+                
+                // Test API test
+                const apiRes = await fetch('/api/test');
+                const apiStatus = apiRes.status;
+                const apiText = await apiRes.text();
+                console.log("Test response:", apiStatus, apiText);
+                
+                let apiData = 'N/A';
+                try {
+                  apiData = JSON.stringify(JSON.parse(apiText));
+                } catch (e) {
+                  apiData = `RAW: ${apiText.substring(0, 100)}`;
+                }
+                
+                alert(`API PING Status: ${pingStatus}\nAPI PING Data: ${pingText}\n\nAPI Test Status: ${apiStatus}\nAPI Test Data: ${apiData}`);
+              } catch (e: any) {
+                console.error("API Test Error:", e);
+                alert(`API Test Failed: ${e.message}\n\nCheck console for details.`);
               }
-              
-              alert(`API PING Status: ${pingStatus}\nAPI PING Data: ${pingText}\nAPI Test Status: ${apiStatus}\nAPI Test Data: ${apiData}`);
-            } catch (e: any) {
-              alert(`API Test Failed: ${e.message}`);
-            }
-          }}
+            }}
             className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium"
           >
             <span>Kiểm tra kết nối API</span>
