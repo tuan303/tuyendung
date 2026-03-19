@@ -675,7 +675,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
       {selectedJob && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedJob(null)}>
           <div 
-            className="bg-white shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col"
+            className="bg-white shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden flex flex-col"
             style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -684,8 +684,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 <div className="w-12 h-12 bg-white flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden p-1" style={{ borderRadius: `${siteContent.borderRadius}px` }}>
                   <img src={siteContent.jobIconUrl || siteContent.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2 break-words">{selectedJob.title}</h2>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2 break-words leading-tight">{selectedJob.title}</h2>
                   <p className="text-xs text-gray-500 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded mb-3">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
@@ -723,7 +723,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   Mô tả công việc
                 </h3>
                 <div 
-                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none break-words"
                   dangerouslySetInnerHTML={{ __html: selectedJob.description }}
                 />
               </div>
@@ -734,7 +734,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   Yêu cầu ứng viên
                 </h3>
                 <div 
-                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none break-words"
                   dangerouslySetInnerHTML={{ __html: selectedJob.requirements }}
                 />
               </div>

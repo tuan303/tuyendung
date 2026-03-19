@@ -27,6 +27,22 @@
   background: #cbd5e1;
 }
 
+.prose {
+  width: 100%;
+  max-width: 100% !important;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: normal;
+  text-align: justify;
+  text-justify: inter-word;
+  white-space: normal;
+}
+
+.prose * {
+  max-width: 100% !important;
+  overflow-wrap: break-word !important;
+}
+
 .prose h1, .prose h2, .prose h3, .prose h4 {
   color: #1a2b4c;
   font-weight: 700;
