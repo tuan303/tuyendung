@@ -48,12 +48,32 @@ function decrypt(text: string) {
   }
 }
 
+// Test encryption on startup
+try {
+  const testPass = "test-password";
+  const encrypted = encrypt(testPass);
+  const decrypted = decrypt(encrypted);
+  if (testPass === decrypted) {
+    console.log("Encryption self-test passed");
+  } else {
+    console.error("Encryption self-test failed: Decrypted value does not match");
+  }
+} catch (e) {
+  console.error("Encryption self-test error:", e);
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(cors());
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Test route
+  app.get("/api/test", (req, res) => {
+    res.json({ message: "API is working", time: new Date().toISOString() });
+  });
 
   // API route to encrypt password (only for admin)
   app.post("/api/encrypt-password", async (req, res) => {
@@ -61,12 +81,17 @@ async function startServer() {
     try {
       const { password } = req.body;
       console.log("Password received:", password ? "Yes (length: " + password.length + ")" : "No");
+      
       if (password === undefined) {
         return res.status(400).json({ error: "Mật khẩu không được để trống" });
       }
+      
       const encryptedPass = encrypt(password);
       console.log("Encryption successful");
-      res.json({ encryptedPassword: encryptedPass });
+      
+      // Explicitly set content type and send
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).send(JSON.stringify({ encryptedPassword: encryptedPass }));
     } catch (error: any) {
       console.error("Failed to encrypt password:", error);
       res.status(500).json({ error: `Lỗi mã hóa: ${error.message}` });

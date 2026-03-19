@@ -64,17 +64,25 @@ export default function SmtpAdmin() {
         body: JSON.stringify({ password: pass }),
       });
       
+      const status = encryptResponse.status;
       const responseText = await encryptResponse.text();
+      
+      if (!encryptResponse.ok) {
+        let errorMessage = `Server error ${status}`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = `${errorMessage}: ${responseText.substring(0, 50) || 'Empty response'}`;
+        }
+        throw new Error(errorMessage);
+      }
+      
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (e) {
-        console.error("Failed to parse JSON response:", responseText);
-        throw new Error(`Server returned invalid response: ${responseText.substring(0, 100)}`);
-      }
-
-      if (!encryptResponse.ok) {
-        throw new Error(responseData.error || 'Failed to encrypt password');
+        throw new Error(`Invalid JSON response (Status ${status}): ${responseText.substring(0, 50) || 'Empty'}`);
       }
       
       const { encryptedPassword } = responseData;
