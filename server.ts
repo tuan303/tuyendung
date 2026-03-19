@@ -59,11 +59,14 @@ async function startServer() {
   app.post("/api/encrypt-password", async (req, res) => {
     try {
       const { password } = req.body;
+      if (password === undefined) {
+        return res.status(400).json({ error: "Mật khẩu không được để trống" });
+      }
       const encryptedPass = encrypt(password);
       res.json({ encryptedPassword: encryptedPass });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to encrypt password:", error);
-      res.status(500).json({ error: "Failed to encrypt password" });
+      res.status(500).json({ error: `Lỗi mã hóa: ${error.message}` });
     }
   });
 
@@ -71,11 +74,14 @@ async function startServer() {
   app.post("/api/decrypt-password", async (req, res) => {
     try {
       const { encryptedPassword } = req.body;
+      if (!encryptedPassword) {
+        return res.status(400).json({ error: "Dữ liệu mã hóa không được để trống" });
+      }
       const decryptedPass = decrypt(encryptedPassword);
       res.json({ decryptedPassword: decryptedPass });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to decrypt password:", error);
-      res.status(500).json({ error: "Failed to decrypt password" });
+      res.status(500).json({ error: `Lỗi giải mã: ${error.message}` });
     }
   });
 

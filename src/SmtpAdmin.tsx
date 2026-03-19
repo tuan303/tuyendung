@@ -65,7 +65,8 @@ export default function SmtpAdmin() {
       });
       
       if (!encryptResponse.ok) {
-        throw new Error('Failed to encrypt password');
+        const errorData = await encryptResponse.json();
+        throw new Error(errorData.error || 'Failed to encrypt password');
       }
       
       const { encryptedPassword } = await encryptResponse.json();
