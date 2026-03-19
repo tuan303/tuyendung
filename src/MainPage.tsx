@@ -241,7 +241,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                       {siteContent.heroTitle}
                     </h1>
                     <div 
-                      className="text-white px-4 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 text-[21px] sm:text-[23px] md:text-[41px] font-black tracking-widest uppercase shadow-2xl text-center transition-colors duration-500"
+                      className="text-white px-3 py-2 sm:px-8 sm:py-3 md:px-12 md:py-4 text-[16px] min-[390px]:text-[18px] sm:text-[23px] md:text-[41px] font-black tracking-widest uppercase shadow-2xl text-center transition-colors duration-500"
                       style={{ backgroundColor: siteContent.secondaryColor, borderRadius: `${siteContent.borderRadius}px` }}
                     >
                       {siteContent.heroSubtitle}
