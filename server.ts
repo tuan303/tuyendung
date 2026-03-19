@@ -70,17 +70,27 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Debug middleware for API routes
+  app.use("/api", (req, res, next) => {
+    console.log(`[API Request] ${req.method} ${req.url}`);
+    next();
+  });
+
   // Test route
   app.get("/api/test", (req, res) => {
     res.json({ message: "API is working", time: new Date().toISOString() });
   });
 
   // API route to encrypt password (only for admin)
-  app.post("/api/encrypt-password", async (req, res) => {
-    console.log("Received encryption request");
+  app.get(["/api/encrypt-password", "/api/encrypt-password/"], (req, res) => {
+    res.json({ message: "Use POST to encrypt" });
+  });
+
+  app.post(["/api/encrypt-password", "/api/encrypt-password/"], async (req, res) => {
+    console.log("Processing encryption request...");
     try {
       const { password } = req.body;
-      console.log("Password received:", password ? "Yes (length: " + password.length + ")" : "No");
+      console.log("Password received:", password ? "Yes" : "No");
       
       if (password === undefined) {
         return res.status(400).json({ error: "Mật khẩu không được để trống" });
@@ -89,13 +99,17 @@ async function startServer() {
       const encryptedPass = encrypt(password);
       console.log("Encryption successful");
       
-      // Explicitly set content type and send
-      res.setHeader('Content-Type', 'application/json');
-      res.status(200).send(JSON.stringify({ encryptedPassword: encryptedPass }));
+      res.status(200).json({ encryptedPassword: encryptedPass });
     } catch (error: any) {
       console.error("Failed to encrypt password:", error);
       res.status(500).json({ error: `Lỗi mã hóa: ${error.message}` });
     }
+  });
+
+  // Catch-all for /api to detect 404/405
+  app.all("/api/*", (req, res) => {
+    console.warn(`[API Unhandled] ${req.method} ${req.url}`);
+    res.status(405).json({ error: `Method ${req.method} not allowed for ${req.url}` });
   });
 
   // API route to decrypt password (only for admin)

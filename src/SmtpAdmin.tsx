@@ -192,7 +192,7 @@ export default function SmtpAdmin() {
           <p className="mt-2 text-xs text-gray-500">Tất cả hồ sơ ứng tuyển sẽ được gửi về địa chỉ email này.</p>
         </div>
 
-        <div className="pt-4">
+        <div className="pt-4 flex flex-col sm:flex-row gap-4">
           <button
             type="submit"
             disabled={isSaving}
@@ -200,6 +200,22 @@ export default function SmtpAdmin() {
           >
             <Save className="w-5 h-5" />
             <span>{isSaving ? 'Đang lưu...' : 'Lưu cấu hình'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/test');
+                const data = await res.json();
+                alert(`API Test: ${JSON.stringify(data)}`);
+              } catch (e: any) {
+                alert(`API Test Failed: ${e.message}`);
+              }
+            }}
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium"
+          >
+            <span>Kiểm tra kết nối API</span>
           </button>
         </div>
       </form>
