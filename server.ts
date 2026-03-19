@@ -83,10 +83,8 @@ async function startServer() {
     res.send("pong");
   });
 
-  const apiRouter = express.Router();
-
-  // API ping
-  apiRouter.get("/ping", (req, res) => {
+  // API Routes - Defined directly on app for maximum compatibility
+  app.get("/api/ping", (req, res) => {
     console.log("Hit /api/ping");
     res.json({ 
       message: "api-pong", 
@@ -95,29 +93,23 @@ async function startServer() {
     });
   });
 
-  // Test route
-  apiRouter.get(["/test", "/test/"], (req, res) => {
+  app.get("/api/test", (req, res) => {
+    console.log("Hit /api/test");
     res.json({ message: "API is working", time: new Date().toISOString() });
   });
 
-  // API route to encrypt password (only for admin)
-  apiRouter.get(["/encrypt-password", "/encrypt-password/"], (req, res) => {
+  app.get("/api/encrypt-password", (req, res) => {
     res.json({ message: "Use POST to encrypt" });
   });
 
-  apiRouter.post(["/encrypt-password", "/encrypt-password/"], async (req, res) => {
+  app.post("/api/encrypt-password", async (req, res) => {
     console.log("Processing encryption request...");
     try {
       const { password } = req.body;
-      console.log("Password received:", password ? "Yes" : "No");
-      
       if (password === undefined) {
         return res.status(400).json({ error: "Mật khẩu không được để trống" });
       }
-      
       const encryptedPass = encrypt(password);
-      console.log("Encryption successful");
-      
       res.status(200).json({ encryptedPassword: encryptedPass });
     } catch (error: any) {
       console.error("Failed to encrypt password:", error);
@@ -125,8 +117,7 @@ async function startServer() {
     }
   });
 
-  // API route to decrypt password (only for admin)
-  apiRouter.post(["/decrypt-password", "/decrypt-password/"], async (req, res) => {
+  app.post("/api/decrypt-password", async (req, res) => {
     try {
       const { encryptedPassword } = req.body;
       if (!encryptedPassword) {
@@ -140,75 +131,42 @@ async function startServer() {
     }
   });
 
-  // API route to send email
-  apiRouter.post(["/send-email", "/send-email/"], async (req, res) => {
+  app.post("/api/send-email", async (req, res) => {
     try {
       const { name, dob, phone, email, position, downloadURL } = req.body;
-
       if (!name || !phone || !email || !position) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-
-      // Fetch SMTP settings from Firestore
       const docRef = doc(clientDb, "settings", "smtp");
       const docSnap = await getDoc(docRef);
-      
       if (!docSnap.exists()) {
         return res.status(500).json({ error: "SMTP settings not configured" });
       }
-
       const smtpSettings = docSnap.data();
-      
       if (!smtpSettings || !smtpSettings.host || !smtpSettings.port || !smtpSettings.user || !smtpSettings.pass || !smtpSettings.recipient) {
         return res.status(500).json({ error: "Incomplete SMTP settings" });
       }
-      
       const decryptedPass = decrypt(smtpSettings.pass);
-
-      // Create Nodemailer transporter
       const transporter = nodemailer.createTransport({
         host: smtpSettings.host,
         port: parseInt(smtpSettings.port),
-        secure: parseInt(smtpSettings.port) === 465, // true for 465, false for other ports
+        secure: parseInt(smtpSettings.port) === 465,
         auth: {
           user: smtpSettings.user,
           pass: decryptedPass,
         },
       });
-
-      // Prepare email content
       const subject = `[Ứng tuyển] ${position} - ${name}`;
-      const textBody = `
-Họ và tên: ${name}
-Ngày sinh: ${dob || 'Không cung cấp'}
-Điện thoại: ${phone}
-Email: ${email}
-Vị trí ứng tuyển: ${position}
-
-${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Không có CV đính kèm)`}
-      `.trim();
-
-      const htmlBody = `
-        <h2>Thông tin ứng viên ứng tuyển</h2>
-        <p><strong>Họ và tên:</strong> ${name}</p>
-        <p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p>
-        <p><strong>Điện thoại:</strong> ${phone}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Vị trí ứng tuyển:</strong> ${position}</p>
-        <br/>
-        <p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(Không có CV đính kèm)</em>`}</p>
-      `;
-
-      // Send email
+      const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Không có CV đính kèm)`}`.trim();
+      const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(Không có CV đính kèm)</em>`}</p>`;
       await transporter.sendMail({
-        from: `"${name}" <${smtpSettings.user}>`, // Use authenticated user as sender to avoid spam filters
+        from: `"${name}" <${smtpSettings.user}>`,
         replyTo: email,
         to: smtpSettings.recipient,
         subject: subject,
         text: textBody,
         html: htmlBody,
       });
-
       res.status(200).json({ success: true, message: "Email sent successfully" });
     } catch (error) {
       console.error("Error sending email:", error);
@@ -216,13 +174,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Không có CV đính k
     }
   });
 
-  // Mount API router
-  app.use("/api", apiRouter);
-
-  // Catch-all for /api to detect 404/405 - MUST BE AFTER ALL API ROUTES
+  // Catch-all for /api to detect 404/405
   app.all("/api/*", (req, res) => {
     console.warn(`[API Unhandled] ${req.method} ${req.url}`);
-    res.status(405).json({ error: `Method ${req.method} not allowed for ${req.url}` });
+    res.status(404).json({ error: `API route ${req.url} not found` });
   });
 
   // Vite middleware for development
