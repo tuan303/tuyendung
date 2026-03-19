@@ -304,7 +304,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     {visibleJobs.length > 0 ? visibleJobs.map((job) => (
                       <div key={job.id} onClick={() => setSelectedJob(job)} className="bg-white p-6 shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group" style={{ borderRadius: `${siteContent.borderRadius}px` }}>
                         <div className="w-12 h-12 bg-white flex items-center justify-center shrink-0 border border-gray-100 group-hover:border-[#c8102e] transition duration-300 overflow-hidden p-1" style={{ borderRadius: `${siteContent.borderRadius / 1.5}px` }}>
-                          <img src={siteContent.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                          <img src={siteContent.jobIconUrl || siteContent.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                         </div>
                         <div className="flex-1">
                           <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition" style={{ '--hover-color': siteContent.primaryColor } as any}>{job.title}</h3>
@@ -682,7 +682,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-start sticky top-0 bg-white z-10">
               <div className="flex items-start space-x-4">
                 <div className="w-12 h-12 bg-white flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden p-1" style={{ borderRadius: `${siteContent.borderRadius}px` }}>
-                  <img src={siteContent.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                  <img src={siteContent.jobIconUrl || siteContent.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedJob.title}</h2>

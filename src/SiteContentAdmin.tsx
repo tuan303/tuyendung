@@ -38,6 +38,7 @@ export const defaultContent = {
   // Sizing
   logoSize: 10, // 10% as requested previously
   logoUrl: 'https://hoangmaistarschool.edu.vn/thongtin/logo_nshm_white.png',
+  jobIconUrl: 'https://hoangmaistarschool.edu.vn/storage/general/logo.svg',
   heroHeight: 450,
   heroOverlayOpacity: 0.4,
   
@@ -359,6 +360,10 @@ export default function SiteContentAdmin() {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Logo URL</label>
                 <input type="text" name="logoUrl" value={content.logoUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Job Icon URL (SVG)</label>
+                <input type="text" name="jobIconUrl" value={content.jobIconUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs" />
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
