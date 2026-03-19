@@ -168,9 +168,9 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm">
           <div className="flex items-center mb-3 md:mb-0">
             <img 
-              src="https://hoangmaistarschool.edu.vn/thongtin/LogoNSHM.png" 
+              src="https://hoangmaistarschool.edu.vn/thongtin/logo_nshm_white.png" 
               alt="Ngôi Sao Hoàng Mai" 
-              className="h-10 md:h-12 object-contain" 
+              className="h-9 md:h-11 object-contain" 
               referrerPolicy="no-referrer"
             />
           </div>
@@ -256,8 +256,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {visibleJobs.length > 0 ? visibleJobs.map((job) => (
               <div key={job.id} onClick={() => setSelectedJob(job)} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group">
-                <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shrink-0 border border-gray-100 group-hover:border-[#c8102e] transition duration-300 overflow-hidden p-1">
-                  <img src="https://hoangmaistarschool.edu.vn/storage/general/logo.svg" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 border border-gray-100 group-hover:border-[#c8102e] transition duration-300 overflow-hidden p-1">
+                  <img src="https://hoangmaistarschool.edu.vn/thongtin/logo_nshm_white.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition">{job.title}</h3>
@@ -319,15 +319,15 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
 
       {/* HR Policies */}
       <div className="max-w-6xl mx-auto py-16 px-4">
-        <div className="flex flex-col items-center mb-16">
-          <div className="relative inline-block">
+        <div className="mb-16 flex justify-center">
+          <div className="inline-block">
             <div className="flex items-center">
-              <h2 className="text-3xl md:text-4xl font-black text-[#c8102e] uppercase tracking-wider">Chính sách</h2>
-              <div className="ml-4 h-[2px] w-20 md:w-32 bg-gray-300"></div>
+              <h2 className="text-4xl md:text-5xl font-black text-[#c8102e] uppercase tracking-wider">Chính sách</h2>
+              <div className="ml-4 h-[2px] w-20 md:w-24 bg-gray-400"></div>
             </div>
-            <div className="flex items-center mt-2 justify-end">
-              <div className="mr-4 h-[2px] w-20 md:w-32 bg-gray-300"></div>
-              <h3 className="text-3xl md:text-4xl font-black text-[#c8102e] uppercase tracking-wider">Nhân sự</h3>
+            <div className="flex items-center mt-1 justify-end">
+              <div className="mr-4 h-[2px] w-20 md:w-24 bg-gray-400"></div>
+              <h3 className="text-4xl md:text-5xl font-black text-[#c8102e] uppercase tracking-wider">Nhân sự</h3>
             </div>
           </div>
         </div>
@@ -503,23 +503,22 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
             <div className="col-span-1 lg:col-span-2">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 overflow-hidden p-1.5">
-                  <img src="https://hoangmaistarschool.edu.vn/storage/general/logo.svg" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-                </div>
-                <div>
-                  <div className="font-black text-xl tracking-wider">NGÔI SAO HOÀNG MAI</div>
-                  <div className="text-white/70 text-xs uppercase tracking-widest mt-1">Hệ thống giáo dục</div>
-                </div>
+              <div className="mb-8">
+                <img 
+                  src="https://hoangmaistarschool.edu.vn/thongtin/logo_nshm_white.png" 
+                  alt="Ngôi Sao Hoàng Mai" 
+                  className="h-18 md:h-22 object-contain" 
+                  referrerPolicy="no-referrer" 
+                />
               </div>
               <p className="text-white/70 leading-relaxed mb-8 max-w-md">
                 Ngôi Sao Hoàng Mai tự hào là môi trường giáo dục tiên tiến, nơi ươm mầm tài năng và phát triển toàn diện cho học sinh.
               </p>
               <div className="flex space-x-4">
-                <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#c8102e] transition">
+                <a href="https://www.facebook.com/tuyendungnshm" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#c8102e] transition">
                   <Facebook className="w-5 h-5" />
                 </a>
-                <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#c8102e] transition">
+                <a href="https://www.youtube.com/@NgoiSaoHoangMai" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#c8102e] transition">
                   <Youtube className="w-5 h-5" />
                 </a>
               </div>
@@ -527,16 +526,18 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
 
             <div>
               <h4 className="font-bold text-lg mb-6 uppercase tracking-wider relative inline-block">
-                Liên kết
+                Vị trí
                 <div className="absolute -bottom-2 left-0 w-1/2 h-1 bg-[#c8102e] rounded-full"></div>
               </h4>
-              <ul className="space-y-4 text-white/70">
-                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Trang chủ</a></li>
-                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Giới thiệu</a></li>
-                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Tuyển sinh</a></li>
-                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Tuyển dụng</a></li>
-                <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition">Liên hệ</a></li>
-              </ul>
+              <div className="rounded-xl overflow-hidden h-48 w-full shadow-lg border border-white/10">
+                <iframe 
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3725.4500575947154!2d105.81984407596867!3d20.974588989635603!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ade7de4d08ef%3A0xe3cb177f337194a0!2zVHLGsOG7nW5nIE5nw7RpIFNhbyBIb8OgbmcgTWFpIC0gQ-G7lW5nIDQ!5e0!3m2!1svi!2s!4v1773890306680!5m2!1svi!2s" 
+                  className="w-full h-full border-0"
+                  allowFullScreen={true} 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+              </div>
             </div>
 
             <div>
@@ -580,8 +581,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
           >
             <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-start sticky top-0 bg-white z-10">
               <div className="flex items-start space-x-4">
-                <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden p-1">
-                  <img src="https://hoangmaistarschool.edu.vn/storage/general/logo.svg" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden p-1">
+                  <img src="https://hoangmaistarschool.edu.vn/thongtin/logo_nshm_white.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedJob.title}</h2>
