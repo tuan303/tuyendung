@@ -56,9 +56,10 @@
         "policy2Desc": { "type": "string" },
         "policy2Image": { "type": "string" },
         "policy3Title": { "type": "string" },
-        "policy3Benefits": { "type": "array", "items": { "type": "string" } }
+        "policy3Benefits": { "type": "array", "items": { "type": "string" } },
+        "policy3Image": { "type": "string" }
       },
-      "required": ["heroBgImage", "heroTitle", "heroSubtitle", "policy1Title", "policy1Desc", "policy1Image", "policy2Title", "policy2Quote", "policy2Desc", "policy2Image", "policy3Title", "policy3Benefits"]
+      "required": ["heroBgImage", "heroTitle", "heroSubtitle", "policy1Title", "policy1Desc", "policy1Image", "policy2Title", "policy2Quote", "policy2Desc", "policy2Image", "policy3Title", "policy3Benefits", "policy3Image"]
     }
   },
   "firestore": {

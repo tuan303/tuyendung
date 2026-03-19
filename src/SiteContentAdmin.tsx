@@ -73,7 +73,8 @@ export const defaultContent = {
     'Tài trợ ăn sáng, ăn trưa tại trường, tham gia BHXH, BHYT... và bảo hiểm chăm sóc sức khỏe.',
     'Hỗ trợ học phí cho con em CBNV lên tới 100%.',
     'Thưởng các ngày Lễ tết, thưởng năm học, tham quan nghỉ mát hàng năm.'
-  ].join('\n')
+  ].join('\n'),
+  policy3Image: 'https://hoangmaistarschool.edu.vn/thongtin/20.jpg'
 };
 
 function SortableItem({ id, section, isVisible, toggleVisibility, idx }: any) {
@@ -601,6 +602,10 @@ export default function SiteContentAdmin() {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Danh sách phúc lợi (Mỗi dòng 1 mục)</label>
                     <textarea name="policy3Benefits" value={content.policy3Benefits} onChange={handleChange} rows={5} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" placeholder="Mức lương cạnh tranh...&#10;Hỗ trợ ăn trưa..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Ảnh minh họa (URL)</label>
+                    <input type="text" name="policy3Image" value={content.policy3Image} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                 </div>
               </div>

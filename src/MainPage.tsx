@@ -460,7 +460,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                       </ul>
                     </div>
                     <div className="h-[400px] md:h-auto p-8 md:p-12 flex items-center justify-center bg-white/5 relative">
-                      <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop" alt="Welfare" className="w-full h-full object-cover shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius}px` }} />
+                      <img src={siteContent.policy3Image || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} alt="Welfare" className="w-full h-full object-cover shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius}px` }} />
                     </div>
                   </div>
                 </div>
