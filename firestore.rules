@@ -111,5 +111,9 @@ service cloud.firestore {
       allow update: if isAdmin() && isValidJob(request.resource.data) && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAdmin();
     }
+
+    match /settings/{docId} {
+      allow read, write: if isAdmin();
+    }
   }
 }

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X, ChevronDown, ChevronUp, Mail } from 'lucide-react';
 import SiteContentAdmin from './SiteContentAdmin';
+import SmtpAdmin from './SmtpAdmin';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -126,7 +127,7 @@ export default function Admin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'content'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'content' | 'smtp'>('jobs');
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -379,6 +380,13 @@ export default function Admin() {
             <LayoutTemplate className="w-5 h-5" />
             <span>Quản lý Giao diện</span>
           </button>
+          <button
+            onClick={() => setActiveTab('smtp')}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 ${activeTab === 'smtp' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            <Mail className="w-5 h-5" />
+            <span>Cài đặt Email</span>
+          </button>
         </div>
 
         {activeTab === 'jobs' ? (
@@ -506,8 +514,10 @@ export default function Admin() {
           </div>
         </div>
         </div>
-        ) : (
+        ) : activeTab === 'content' ? (
           <SiteContentAdmin />
+        ) : (
+          <SmtpAdmin />
         )}
 
       </main>

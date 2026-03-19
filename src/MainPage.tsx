@@ -85,13 +85,22 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     try {
       let downloadURL = '';
       try {
-        // 1. Upload file to Firebase Storage
+        // 1. Upload file to Firebase Storage with a 5-second timeout
         const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
-        await uploadBytes(fileRef, file);
-        downloadURL = await getDownloadURL(fileRef);
+        
+        const uploadPromise = async () => {
+          await uploadBytes(fileRef, file);
+          return await getDownloadURL(fileRef);
+        };
+
+        const timeoutPromise = new Promise<string>((_, reject) => 
+          setTimeout(() => reject(new Error("Upload timeout")), 15000)
+        );
+
+        downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
       } catch (uploadError) {
         console.warn("Could not upload file to storage, falling back to manual attachment:", uploadError);
-        // If upload fails (e.g. no storage rules), we continue but ask user to attach manually
+        // If upload fails (e.g. no storage rules or timeout), we continue but ask user to attach manually
       }
 
       // 2. Prepare email content
@@ -106,9 +115,26 @@ Vị trí ứng tuyển: ${position}
 ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm file CV của bạn vào email này trước khi gửi)`}
       `.trim();
 
-      // 3. Open mailto link
-      const mailtoLink = `mailto:tuyendung@hoangmaistarschool.edu.vn?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailtoLink;
+      // 3. Send email via backend API
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          dob,
+          phone,
+          email,
+          position,
+          downloadURL
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send email");
+      }
 
       // 4. Reset form
       setName('');
@@ -118,14 +144,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
       setPosition('');
       setFile(null);
       
-      if (downloadURL) {
-        alert("Cảm ơn bạn đã ứng tuyển! Vui lòng kiểm tra ứng dụng email của bạn để gửi hồ sơ.");
-      } else {
-        alert("Cảm ơn bạn đã ứng tuyển! Vui lòng đính kèm file CV của bạn vào email vừa được mở ra trước khi gửi nhé.");
-      }
-    } catch (error) {
+      alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công.");
+    } catch (error: any) {
       console.error("Error submitting application:", error);
-      alert("Có lỗi xảy ra khi gửi hồ sơ. Vui lòng thử lại sau.");
+      alert(`Có lỗi xảy ra khi gửi hồ sơ: ${error.message || "Vui lòng thử lại sau."}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -215,7 +237,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             </div>
             <div className="flex items-center space-x-2">
               <Mail className="w-4 h-4 shrink-0" />
-              <span>Email: tuyendung@hoangmaistarschool.edu.vn</span>
+              <span>Email: tuantm@hoangmaistarschool.edu.vn</span>
             </div>
           </div>
         </div>
@@ -308,7 +330,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition truncate" style={{ '--hover-color': siteContent.primaryColor } as any}>{job.title}</h3>
-                          <p className="text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
+                          <p className="text-[10px] sm:text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-1.5 sm:px-2 py-0.5 rounded truncate max-w-full">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
                           <div 
                             className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none"
                             dangerouslySetInnerHTML={{ __html: job.description.replace(/&nbsp;|\u00A0/g, ' ') }}
@@ -555,11 +577,11 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                               Gửi CV và Đơn ứng tuyển về địa chỉ email:
                             </p>
                             <a 
-                              href="mailto:tuyendung@hoangmaistarschool.edu.vn" 
+                              href="mailto:tuantm@hoangmaistarschool.edu.vn" 
                               className="inline-block text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition shadow-md break-all text-sm sm:text-base max-w-full"
                               style={{ backgroundColor: siteContent.primaryColor }}
                             >
-                              tuyendung@hoangmaistarschool.edu.vn
+                              tuantm@hoangmaistarschool.edu.vn
                             </a>
                             <p className="text-white/60 text-xs sm:text-sm mt-3 italic">Tiêu đề email: [Vị trí ứng tuyển] - [Họ và tên]</p>
                           </div>
@@ -655,7 +677,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 </li>
                 <li className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 shrink-0" style={{ color: siteContent.primaryColor }} />
-                  <span>tuyendung@hoangmaistarschool.edu.vn</span>
+                  <span>tuantm@hoangmaistarschool.edu.vn</span>
                 </li>
               </ul>
             </div>
@@ -686,7 +708,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">{selectedJob.title}</h2>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded mb-3">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider font-medium bg-gray-200 inline-block px-1.5 sm:px-2 py-0.5 rounded mb-3 truncate max-w-full">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
                       <div className="flex items-center bg-gray-100 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
