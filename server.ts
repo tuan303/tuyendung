@@ -63,22 +63,26 @@ try {
 }
 
 async function startServer() {
+  console.log("Starting server...");
   const app = express();
   const PORT = 3000;
 
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  // Global logger
+  // Global logger - MUST BE FIRST
   app.use((req, res, next) => {
     console.log(`[Request] ${req.method} ${req.url} - NODE_ENV: ${process.env.NODE_ENV}`);
     next();
   });
 
   // Root level ping (no /api prefix)
-  app.get("/ping", (req, res) => {
+  app.get(["/ping", "/ping/"], (req, res) => {
+    console.log("Hit /ping");
     res.send("pong");
+  });
+
+  // API ping
+  app.get(["/api/ping", "/api/ping/"], (req, res) => {
+    console.log("Hit /api/ping");
+    res.json({ message: "api-pong", time: new Date().toISOString() });
   });
 
   // Debug middleware for API routes
@@ -87,8 +91,12 @@ async function startServer() {
     next();
   });
 
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
   // Test route
-  app.get("/api/test", (req, res) => {
+  app.get(["/api/test", "/api/test/"], (req, res) => {
     res.json({ message: "API is working", time: new Date().toISOString() });
   });
 
@@ -117,14 +125,8 @@ async function startServer() {
     }
   });
 
-  // Catch-all for /api to detect 404/405
-  app.all("/api/*", (req, res) => {
-    console.warn(`[API Unhandled] ${req.method} ${req.url}`);
-    res.status(405).json({ error: `Method ${req.method} not allowed for ${req.url}` });
-  });
-
   // API route to decrypt password (only for admin)
-  app.post("/api/decrypt-password", async (req, res) => {
+  app.post(["/api/decrypt-password", "/api/decrypt-password/"], async (req, res) => {
     try {
       const { encryptedPassword } = req.body;
       if (!encryptedPassword) {
@@ -139,7 +141,7 @@ async function startServer() {
   });
 
   // API route to send email
-  app.post("/api/send-email", async (req, res) => {
+  app.post(["/api/send-email", "/api/send-email/"], async (req, res) => {
     try {
       const { name, dob, phone, email, position, downloadURL } = req.body;
 
@@ -212,6 +214,12 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Không có CV đính k
       console.error("Error sending email:", error);
       res.status(500).json({ error: "Failed to send email", details: error instanceof Error ? error.message : String(error) });
     }
+  });
+
+  // Catch-all for /api to detect 404/405 - MUST BE AFTER ALL API ROUTES
+  app.all("/api/*", (req, res) => {
+    console.warn(`[API Unhandled] ${req.method} ${req.url}`);
+    res.status(405).json({ error: `Method ${req.method} not allowed for ${req.url}` });
   });
 
   // Vite middleware for development
