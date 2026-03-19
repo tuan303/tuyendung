@@ -63,7 +63,7 @@ try {
 }
 
 async function startServer() {
-  console.log("Starting server...");
+  console.log("Starting server process...");
   const app = express();
   const PORT = 3000;
 
@@ -71,6 +71,11 @@ async function startServer() {
   app.use((req, res, next) => {
     console.log(`[Request] ${req.method} ${req.url} - NODE_ENV: ${process.env.NODE_ENV}`);
     next();
+  });
+
+  // Root health check
+  app.get("/health", (req, res) => {
+    res.send("OK");
   });
 
   app.use(cors());
@@ -196,7 +201,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server is listening on http://0.0.0.0:${PORT}`);
   });
 }
 
