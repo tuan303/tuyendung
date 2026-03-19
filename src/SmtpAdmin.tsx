@@ -226,7 +226,7 @@ export default function SmtpAdmin() {
                   apiData = `RAW: ${apiText.substring(0, 100)}`;
                 }
                 
-                alert(`DEBUG INFO:\nMODE: ${import.meta.env.MODE}\nURL: ${window.location.href}\n\nAPI PING Status: ${pingStatus}\nAPI PING Data: ${pingText}\n\nAPI Test Status: ${apiStatus}\nAPI Test Data: ${apiData}`);
+                alert(`DEBUG INFO:\nMODE: ${import.meta.env.MODE}\nORIGIN: ${window.location.origin}\nURL: ${window.location.href}\n\nAPI PING Status: ${pingStatus}\nAPI PING Data: ${pingText}\n\nAPI Test Status: ${apiStatus}\nAPI Test Data: ${apiData}`);
               } catch (e: any) {
                 console.error("API Test Error:", e);
                 alert(`API Test Failed: ${e.message}\n\nCheck console for details.`);
