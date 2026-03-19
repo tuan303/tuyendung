@@ -205,14 +205,27 @@ export default function SmtpAdmin() {
           <button
             type="button"
             onClick={async () => {
+            try {
+              // Test root ping
+              const pingRes = await fetch('/ping');
+              const pingText = await pingRes.text();
+              
+              // Test API test
+              const apiRes = await fetch('/api/test');
+              const apiStatus = apiRes.status;
+              const apiText = await apiRes.text();
+              let apiData = 'N/A';
               try {
-                const res = await fetch('/api/test');
-                const data = await res.json();
-                alert(`API Test: ${JSON.stringify(data)}`);
-              } catch (e: any) {
-                alert(`API Test Failed: ${e.message}`);
+                apiData = JSON.stringify(JSON.parse(apiText));
+              } catch (e) {
+                apiData = `RAW: ${apiText.substring(0, 50)}`;
               }
-            }}
+              
+              alert(`PING: ${pingText}\nAPI Status: ${apiStatus}\nAPI Data: ${apiData}`);
+            } catch (e: any) {
+              alert(`API Test Failed: ${e.message}`);
+            }
+          }}
             className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium"
           >
             <span>Kiểm tra kết nối API</span>

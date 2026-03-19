@@ -70,6 +70,17 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Global logger
+  app.use((req, res, next) => {
+    console.log(`[Request] ${req.method} ${req.url} - NODE_ENV: ${process.env.NODE_ENV}`);
+    next();
+  });
+
+  // Root level ping (no /api prefix)
+  app.get("/ping", (req, res) => {
+    res.send("pong");
+  });
+
   // Debug middleware for API routes
   app.use("/api", (req, res, next) => {
     console.log(`[API Request] ${req.method} ${req.url}`);
