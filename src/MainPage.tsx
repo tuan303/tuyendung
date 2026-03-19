@@ -437,7 +437,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   style={{ backgroundColor: siteContent.secondaryColor, borderRadius: `${siteContent.borderRadius * 2.5}px` }}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2">
-                    <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center">
+                    <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center order-2 md:order-1">
                       <div className="flex items-center space-x-5 mb-10">
                         <div 
                           className="w-14 h-14 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-lg shrink-0 transition-colors duration-500"
@@ -459,7 +459,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                         ))}
                       </ul>
                     </div>
-                    <div className="h-[400px] md:h-auto p-8 md:p-12 flex items-center justify-center bg-white/5 relative">
+                    <div className="h-[400px] md:h-auto p-8 md:p-12 flex items-center justify-center bg-white/5 relative order-1 md:order-2">
                       <img src={siteContent.policy3Image || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} alt="Welfare" className="w-full h-full object-cover shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius}px` }} />
                     </div>
                   </div>
