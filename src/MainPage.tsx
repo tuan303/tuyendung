@@ -194,7 +194,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
         style={{ backgroundColor: siteContent.primaryColor }}
       >
         <div className="mx-auto flex flex-col md:flex-row justify-between items-center text-sm" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
-          <div className="flex items-center mb-3 md:mb-0">
+          <a href="https://hoangmaistarschool.edu.vn/" target="_blank" rel="noreferrer" className="flex items-center mb-3 md:mb-0 hover:opacity-80 transition-opacity">
             <img 
               src={siteContent.logoUrl} 
               alt="Ngôi Sao Hoàng Mai" 
@@ -202,7 +202,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
               className="object-contain transition-all duration-500" 
               referrerPolicy="no-referrer"
             />
-          </div>
+          </a>
           
           <div className="flex flex-wrap items-center justify-center gap-3 md:gap-8 text-xs font-medium">
             <div className="flex items-center space-x-2">
