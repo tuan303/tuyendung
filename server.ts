@@ -57,12 +57,15 @@ async function startServer() {
 
   // API route to encrypt password (only for admin)
   app.post("/api/encrypt-password", async (req, res) => {
+    console.log("Received encryption request");
     try {
       const { password } = req.body;
+      console.log("Password received:", password ? "Yes (length: " + password.length + ")" : "No");
       if (password === undefined) {
         return res.status(400).json({ error: "Mật khẩu không được để trống" });
       }
       const encryptedPass = encrypt(password);
+      console.log("Encryption successful");
       res.json({ encryptedPassword: encryptedPass });
     } catch (error: any) {
       console.error("Failed to encrypt password:", error);

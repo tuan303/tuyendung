@@ -64,12 +64,20 @@ export default function SmtpAdmin() {
         body: JSON.stringify({ password: pass }),
       });
       
+      const responseText = await encryptResponse.text();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse JSON response:", responseText);
+        throw new Error(`Server returned invalid response: ${responseText.substring(0, 100)}`);
+      }
+
       if (!encryptResponse.ok) {
-        const errorData = await encryptResponse.json();
-        throw new Error(errorData.error || 'Failed to encrypt password');
+        throw new Error(responseData.error || 'Failed to encrypt password');
       }
       
-      const { encryptedPassword } = await encryptResponse.json();
+      const { encryptedPassword } = responseData;
 
       // Save to Firestore
       const docRef = doc(db, 'settings', 'smtp');
