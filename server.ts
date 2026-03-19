@@ -73,8 +73,12 @@ async function startServer() {
     next();
   });
 
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
   // Root level ping (no /api prefix)
-  app.get(["/ping", "/ping/"], (req, res) => {
+  app.get("/ping", (req, res) => {
     console.log("Hit /ping");
     res.send("pong");
   });
@@ -82,9 +86,13 @@ async function startServer() {
   const apiRouter = express.Router();
 
   // API ping
-  apiRouter.get(["/ping", "/ping/"], (req, res) => {
+  apiRouter.get("/ping", (req, res) => {
     console.log("Hit /api/ping");
-    res.json({ message: "api-pong", time: new Date().toISOString() });
+    res.json({ 
+      message: "api-pong", 
+      time: new Date().toISOString(),
+      env: process.env.NODE_ENV || 'development'
+    });
   });
 
   // Test route
