@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X } from 'lucide-react';
+import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import SiteContentAdmin from './SiteContentAdmin';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 interface Job {
   id: string;
@@ -54,19 +56,35 @@ const JobCard = ({ job, onDelete, onToggleHide, onEdit }: { job: Job, onDelete: 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
         <div>
           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Mô tả công việc</h4>
-          <p className={`text-sm text-gray-700 whitespace-pre-wrap ${expanded ? '' : 'line-clamp-2'}`}>{job.description}</p>
+          <div 
+            className={`text-sm text-gray-700 prose prose-sm max-w-none ${expanded ? '' : 'line-clamp-3'}`}
+            dangerouslySetInnerHTML={{ __html: job.description }}
+          />
         </div>
         <div>
           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Yêu cầu</h4>
-          <p className={`text-sm text-gray-700 whitespace-pre-wrap ${expanded ? '' : 'line-clamp-2'}`}>{job.requirements}</p>
+          <div 
+            className={`text-sm text-gray-700 prose prose-sm max-w-none ${expanded ? '' : 'line-clamp-3'}`}
+            dangerouslySetInnerHTML={{ __html: job.requirements }}
+          />
         </div>
       </div>
 
       <button 
         onClick={() => setExpanded(!expanded)}
-        className="text-[#c8102e] text-sm font-medium hover:underline mb-4 inline-block"
+        className="text-[#c8102e] text-sm font-medium hover:underline mb-4 flex items-center"
       >
-        {expanded ? 'Thu gọn' : 'Xem thêm (more)'}
+        {expanded ? (
+          <>
+            <ChevronUp className="w-4 h-4 mr-1" />
+            Thu gọn
+          </>
+        ) : (
+          <>
+            <ChevronDown className="w-4 h-4 mr-1" />
+            Xem thêm chi tiết
+          </>
+        )}
       </button>
 
       <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
@@ -391,24 +409,28 @@ export default function Admin() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả công việc *</label>
-                <textarea 
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition h-24 resize-none"
-                  placeholder="Mô tả chi tiết công việc..."
-                  required
-                />
+                <div className="quill-container">
+                  <ReactQuill 
+                    theme="snow"
+                    value={description}
+                    onChange={setDescription}
+                    className="bg-white rounded-lg"
+                    placeholder="Mô tả chi tiết công việc..."
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Yêu cầu ứng viên *</label>
-                <textarea 
-                  value={requirements}
-                  onChange={(e) => setRequirements(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition h-24 resize-none"
-                  placeholder="Các yêu cầu về bằng cấp, kinh nghiệm..."
-                  required
-                />
+                <div className="quill-container">
+                  <ReactQuill 
+                    theme="snow"
+                    value={requirements}
+                    onChange={setRequirements}
+                    className="bg-white rounded-lg"
+                    placeholder="Các yêu cầu về bằng cấp, kinh nghiệm..."
+                  />
+                </div>
               </div>
 
               <div>

@@ -262,7 +262,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 <div className="flex-1">
                   <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition">{job.title}</h3>
                   <p className="text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
-                  <div className="text-gray-600 text-sm mb-3 line-clamp-2">{job.description}</div>
+                  <div 
+                    className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: job.description }}
+                  />
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
                       <div className="flex items-center bg-gray-100 px-2 py-1 rounded">
@@ -316,9 +319,17 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
 
       {/* HR Policies */}
       <div className="max-w-6xl mx-auto py-16 px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-sm font-bold text-[#c8102e] uppercase tracking-[0.2em] mb-3">Chính sách</h2>
-          <h3 className="text-4xl font-black text-[#1a2b4c] uppercase tracking-wide">Nhân sự</h3>
+        <div className="flex flex-col items-center mb-16">
+          <div className="relative inline-block">
+            <div className="flex items-center">
+              <h2 className="text-3xl md:text-4xl font-black text-[#c8102e] uppercase tracking-wider">Chính sách</h2>
+              <div className="ml-4 h-[2px] w-20 md:w-32 bg-gray-300"></div>
+            </div>
+            <div className="flex items-center mt-2 justify-end">
+              <div className="mr-4 h-[2px] w-20 md:w-32 bg-gray-300"></div>
+              <h3 className="text-3xl md:text-4xl font-black text-[#c8102e] uppercase tracking-wider">Nhân sự</h3>
+            </div>
+          </div>
         </div>
 
         {/* Policy 1 */}
@@ -610,9 +621,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   <div className="w-2 h-6 bg-[#c8102e] rounded-full mr-3"></div>
                   Mô tả công việc
                 </h3>
-                <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
-                  {selectedJob.description}
-                </div>
+                <div 
+                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: selectedJob.description }}
+                />
               </div>
               
               <div>
@@ -620,9 +632,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   <div className="w-2 h-6 bg-[#fdb913] rounded-full mr-3"></div>
                   Yêu cầu ứng viên
                 </h3>
-                <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
-                  {selectedJob.requirements}
-                </div>
+                <div 
+                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: selectedJob.requirements }}
+                />
               </div>
             </div>
             
