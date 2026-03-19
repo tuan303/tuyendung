@@ -310,8 +310,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                           <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition truncate" style={{ '--hover-color': siteContent.primaryColor } as any}>{job.title}</h3>
                           <p className="text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
                           <div 
-                            className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none break-words"
-                            dangerouslySetInnerHTML={{ __html: job.description }}
+                            className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: job.description.replace(/&nbsp;|\u00A0/g, ' ') }}
                           />
                           <div className="flex flex-col gap-2">
                             <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
@@ -685,7 +685,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   <img src={siteContent.jobIconUrl || siteContent.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2 break-words leading-tight">{selectedJob.title}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">{selectedJob.title}</h2>
                   <p className="text-xs text-gray-500 uppercase tracking-wider font-medium bg-gray-200 inline-block px-2 py-0.5 rounded mb-3">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
@@ -723,8 +723,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   Mô tả công việc
                 </h3>
                 <div 
-                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none break-words"
-                  dangerouslySetInnerHTML={{ __html: selectedJob.description }}
+                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: selectedJob.description.replace(/&nbsp;|\u00A0/g, ' ') }}
                 />
               </div>
               
@@ -734,8 +734,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   Yêu cầu ứng viên
                 </h3>
                 <div 
-                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none break-words"
-                  dangerouslySetInnerHTML={{ __html: selectedJob.requirements }}
+                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: selectedJob.requirements.replace(/&nbsp;|\u00A0/g, ' ') }}
                 />
               </div>
             </div>
