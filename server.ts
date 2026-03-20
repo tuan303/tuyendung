@@ -137,6 +137,60 @@ async function startServer() {
     }
   });
 
+  app.post("/api/test-smtp", async (req, res) => {
+    console.log("Processing SMTP test request...");
+    try {
+      const { host, port, user, pass, recipient } = req.body;
+      
+      if (!host || !port || !user || !pass || !recipient) {
+        return res.status(400).json({ error: "Vui lòng nhập đầy đủ thông tin SMTP để kiểm tra" });
+      }
+
+      console.log(`Testing SMTP: ${host}:${port} as ${user}`);
+
+      const transporter = nodemailer.createTransport({
+        host: host,
+        port: parseInt(port),
+        secure: parseInt(port) === 465,
+        auth: {
+          user: user,
+          pass: pass,
+        },
+        // Short timeout for testing
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
+      });
+
+      // Verify connection configuration
+      await transporter.verify();
+      
+      // Try sending a test email
+      await transporter.sendMail({
+        from: `"Hệ thống Tuyển dụng" <${user}>`,
+        to: recipient,
+        subject: "Kiểm tra cấu hình SMTP - Tuyển dụng",
+        text: "Chúc mừng! Cấu hình SMTP của bạn đã hoạt động chính xác.",
+        html: "<h2>Kiểm tra cấu hình SMTP</h2><p>Chúc mừng! Cấu hình SMTP của bạn đã hoạt động chính xác.</p><p>Hệ thống đã có thể gửi email thông báo hồ sơ ứng tuyển.</p>",
+      });
+
+      res.status(200).json({ success: true, message: "Kết nối SMTP thành công và đã gửi email thử nghiệm!" });
+    } catch (error: any) {
+      console.error("SMTP Test Error:", error);
+      let errorMessage = error.message || "Lỗi không xác định khi kết nối SMTP";
+      
+      if (error.code === 'EAUTH') {
+        errorMessage = "Lỗi xác thực: Sai email hoặc mật khẩu ứng dụng. Nếu dùng Gmail, hãy đảm bảo đã bật Mật khẩu ứng dụng (App Password).";
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = "Lỗi kết nối: Không thể kết nối tới máy chủ SMTP. Kiểm tra lại Host và Port.";
+      } else if (error.code === 'ETIMEDOUT') {
+        errorMessage = "Lỗi hết thời gian: Kết nối tới máy chủ SMTP quá lâu. Kiểm tra lại mạng hoặc Port.";
+      }
+      
+      res.status(500).json({ error: errorMessage, details: error.code || error.name });
+    }
+  });
+
   app.post("/api/send-email", async (req, res) => {
     try {
       const { name, dob, phone, email, position, downloadURL } = req.body;

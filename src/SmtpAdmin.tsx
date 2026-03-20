@@ -11,6 +11,7 @@ export default function SmtpAdmin() {
   const [recipient, setRecipient] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
   useEffect(() => {
@@ -106,6 +107,37 @@ export default function SmtpAdmin() {
     }
   };
 
+  const handleTestSmtp = async () => {
+    if (!host || !port || !user || !pass || !recipient) {
+      setMessage({ text: 'Vui lòng nhập đầy đủ thông tin SMTP trước khi kiểm tra', type: 'error' });
+      return;
+    }
+
+    setIsTesting(true);
+    setMessage({ text: 'Đang kiểm tra kết nối SMTP...', type: 'info' });
+
+    try {
+      const response = await fetch('/api/test-smtp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host, port, user, pass, recipient }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ text: data.message || 'Kết nối SMTP thành công!', type: 'success' });
+      } else {
+        setMessage({ text: `Lỗi SMTP: ${data.error || 'Không thể kết nối'}`, type: 'error' });
+      }
+    } catch (error: any) {
+      console.error("SMTP Test Error:", error);
+      setMessage({ text: `Lỗi kết nối API: ${error.message || 'Lỗi không xác định'}`, type: 'error' });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500">Đang tải cấu hình...</div>;
   }
@@ -123,7 +155,11 @@ export default function SmtpAdmin() {
       </div>
 
       {message.text && (
-        <div className={`p-4 rounded-xl mb-6 ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={`p-4 rounded-xl mb-6 ${
+          message.type === 'success' ? 'bg-green-50 text-green-700' : 
+          message.type === 'info' ? 'bg-blue-50 text-blue-700' :
+          'bg-red-50 text-red-700'
+        }`}>
           {message.text}
         </div>
       )}
@@ -195,7 +231,7 @@ export default function SmtpAdmin() {
         <div className="pt-4 flex flex-col sm:flex-row gap-4">
           <button
             type="submit"
-            disabled={isSaving}
+            disabled={isSaving || isTesting}
             className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium disabled:opacity-70"
           >
             <Save className="w-5 h-5" />
@@ -204,37 +240,39 @@ export default function SmtpAdmin() {
 
           <button
             type="button"
+            onClick={handleTestSmtp}
+            disabled={isSaving || isTesting}
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 border border-blue-200 text-blue-700 rounded-xl hover:bg-blue-50 transition font-medium disabled:opacity-70"
+          >
+            <span>{isTesting ? 'Đang kiểm tra...' : 'Gửi email thử nghiệm'}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={async () => {
               try {
-                console.log("Testing API connectivity...");
                 // Test API ping
                 const pingRes = await fetch('/api/ping');
                 const pingStatus = pingRes.status;
                 const pingText = await pingRes.text();
-                console.log("Ping response:", pingStatus, pingText);
                 
                 // Test API test
                 const apiRes = await fetch('/api/test');
                 const apiStatus = apiRes.status;
                 const apiText = await apiRes.text();
-                console.log("Test response:", apiStatus, apiText);
                 
-                let apiData = 'N/A';
-                try {
-                  apiData = JSON.stringify(JSON.parse(apiText));
-                } catch (e) {
-                  apiData = `RAW: ${apiText.substring(0, 100)}`;
+                if (pingStatus === 200 && apiStatus === 200) {
+                  alert("✅ KẾT NỐI API THÀNH CÔNG!\n\nBackend server đang hoạt động bình thường.\nBạn có thể thực hiện 'Gửi email thử nghiệm' để kiểm tra SMTP.");
+                } else {
+                  alert(`❌ LỖI KẾT NỐI API!\nPING: ${pingStatus}\nTEST: ${apiStatus}\n\nVui lòng kiểm tra lại server.`);
                 }
-                
-                alert(`DEBUG INFO:\nMODE: ${(import.meta as any).env.MODE}\nORIGIN: ${window.location.origin}\nURL: ${window.location.href}\n\nAPI PING Status: ${pingStatus}\nAPI PING Data: ${pingText}\n\nAPI Test Status: ${apiStatus}\nAPI Test Data: ${apiData}`);
               } catch (e: any) {
-                console.error("API Test Error:", e);
-                alert(`API Test Failed: ${e.message}\n\nCheck console for details.`);
+                alert(`❌ LỖI KẾT NỐI API: ${e.message}`);
               }
             }}
-            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium"
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition text-sm"
           >
-            <span>Kiểm tra kết nối API</span>
+            <span>Kiểm tra API Backend</span>
           </button>
         </div>
       </form>
