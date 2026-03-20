@@ -317,15 +317,41 @@ export default function SmtpAdmin() {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ test: "hello" })
                 });
-                const data = await res.json();
-                alert(`DEBUG POST TEST:\nStatus: ${res.status}\nData: ${JSON.stringify(data)}`);
+                const text = await res.text();
+                try {
+                  const data = JSON.parse(text);
+                  alert(`DEBUG POST TEST SUCCESS:\nStatus: ${res.status}\nData: ${JSON.stringify(data, null, 2)}`);
+                } catch (e) {
+                  alert(`DEBUG POST TEST FAILED (Not JSON):\nStatus: ${res.status}\nRaw Response: ${text || '(empty)'}`);
+                }
               } catch (e: any) {
-                alert(`DEBUG POST TEST FAILED: ${e.message}`);
+                alert(`DEBUG POST TEST ERROR:\n${e.message}`);
               }
             }}
             className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 border border-gray-200 text-gray-400 rounded-xl hover:bg-gray-50 transition text-xs"
           >
             <span>Debug POST</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/post-test', { method: 'GET' });
+                const text = await res.text();
+                try {
+                  const data = JSON.parse(text);
+                  alert(`DEBUG GET TEST SUCCESS:\nStatus: ${res.status}\nData: ${JSON.stringify(data, null, 2)}`);
+                } catch (e) {
+                  alert(`DEBUG GET TEST FAILED (Not JSON):\nStatus: ${res.status}\nRaw Response: ${text || '(empty)'}`);
+                }
+              } catch (e: any) {
+                alert(`DEBUG GET TEST ERROR:\n${e.message}`);
+              }
+            }}
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 border border-gray-200 text-gray-400 rounded-xl hover:bg-gray-50 transition text-xs"
+          >
+            <span>Debug GET</span>
           </button>
         </div>
       </form>

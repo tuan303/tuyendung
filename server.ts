@@ -104,10 +104,15 @@ async function startServer() {
     res.json({ message: "API is working", time: new Date().toISOString() });
   });
 
-  // Simple POST test to debug 405 errors
-  app.post("/api/post-test", (req, res) => {
-    console.log("Hit /api/post-test");
-    res.json({ message: "POST is working", received: req.body });
+  // Simple POST/GET test to debug 405/Empty errors
+  app.all("/api/post-test", (req, res) => {
+    console.log(`Hit /api/post-test [${req.method}]`);
+    res.json({ 
+      message: `${req.method} is working`, 
+      received: req.body,
+      method: req.method,
+      headers: req.headers
+    });
   });
 
   app.get("/api/encrypt-password", (req, res) => {
