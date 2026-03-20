@@ -373,10 +373,10 @@ export default function Admin() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-gray-100">
-          <div className="w-16 h-16 bg-white border border-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 overflow-hidden p-2 shadow-sm">
-            <img src="https://hoangmaistarschool.edu.vn/thongtin/logo_nshm_white.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+          <div className="h-16 flex items-center justify-center mx-auto mb-6">
+            <img src="https://hoangmaistarschool.edu.vn/storage/general/logo.svg" alt="Logo" className="h-full w-auto object-contain" referrerPolicy="no-referrer" />
           </div>
-          <h1 className="text-2xl font-bold text-[#1a2b4c] mb-2">Quản trị Tuyển dụng</h1>
+          <h1 className="text-2xl font-bold text-[#23328c] mb-2">Quản trị Tuyển dụng</h1>
           <p className="text-gray-500 mb-8">Đăng nhập để quản lý các vị trí tuyển dụng</p>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -438,11 +438,11 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {/* Admin Header */}
-      <header className="bg-[#1a2b4c] text-white py-4 px-6 shadow-md sticky top-0 z-50">
+      <header className="bg-[#23328c] text-white py-4 px-6 shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 overflow-hidden p-1">
-              <img src="https://hoangmaistarschool.edu.vn/thongtin/logo_nshm_white.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+            <div className="h-10 flex items-center justify-center shrink-0">
+              <img src="https://hoangmaistarschool.edu.vn/storage/general/logo.svg" alt="Logo" className="h-full w-auto object-contain" referrerPolicy="no-referrer" />
             </div>
             <div>
               <h1 className="font-bold text-lg tracking-wide">Hệ thống Quản trị Tuyển dụng</h1>

@@ -25,7 +25,7 @@ import MainPage from './MainPage';
 export const defaultContent = {
   // Styling
   primaryColor: '#c8102e',
-  secondaryColor: '#1a2b4c',
+  secondaryColor: '#23328c',
   accentColor: '#fdb913',
   textColor: '#1f2937',
   backgroundColor: '#f9fafb',
@@ -37,7 +37,7 @@ export const defaultContent = {
   
   // Sizing
   logoSize: 10, // 10% as requested previously
-  logoUrl: 'https://hoangmaistarschool.edu.vn/thongtin/logo_nshm_white.png',
+  logoUrl: 'https://hoangmaistarschool.edu.vn/storage/general/logo.svg',
   jobIconUrl: 'https://hoangmaistarschool.edu.vn/storage/general/logo.svg',
   heroHeight: 450,
   heroOverlayOpacity: 0.4,
