@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X, ChevronDown, ChevronUp, Mail } from 'lucide-react';
+import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X, ChevronDown, ChevronUp, Mail, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
 import SiteContentAdmin from './SiteContentAdmin';
 import SmtpAdmin from './SmtpAdmin';
 import ReactQuill from 'react-quill-new';
@@ -127,8 +127,48 @@ export default function Admin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'content' | 'smtp'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'content' | 'smtp' | 'password'>('jobs');
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+
+  // Change password states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Inactivity timer
+  useEffect(() => {
+    if (!user) return;
+
+    let timeoutId: any;
+    const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        console.log("Inactivity timeout reached. Logging out...");
+        handleLogout();
+        alert("Phiên làm việc đã hết hạn do không hoạt động trong 5 phút.");
+      }, INACTIVITY_LIMIT);
+    };
+
+    // Events to track activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    events.forEach(event => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    resetTimer(); // Start timer initially
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [user]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -266,6 +306,65 @@ export default function Admin() {
     }
   };
 
+  const validatePassword = (pass: string) => {
+    const minLength = pass.length >= 8;
+    const hasUpper = /[A-Z]/.test(pass);
+    const hasLower = /[a-z]/.test(pass);
+    const hasNumber = /[0-9]/.test(pass);
+    const hasSpecial = /[@$!%*?&]/.test(pass);
+    
+    if (!minLength) return "Mật khẩu phải có ít nhất 8 ký tự.";
+    if (!hasUpper) return "Mật khẩu phải có ít nhất một chữ hoa.";
+    if (!hasLower) return "Mật khẩu phải có ít nhất một chữ thường.";
+    if (!hasNumber) return "Mật khẩu phải có ít nhất một chữ số.";
+    if (!hasSpecial) return "Mật khẩu phải có ít nhất một ký tự đặc biệt (@$!%*?&).";
+    
+    return null;
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
+    const validationError = validatePassword(newPassword);
+    if (validationError) {
+      setPasswordError(validationError);
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      if (!user.email) throw new Error("Không tìm thấy email người dùng.");
+      
+      // Re-authenticate user
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      
+      // Update password
+      await updatePassword(user, newPassword);
+      
+      alert("Đổi mật khẩu thành công!");
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setActiveTab('jobs');
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      if (error.code === 'auth/wrong-password') {
+        setPasswordError("Mật khẩu hiện tại không chính xác.");
+      } else {
+        setPasswordError("Lỗi: " + error.message);
+      }
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50">Đang tải...</div>;
   }
@@ -386,6 +485,13 @@ export default function Admin() {
           >
             <Mail className="w-5 h-5" />
             <span>Cài đặt Email</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('password')}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 ${activeTab === 'password' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            <Lock className="w-5 h-5" />
+            <span>Đổi mật khẩu</span>
           </button>
         </div>
 
@@ -516,8 +622,70 @@ export default function Admin() {
         </div>
         ) : activeTab === 'content' ? (
           <SiteContentAdmin />
-        ) : (
+        ) : activeTab === 'smtp' ? (
           <SmtpAdmin />
+        ) : (
+          <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-3 bg-red-50 rounded-xl">
+                <ShieldCheck className="w-6 h-6 text-[#c8102e]" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Đổi mật khẩu</h2>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="space-y-5">
+              {passwordError && (
+                <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm flex items-start space-x-2">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu hiện tại</label>
+                <input 
+                  type="password" 
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
+                <input 
+                  type="password" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Yêu cầu: Tối thiểu 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu mới</label>
+                <input 
+                  type="password" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition"
+                  required
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isChangingPassword}
+                className={`w-full bg-[#c8102e] text-white font-bold py-3 rounded-xl transition shadow-md ${isChangingPassword ? 'opacity-70 cursor-not-allowed' : 'hover:bg-red-700 hover:shadow-lg'}`}
+              >
+                {isChangingPassword ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
+              </button>
+            </form>
+          </div>
         )}
 
       </main>
