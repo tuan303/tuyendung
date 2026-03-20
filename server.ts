@@ -104,6 +104,12 @@ async function startServer() {
     res.json({ message: "API is working", time: new Date().toISOString() });
   });
 
+  // Simple POST test to debug 405 errors
+  app.post("/api/post-test", (req, res) => {
+    console.log("Hit /api/post-test");
+    res.json({ message: "POST is working", received: req.body });
+  });
+
   app.get("/api/encrypt-password", (req, res) => {
     res.json({ message: "Use POST to encrypt" });
   });
@@ -137,8 +143,20 @@ async function startServer() {
     }
   });
 
-  app.post("/api/test-smtp", async (req, res) => {
-    console.log(">>> Hit /api/test-smtp");
+  app.all("/api/test-smtp", async (req, res) => {
+    console.log(`>>> Hit /api/test-smtp [${req.method}]`);
+    
+    if (req.method === 'GET') {
+      return res.json({ 
+        message: "SMTP Test endpoint is reachable via GET.", 
+        instructions: "Please use POST with SMTP credentials to perform a real test." 
+      });
+    }
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: `Method ${req.method} not allowed. Use POST.` });
+    }
+
     try {
       const { host, port, user, pass, recipient } = req.body;
       console.log("SMTP Test Params:", { host, port, user, recipient, hasPass: !!pass });

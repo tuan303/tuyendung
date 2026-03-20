@@ -145,7 +145,9 @@ export default function SmtpAdmin() {
         }
       } else {
         // Not JSON - likely HTML or empty
-        if (responseText.includes("<!doctype html>") || responseText.includes("<html>")) {
+        if (response.status === 405) {
+          setMessage({ text: `Lỗi 405: Phương thức POST bị từ chối. Điều này thường do tường lửa (Firewall) của tên miền hoặc máy chủ đang chặn các yêu cầu POST. Vui lòng liên hệ quản trị viên mạng.`, type: 'error' });
+        } else if (responseText.includes("<!doctype html>") || responseText.includes("<html>")) {
           setMessage({ text: `Lỗi hệ thống: API đang trả về trang giao diện (HTML) thay vì dữ liệu. Vui lòng thử lại sau vài giây.`, type: 'error' });
         } else {
           setMessage({ text: `Lỗi kết nối (${response.status}): ${responseText.substring(0, 100) || 'Phản hồi trống từ server. Có thể do kết nối bị ngắt hoặc timeout.'}`, type: 'error' });
@@ -304,6 +306,26 @@ export default function SmtpAdmin() {
             className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition text-sm"
           >
             <span>Kiểm tra API Backend</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/post-test', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ test: "hello" })
+                });
+                const data = await res.json();
+                alert(`DEBUG POST TEST:\nStatus: ${res.status}\nData: ${JSON.stringify(data)}`);
+              } catch (e: any) {
+                alert(`DEBUG POST TEST FAILED: ${e.message}`);
+              }
+            }}
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 border border-gray-200 text-gray-400 rounded-xl hover:bg-gray-50 transition text-xs"
+          >
+            <span>Debug POST</span>
           </button>
         </div>
       </form>
