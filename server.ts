@@ -138,15 +138,17 @@ async function startServer() {
   });
 
   app.post("/api/test-smtp", async (req, res) => {
-    console.log("Processing SMTP test request...");
+    console.log(">>> Hit /api/test-smtp");
     try {
       const { host, port, user, pass, recipient } = req.body;
+      console.log("SMTP Test Params:", { host, port, user, recipient, hasPass: !!pass });
       
       if (!host || !port || !user || !pass || !recipient) {
+        console.warn("Missing SMTP params");
         return res.status(400).json({ error: "Vui lòng nhập đầy đủ thông tin SMTP để kiểm tra" });
       }
 
-      console.log(`Testing SMTP: ${host}:${port} as ${user}`);
+      console.log(`Attempting SMTP connection to ${host}:${port}...`);
 
       const transporter = nodemailer.createTransport({
         host: host,
@@ -156,16 +158,16 @@ async function startServer() {
           user: user,
           pass: pass,
         },
-        // Short timeout for testing
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 15000,
       });
 
-      // Verify connection configuration
+      console.log("Verifying transporter...");
       await transporter.verify();
+      console.log("Transporter verified successfully.");
       
-      // Try sending a test email
+      console.log("Sending test email...");
       await transporter.sendMail({
         from: `"Hệ thống Tuyển dụng" <${user}>`,
         to: recipient,
@@ -173,10 +175,11 @@ async function startServer() {
         text: "Chúc mừng! Cấu hình SMTP của bạn đã hoạt động chính xác.",
         html: "<h2>Kiểm tra cấu hình SMTP</h2><p>Chúc mừng! Cấu hình SMTP của bạn đã hoạt động chính xác.</p><p>Hệ thống đã có thể gửi email thông báo hồ sơ ứng tuyển.</p>",
       });
+      console.log("Test email sent successfully.");
 
       res.status(200).json({ success: true, message: "Kết nối SMTP thành công và đã gửi email thử nghiệm!" });
     } catch (error: any) {
-      console.error("SMTP Test Error:", error);
+      console.error("!!! SMTP Test Error:", error);
       let errorMessage = error.message || "Lỗi không xác định khi kết nối SMTP";
       
       if (error.code === 'EAUTH') {
@@ -185,9 +188,15 @@ async function startServer() {
         errorMessage = "Lỗi kết nối: Không thể kết nối tới máy chủ SMTP. Kiểm tra lại Host và Port.";
       } else if (error.code === 'ETIMEDOUT') {
         errorMessage = "Lỗi hết thời gian: Kết nối tới máy chủ SMTP quá lâu. Kiểm tra lại mạng hoặc Port.";
+      } else if (error.syscall === 'getaddrinfo') {
+        errorMessage = "Lỗi DNS: Không tìm thấy máy chủ SMTP. Kiểm tra lại Host.";
       }
       
-      res.status(500).json({ error: errorMessage, details: error.code || error.name });
+      res.status(500).json({ 
+        error: errorMessage, 
+        details: error.code || error.name,
+        raw: error.message
+      });
     }
   });
 

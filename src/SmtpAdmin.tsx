@@ -114,25 +114,51 @@ export default function SmtpAdmin() {
     }
 
     setIsTesting(true);
-    setMessage({ text: 'Đang kiểm tra kết nối SMTP...', type: 'info' });
+    setMessage({ text: 'Đang kiểm tra kết nối SMTP (có thể mất tới 30 giây)...', type: 'info' });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
     try {
       const response = await fetch('/api/test-smtp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ host, port, user, pass, recipient }),
+        signal: controller.signal
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+      const contentType = response.headers.get("content-type");
+      const responseText = await response.text();
 
-      if (response.ok) {
-        setMessage({ text: data.message || 'Kết nối SMTP thành công!', type: 'success' });
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          const data = JSON.parse(responseText);
+          if (response.ok) {
+            setMessage({ text: data.message || 'Kết nối SMTP thành công!', type: 'success' });
+          } else {
+            setMessage({ text: `Lỗi SMTP (${response.status}): ${data.error || 'Không thể kết nối'}`, type: 'error' });
+            console.error("SMTP Error Details:", data.details, data.raw);
+          }
+        } catch (e) {
+          setMessage({ text: `Lỗi xử lý dữ liệu JSON (${response.status}): ${responseText.substring(0, 100)}`, type: 'error' });
+        }
       } else {
-        setMessage({ text: `Lỗi SMTP: ${data.error || 'Không thể kết nối'}`, type: 'error' });
+        // Not JSON - likely HTML or empty
+        if (responseText.includes("<!doctype html>") || responseText.includes("<html>")) {
+          setMessage({ text: `Lỗi hệ thống: API đang trả về trang giao diện (HTML) thay vì dữ liệu. Vui lòng thử lại sau vài giây.`, type: 'error' });
+        } else {
+          setMessage({ text: `Lỗi kết nối (${response.status}): ${responseText.substring(0, 100) || 'Phản hồi trống từ server. Có thể do kết nối bị ngắt hoặc timeout.'}`, type: 'error' });
+        }
       }
     } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error("SMTP Test Error:", error);
-      setMessage({ text: `Lỗi kết nối API: ${error.message || 'Lỗi không xác định'}`, type: 'error' });
+      if (error.name === 'AbortError') {
+        setMessage({ text: 'Lỗi: Quá thời gian kết nối (Timeout). Máy chủ SMTP phản hồi quá chậm.', type: 'error' });
+      } else {
+        setMessage({ text: `Lỗi kết nối API: ${error.message || 'Lỗi không xác định'}`, type: 'error' });
+      }
     } finally {
       setIsTesting(false);
     }
@@ -261,10 +287,15 @@ export default function SmtpAdmin() {
                 const apiStatus = apiRes.status;
                 const apiText = await apiRes.text();
                 
-                if (pingStatus === 200 && apiStatus === 200) {
-                  alert("✅ KẾT NỐI API THÀNH CÔNG!\n\nBackend server đang hoạt động bình thường.\nBạn có thể thực hiện 'Gửi email thử nghiệm' để kiểm tra SMTP.");
+                const isPingJson = pingRes.headers.get("content-type")?.includes("application/json");
+                const isApiJson = apiRes.headers.get("content-type")?.includes("application/json");
+
+                if (pingStatus === 200 && apiStatus === 200 && isPingJson && isApiJson) {
+                  alert("✅ KẾT NỐI API THÀNH CÔNG!\n\nBackend server đang hoạt động và trả về đúng định dạng dữ liệu.\nBạn có thể thực hiện 'Gửi email thử nghiệm' để kiểm tra SMTP.");
+                } else if (pingStatus === 200 && (pingText.includes("<!doctype html>") || pingText.includes("<html>"))) {
+                  alert("⚠️ CẢNH BÁO: API đang trả về trang HTML.\n\nĐiều này thường xảy ra khi server đang khởi động lại hoặc cấu hình chưa khớp. Vui lòng đợi 10-20 giây và thử lại.");
                 } else {
-                  alert(`❌ LỖI KẾT NỐI API!\nPING: ${pingStatus}\nTEST: ${apiStatus}\n\nVui lòng kiểm tra lại server.`);
+                  alert(`❌ LỖI KẾT NỐI API!\nStatus: ${pingStatus}/${apiStatus}\nType: ${pingRes.headers.get("content-type")}\n\nVui lòng kiểm tra lại server.`);
                 }
               } catch (e: any) {
                 alert(`❌ LỖI KẾT NỐI API: ${e.message}`);
