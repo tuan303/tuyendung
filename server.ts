@@ -151,24 +151,26 @@ async function startServer() {
   app.all("/api/test-smtp", async (req, res) => {
     console.log(`>>> Hit /api/test-smtp [${req.method}]`);
     
-    if (req.method === 'GET') {
-      return res.json({ 
-        message: "SMTP Test endpoint is reachable via GET.", 
-        instructions: "Please use POST with SMTP credentials to perform a real test." 
-      });
-    }
+    let host, port, user, pass, recipient;
 
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: `Method ${req.method} not allowed. Use POST.` });
+    if (req.method === 'POST') {
+      ({ host, port, user, pass, recipient } = req.body);
+    } else if (req.method === 'GET') {
+      ({ host, port, user, pass, recipient } = req.query as any);
+      console.log("SMTP Test via GET (Query Params)");
+    } else {
+      return res.status(405).json({ error: `Method ${req.method} not allowed.` });
     }
 
     try {
-      const { host, port, user, pass, recipient } = req.body;
       console.log("SMTP Test Params:", { host, port, user, recipient, hasPass: !!pass });
       
       if (!host || !port || !user || !pass || !recipient) {
         console.warn("Missing SMTP params");
-        return res.status(400).json({ error: "Vui lòng nhập đầy đủ thông tin SMTP để kiểm tra" });
+        return res.status(400).json({ 
+          error: "Vui lòng nhập đầy đủ thông tin SMTP để kiểm tra",
+          received: { host, port, user, recipient, hasPass: !!pass }
+        });
       }
 
       console.log(`Attempting SMTP connection to ${host}:${port}...`);
@@ -223,11 +225,22 @@ async function startServer() {
     }
   });
 
-  app.post("/api/send-email", async (req, res) => {
+  app.all("/api/send-email", async (req, res) => {
+    console.log(`>>> Hit /api/send-email [${req.method}]`);
     try {
-      const { name, dob, phone, email, position, downloadURL } = req.body;
+      let data;
+      if (req.method === 'POST') {
+        data = req.body;
+      } else if (req.method === 'GET') {
+        data = req.query;
+        console.log("Sending email via GET (Query Params) fallback");
+      } else {
+        return res.status(405).json({ error: `Method ${req.method} not allowed.` });
+      }
+
+      const { name, dob, phone, email, position, downloadURL } = data;
       if (!name || !phone || !email || !position) {
-        return res.status(400).json({ error: "Missing required fields" });
+        return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
       }
       const docRef = doc(clientDb, "settings", "smtp");
       const docSnap = await getDoc(docRef);

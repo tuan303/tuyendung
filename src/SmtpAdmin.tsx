@@ -120,18 +120,30 @@ export default function SmtpAdmin() {
     const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
     try {
-      const response = await fetch('/api/test-smtp', {
+      let response = await fetch('/api/test-smtp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ host, port, user, pass, recipient }),
         signal: controller.signal
       });
 
+      let responseText = await response.text();
+
+      // Fallback to GET if POST is blocked (405) or returns empty
+      if (response.status === 405 || !responseText) {
+        console.warn("POST failed or blocked, trying GET fallback...");
+        const query = new URLSearchParams({ host, port, user, pass, recipient }).toString();
+        response = await fetch(`/api/test-smtp?${query}`, {
+          method: 'GET',
+          signal: controller.signal
+        });
+        responseText = await response.text();
+      }
+
       clearTimeout(timeoutId);
       const contentType = response.headers.get("content-type");
-      const responseText = await response.text();
 
-      if (contentType && contentType.includes("application/json")) {
+      if (contentType && contentType.includes("application/json") && responseText) {
         try {
           const data = JSON.parse(responseText);
           if (response.ok) {
