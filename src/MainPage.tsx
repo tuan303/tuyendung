@@ -298,7 +298,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             return siteContent.showJobs && (
               <div key="jobs" className="mx-auto px-4 relative" style={{ padding: `${siteContent.sectionSpacing}px 0`, maxWidth: `${siteContent.containerWidth}px` }}>
                 <div className="text-center mb-14">
-                  <h2 className="text-3xl font-bold uppercase tracking-wide" style={{ color: siteContent.secondaryColor }}>Việc làm nổi bật</h2>
+                  <h2 className="text-3xl font-bold uppercase tracking-wide" style={{ color: siteContent.secondaryColor }}>{siteContent.jobsTitle}</h2>
                   <div className="w-16 h-1 mx-auto mt-4 rounded-full" style={{ backgroundColor: siteContent.primaryColor }}></div>
                 </div>
                 

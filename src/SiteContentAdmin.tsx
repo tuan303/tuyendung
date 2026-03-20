@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'motion/react';
-import { Save, Image as ImageIcon, Type, Palette, Layout, ArrowUp, ArrowDown, Eye, EyeOff, GripVertical, Maximize2, Monitor, Smartphone, Tablet, Facebook, Youtube, X } from 'lucide-react';
+import { Save, Image as ImageIcon, Type, Palette, Layout, ArrowUp, ArrowDown, Eye, EyeOff, GripVertical, Maximize2, Monitor, Smartphone, Tablet, Facebook, Youtube, X, Briefcase } from 'lucide-react';
 import MainPage from './MainPage';
 
 export const defaultContent = {
@@ -57,6 +57,8 @@ export const defaultContent = {
   heroBgImage: 'https://hoangmaistarschool.edu.vn/thongtin/nen.jpg',
   heroTitle: 'Tuyển dụng',
   heroSubtitle: 'Trường Ngôi Sao Hoàng Mai',
+  
+  jobsTitle: 'CƠ HỘI VIỆC LÀM',
   
   policy1Title: 'Đào tạo và phát triển',
   policy1Desc: 'Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.',
@@ -538,6 +540,20 @@ export default function SiteContentAdmin() {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tiêu đề nhỏ</label>
                   <input type="text" name="heroSubtitle" value={content.heroSubtitle} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                 </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Jobs Section */}
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
+              <Briefcase className="w-5 h-5 mr-2 text-[#c8102e]" />
+              Nội dung Việc làm
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tiêu đề phần việc làm</label>
+                <input type="text" name="jobsTitle" value={content.jobsTitle} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
               </div>
             </div>
           </section>
