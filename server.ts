@@ -68,58 +68,54 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Global logger - MUST BE FIRST
-  app.use((req, res, next) => {
-    console.log(`[Request] ${req.method} ${req.url} - NODE_ENV: ${process.env.NODE_ENV}`);
-    next();
-  });
-
-  // Root health check
-  app.get("/health", (req, res) => {
-    res.send("OK");
-  });
-
+  // 1. GLOBAL MIDDLEWARE - MUST BE FIRST
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Root level ping (no /api prefix)
-  app.get("/ping", (req, res) => {
-    console.log("Hit /ping");
-    res.send("pong");
+  // 2. LOGGING MIDDLEWARE
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Host: ${req.headers.host}`);
+    next();
   });
 
-  // API Routes - Defined directly on app for maximum compatibility
-  app.get("/api/ping", (req, res) => {
-    console.log("Hit /api/ping");
-    res.json({ 
-      message: "api-pong", 
-      time: new Date().toISOString(),
-      env: process.env.NODE_ENV || 'development'
-    });
+  // 3. DIAGNOSTIC ROUTES (At the very top, no prefix)
+  app.get("/ping-v5", (req, res) => {
+    res.json({ status: "ok", message: "ROOT PING V5", time: new Date().toISOString() });
   });
 
-  app.get("/api/test", (req, res) => {
-    console.log("Hit /api/test");
-    res.json({ message: "API is working", time: new Date().toISOString() });
+  app.get("/api/ping-v5", (req, res) => {
+    res.json({ status: "ok", message: "API PING V5", time: new Date().toISOString() });
+  });
+
+  app.get("/backend-api/ping-v5", (req, res) => {
+    res.json({ status: "ok", message: "BACKEND API PING V5", time: new Date().toISOString() });
+  });
+
+  // 4. API ROUTER
+  const apiRouter = express.Router();
+  
+  apiRouter.get("/ping", (req, res) => {
+    res.json({ status: "ok", message: "API PING OK", version: "v5" });
+  });
+
+  apiRouter.get("/test", (req, res) => {
+    res.json({ message: "API is working", version: "v5", time: new Date().toISOString() });
   });
 
   // Simple POST/GET test to debug 405/Empty errors
-  app.all("/api/post-test", (req, res) => {
-    console.log(`Hit /api/post-test [${req.method}]`);
+  apiRouter.all("/post-test", (req, res) => {
+    console.log(`Hit API post-test [${req.method}]`);
     res.json({ 
       message: `${req.method} is working`, 
+      version: "v5",
       received: req.body,
       method: req.method,
       headers: req.headers
     });
   });
 
-  app.get("/api/encrypt-password", (req, res) => {
-    res.json({ message: "Use POST to encrypt" });
-  });
-
-  app.post("/api/encrypt-password", async (req, res) => {
+  apiRouter.post("/encrypt-password", async (req, res) => {
     console.log("Processing encryption request...");
     try {
       const { password } = req.body;
@@ -134,7 +130,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/decrypt-password", async (req, res) => {
+  apiRouter.post("/decrypt-password", async (req, res) => {
     try {
       const { encryptedPassword } = req.body;
       if (!encryptedPassword) {
@@ -148,8 +144,8 @@ async function startServer() {
     }
   });
 
-  app.all("/api/test-smtp", async (req, res) => {
-    console.log(`>>> Hit /api/test-smtp [${req.method}]`);
+  apiRouter.all("/test-smtp", async (req, res) => {
+    console.log(`>>> Hit API test-smtp [${req.method}]`);
     
     let host, port, user, pass, recipient;
 
@@ -225,8 +221,8 @@ async function startServer() {
     }
   });
 
-  app.all("/api/send-email", async (req, res) => {
-    console.log(`>>> Hit /api/send-email [${req.method}]`);
+  apiRouter.all("/send-email", async (req, res) => {
+    console.log(`>>> Hit API send-email [${req.method}]`);
     try {
       let data;
       if (req.method === 'POST') {
@@ -279,13 +275,17 @@ async function startServer() {
     }
   });
 
-  // Catch-all for /api to detect 404/405
-  app.all("/api/*", (req, res) => {
-    console.warn(`[API Unhandled] ${req.method} ${req.url}`);
-    res.status(404).json({ error: `API route ${req.url} not found` });
+  // Mount API Router on both /api and /backend-api for redundancy
+  app.use("/api", apiRouter);
+  app.use("/backend-api", apiRouter);
+
+  // Catch-all for /api and /backend-api to detect 404/405
+  app.all(["/api/*", "/backend-api/*"], (req, res) => {
+    console.warn(`[API Unhandled] ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ error: `API route ${req.originalUrl} not found`, version: "v5" });
   });
 
-  // Vite middleware for development
+  // 5. VITE MIDDLEWARE
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -297,7 +297,7 @@ async function startServer() {
     app.get('*', async (req, res, next) => {
       const url = req.originalUrl;
       // Skip API routes
-      if (url.startsWith('/api/')) {
+      if (url.startsWith('/api/') || url.startsWith('/backend-api/')) {
         return next();
       }
       try {

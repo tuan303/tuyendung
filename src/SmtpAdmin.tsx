@@ -58,12 +58,29 @@ export default function SmtpAdmin() {
     setMessage({ text: '', type: '' });
 
     try {
-      // Encrypt password
-      const encryptResponse = await fetch('/api/encrypt-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass }),
-      });
+      // Encrypt password - Try multiple prefixes
+      let encryptResponse;
+      let usedPrefix = '/api';
+      
+      try {
+        encryptResponse = await fetch('/api/encrypt-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pass }),
+        });
+        const text = await encryptResponse.clone().text();
+        if (!encryptResponse.ok || text.includes('<!doctype html>')) {
+          throw new Error('Primary API failed');
+        }
+      } catch (e) {
+        console.warn("Primary API failed, trying fallback prefix...");
+        usedPrefix = '/backend-api';
+        encryptResponse = await fetch('/backend-api/encrypt-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pass }),
+        });
+      }
       
       const status = encryptResponse.status;
       const responseText = await encryptResponse.text();
@@ -83,6 +100,9 @@ export default function SmtpAdmin() {
       try {
         responseData = JSON.parse(responseText);
       } catch (e) {
+        if (responseText.includes('<!doctype html>')) {
+          throw new Error(`API returned HTML instead of JSON. Prefix ${usedPrefix} might be blocked.`);
+        }
         throw new Error(`Invalid JSON response (Status ${status}): ${responseText.substring(0, 50) || 'Empty'}`);
       }
       
@@ -120,6 +140,7 @@ export default function SmtpAdmin() {
     const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
     try {
+      let usedPrefix = '/api';
       let response = await fetch('/api/test-smtp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,21 +150,42 @@ export default function SmtpAdmin() {
 
       let responseText = await response.text();
 
-      // Fallback to GET if POST is blocked (405) or returns empty
-      if (response.status === 405 || !responseText) {
-        console.warn("POST failed or blocked, trying GET fallback...");
-        const query = new URLSearchParams({ host, port, user, pass, recipient }).toString();
-        response = await fetch(`/api/test-smtp?${query}`, {
-          method: 'GET',
-          signal: controller.signal
-        });
-        responseText = await response.text();
+      // Fallback to GET or different prefix if POST is blocked (405) or returns HTML/Empty
+      if (response.status === 405 || !responseText || responseText.includes('<!doctype html>')) {
+        console.warn("Primary POST failed or blocked, trying fallback prefix...");
+        usedPrefix = '/backend-api';
+        try {
+          response = await fetch('/backend-api/test-smtp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ host, port, user, pass, recipient }),
+            signal: controller.signal
+          });
+          responseText = await response.text();
+        } catch (e) {
+          console.error("Fallback POST failed:", e);
+        }
+      }
+
+      // Final fallback to GET if POST still fails or returns HTML
+      if (response.status === 405 || !responseText || responseText.includes('<!doctype html>')) {
+        console.warn("POST still failed, trying GET fallback...");
+        try {
+          const query = new URLSearchParams({ host, port, user, pass, recipient }).toString();
+          response = await fetch(`/backend-api/test-smtp?${query}`, {
+            method: 'GET',
+            signal: controller.signal
+          });
+          responseText = await response.text();
+        } catch (e) {
+          console.error("GET fallback failed:", e);
+        }
       }
 
       clearTimeout(timeoutId);
       const contentType = response.headers.get("content-type");
 
-      if (contentType && contentType.includes("application/json") && responseText) {
+      if (contentType && contentType.includes("application/json") && responseText && !responseText.includes('<!doctype html>')) {
         try {
           const data = JSON.parse(responseText);
           if (response.ok) {
@@ -160,7 +202,7 @@ export default function SmtpAdmin() {
         if (response.status === 405) {
           setMessage({ text: `Lỗi 405: Phương thức POST bị từ chối. Điều này thường do tường lửa (Firewall) của tên miền hoặc máy chủ đang chặn các yêu cầu POST. Vui lòng liên hệ quản trị viên mạng.`, type: 'error' });
         } else if (responseText.includes("<!doctype html>") || responseText.includes("<html>")) {
-          setMessage({ text: `Lỗi hệ thống: API đang trả về trang giao diện (HTML) thay vì dữ liệu. Vui lòng thử lại sau vài giây.`, type: 'error' });
+          setMessage({ text: `Lỗi hệ thống: API đang trả về trang giao diện (HTML) thay vì dữ liệu. Prefix ${usedPrefix} có thể bị chặn.`, type: 'error' });
         } else {
           setMessage({ text: `Lỗi kết nối (${response.status}): ${responseText.substring(0, 100) || 'Phản hồi trống từ server. Có thể do kết nối bị ngắt hoặc timeout.'}`, type: 'error' });
         }
@@ -324,6 +366,46 @@ export default function SmtpAdmin() {
             type="button"
             onClick={async () => {
               try {
+                const results: any = {};
+                
+                // Test 1: Root Ping V5
+                try {
+                  const r1 = await fetch('/ping-v5');
+                  results.rootPingV5 = { status: r1.status, text: await r1.text() };
+                } catch (e: any) { results.rootPingV5 = { error: e.message }; }
+
+                // Test 2: API Ping V5
+                try {
+                  const r2 = await fetch('/api/ping-v5');
+                  results.apiPingV5 = { status: r2.status, text: await r2.text() };
+                } catch (e: any) { results.apiPingV5 = { error: e.message }; }
+
+                // Test 3: Backend API Ping V5
+                try {
+                  const r3 = await fetch('/backend-api/ping-v5');
+                  results.backendApiPingV5 = { status: r3.status, text: await r3.text() };
+                } catch (e: any) { results.backendApiPingV5 = { error: e.message }; }
+
+                // Test 4: Simple Test
+                try {
+                  const r4 = await fetch('/simple-test');
+                  results.simpleTest = { status: r4.status, text: await r4.text() };
+                } catch (e: any) { results.simpleTest = { error: e.message }; }
+
+                alert(`DIAGNOSTIC RESULTS V5:\n${JSON.stringify(results, null, 2)}`);
+              } catch (e: any) {
+                alert(`DIAGNOSTIC ERROR: ${e.message}`);
+              }
+            }}
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 border border-blue-200 text-blue-500 rounded-xl hover:bg-blue-50 transition text-xs"
+          >
+            <span>Chẩn đoán hệ thống</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
                 const res = await fetch('/api/post-test', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -349,13 +431,20 @@ export default function SmtpAdmin() {
             type="button"
             onClick={async () => {
               try {
-                const res = await fetch('/api/post-test', { method: 'GET' });
-                const text = await res.text();
+                let res = await fetch('/api/post-test', { method: 'GET' });
+                let text = await res.text();
+                
+                if (text.includes('<!doctype html>')) {
+                  console.warn("Primary GET returned HTML, trying fallback prefix...");
+                  res = await fetch('/backend-api/post-test', { method: 'GET' });
+                  text = await res.text();
+                }
+
                 try {
                   const data = JSON.parse(text);
                   alert(`DEBUG GET TEST SUCCESS:\nStatus: ${res.status}\nData: ${JSON.stringify(data, null, 2)}`);
                 } catch (e) {
-                  alert(`DEBUG GET TEST FAILED (Not JSON):\nStatus: ${res.status}\nRaw Response: ${text || '(empty)'}`);
+                  alert(`DEBUG GET TEST FAILED (Not JSON):\nStatus: ${res.status}\nRaw Response: ${text.substring(0, 200) || '(empty)'}`);
                 }
               } catch (e: any) {
                 alert(`DEBUG GET TEST ERROR:\n${e.message}`);
