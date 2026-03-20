@@ -490,7 +490,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             );
           case 'form':
             return siteContent.showForm && (
-              <div key="form" className="mx-auto px-4" style={{ marginBottom: `${siteContent.sectionSpacing}px`, maxWidth: `${siteContent.containerWidth}px` }}>
+              <div key="form" id="application-form" className="mx-auto px-4" style={{ marginBottom: `${siteContent.sectionSpacing}px`, maxWidth: `${siteContent.containerWidth}px` }}>
                 <div className="flex flex-col lg:flex-row overflow-hidden shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius * 2.5}px` }}>
                   {/* Left Form */}
                   <div 
@@ -762,7 +762,28 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
               </div>
             </div>
             
-            <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end">
+            <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end gap-4">
+              <button 
+                onClick={() => {
+                  if (selectedJob) {
+                    setPosition(selectedJob.title);
+                    setSelectedJob(null);
+                    setTimeout(() => {
+                      const formElement = document.getElementById('application-form');
+                      if (formElement) {
+                        formElement.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }, 100);
+                  }
+                }}
+                className="px-6 py-2.5 text-white font-bold hover:opacity-90 transition"
+                style={{ 
+                  backgroundColor: siteContent.primaryColor,
+                  borderRadius: `${siteContent.borderRadius}px` 
+                }}
+              >
+                Ứng tuyển ngay
+              </button>
               <button 
                 onClick={() => setSelectedJob(null)}
                 className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition"
