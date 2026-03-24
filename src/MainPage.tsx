@@ -238,7 +238,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             </div>
             <div className="flex items-center space-x-2">
               <Mail className="w-4 h-4 shrink-0" />
-              <span>Email: tuantm@hoangmaistarschool.edu.vn</span>
+              <span>Email: tuyendung@hoangmaistarschool.edu.vn</span>
             </div>
           </div>
         </div>
@@ -607,8 +607,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {/* Step 1 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 1</h3>
-                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Ứng tuyển</p>
+                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 1</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Ứng tuyển</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <MousePointerClick className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -616,8 +616,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 2 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 2</h3>
-                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Sàng lọc hồ sơ</p>
+                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 2</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Sàng lọc hồ sơ</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <FileText className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -625,8 +625,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 3 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 3</h3>
-                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Làm bài test/Phỏng vấn vòng 1</p>
+                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 3</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Làm bài test/Phỏng vấn vòng 1</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <Target className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -634,8 +634,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 4 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 4</h3>
-                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Dự giờ, giảng thử<br/><span className="text-sm normal-case">(Đối với vị trí GV)</span></p>
+                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 4</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Dự giờ, giảng thử<br/><span className="text-lg normal-case">(Đối với vị trí GV)</span></p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <FileEdit className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -643,8 +643,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 5 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 5</h3>
-                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Phỏng vấn<br/>vòng cuối</p>
+                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 5</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Phỏng vấn<br/>vòng cuối</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <CircleDollarSign className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -652,8 +652,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 6 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 6</h3>
-                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Hoàn thiện hồ sơ<br/>cần thiết</p>
+                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 6</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Hoàn thiện hồ sơ<br/>cần thiết</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <Layers className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -748,11 +748,11 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                               Gửi CV và Đơn ứng tuyển về địa chỉ email:
                             </p>
                             <a 
-                              href="mailto:tuantm@hoangmaistarschool.edu.vn" 
+                              href="mailto:tuyendung@hoangmaistarschool.edu.vn" 
                               className="inline-block text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition shadow-md break-all text-sm sm:text-base max-w-full"
                               style={{ backgroundColor: siteContent.primaryColor }}
                             >
-                              tuantm@hoangmaistarschool.edu.vn
+                              tuyendung@hoangmaistarschool.edu.vn
                             </a>
                             <p className="text-white/60 text-xs sm:text-sm mt-3 italic">Tiêu đề email: [Vị trí ứng tuyển] - [Họ và tên]</p>
                           </div>
@@ -849,7 +849,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 </li>
                 <li className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 shrink-0" style={{ color: siteContent.primaryColor }} />
-                  <span>tuantm@hoangmaistarschool.edu.vn</span>
+                  <span>tuyendung@hoangmaistarschool.edu.vn</span>
                 </li>
               </ul>
             </div>
