@@ -399,7 +399,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   </h2>
                 </div>
 
-                <div className="bg-white p-6 md:p-10 shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius * 2.5}px` }}>
+                <div className="p-6 md:p-10 shadow-2xl" style={{ backgroundColor: '#ffebd6', borderRadius: `${siteContent.borderRadius * 2.5}px` }}>
                   {/* Tabs */}
                   <div className="mb-8">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
@@ -415,8 +415,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                           onClick={() => setActivePolicyTab(tab.id)}
                           className={`px-4 py-4 rounded-xl font-bold text-xs md:text-sm transition-all duration-300 flex items-center justify-center text-center h-full hover:scale-105 transform ${
                             activePolicyTab === tab.id 
-                              ? 'bg-[#c8102e] text-white shadow-lg' 
-                              : 'bg-[#c8102e] text-white opacity-90 hover:opacity-100'
+                              ? 'bg-[#c8102e] text-[#ffebd6] shadow-lg' 
+                              : 'bg-[#c8102e] text-[#ffebd6] opacity-90 hover:opacity-100'
                           }`}
                         >
                           {tab.label}
@@ -438,7 +438,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                             referrerPolicy="no-referrer"
                           />
                         </div>
-                        <div className="p-8 md:p-12 flex flex-col justify-center bg-white order-2 md:order-2">
+                        <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#ffebd6' }}>
                           <div className="flex items-center space-x-4 mb-6">
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               01
@@ -613,7 +613,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {/* Step 1 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 1</h3>
+                      <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 1</h3>
                       <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Ứng tuyển</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <MousePointerClick className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
@@ -622,7 +622,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 2 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 2</h3>
+                      <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 2</h3>
                       <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Sàng lọc hồ sơ</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <FileText className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
@@ -631,7 +631,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 3 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 3</h3>
+                      <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 3</h3>
                       <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Làm bài test/Phỏng vấn vòng 1</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <Target className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
@@ -640,7 +640,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 4 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 4</h3>
+                      <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 4</h3>
                       <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Dự giờ, giảng thử<br/><span className="text-base normal-case">(Đối với vị trí GV)</span></p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <FileEdit className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
@@ -649,7 +649,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 5 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 5</h3>
+                      <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 5</h3>
                       <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Phỏng vấn<br/>vòng cuối</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <CircleDollarSign className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
@@ -658,7 +658,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 6 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 6</h3>
+                      <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 6</h3>
                       <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Hoàn thiện hồ sơ<br/>cần thiết</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <Layers className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
