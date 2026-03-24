@@ -234,7 +234,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             </div>
             <div className="flex items-center space-x-2">
               <Phone className="w-4 h-4 shrink-0" />
-              <span>Hotline: 1900 888 689 ext: 3</span>
+              <span>Hotline: {siteContent.hotline || '0398 130 108'}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Mail className="w-4 h-4 shrink-0" />
@@ -404,11 +404,11 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   <div className="mb-8">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
                       {[
-                        { id: 0, label: 'ĐÀO TẠO VÀ PHÁT TRIỂN' },
-                        { id: 1, label: 'KHÔNG GIAN LÀM VIỆC' },
-                        { id: 2, label: 'HỆ THỐNG TRIẾT LÝ' },
-                        { id: 3, label: 'TẦM NHÌN - SỨ MỆNH GIÁ TRỊ CỐT LÕI' },
-                        { id: 4, label: 'CHÍNH SÁCH PHÚC LỢI' }
+                        { id: 0, label: siteContent.policyTab0Label || 'ĐÀO TẠO VÀ PHÁT TRIỂN' },
+                        { id: 1, label: siteContent.policyTab1Label || 'KHÔNG GIAN LÀM VIỆC' },
+                        { id: 2, label: siteContent.policyTab2Label || 'HỆ THỐNG TRIẾT LÝ' },
+                        { id: 3, label: siteContent.policyTab3Label || 'TẦM NHÌN - SỨ MỆNH - GIÁ TRỊ CỐT LÕI' },
+                        { id: 4, label: siteContent.policyTab4Label || 'CHÍNH SÁCH PHÚC LỢI' }
                       ].map((tab) => (
                         <button
                           key={tab.id}
@@ -861,7 +861,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 </li>
                 <li className="flex items-center space-x-3">
                   <Phone className="w-5 h-5 shrink-0" style={{ color: siteContent.primaryColor }} />
-                  <span>1900 888 689 ext: 3</span>
+                  <span>{siteContent.hotline || '0398 130 108'}</span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 shrink-0" style={{ color: siteContent.primaryColor }} />

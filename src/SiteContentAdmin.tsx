@@ -59,6 +59,7 @@ export const defaultContent = {
   heroBgImage: 'https://hoangmaistarschool.edu.vn/thongtin/nen.jpg',
   heroTitle: 'Tuyển dụng',
   heroSubtitle: 'Trường Ngôi Sao Hoàng Mai',
+  hotline: '0398 130 108',
   
   jobsTitle: 'CƠ HỘI VIỆC LÀM',
   
@@ -70,6 +71,12 @@ export const defaultContent = {
   policy2Quote: '"Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng."',
   policy2Desc: 'Bên cạnh đó, với cơ sở vật chất, trang thiết bị hiện đại và nền tảng công nghệ tiên tiến cũng là những ưu thế giúp Giáo viên và Học sinh Trường Ngôi Sao Hoàng Mai tối ưu hiệu quả dạy và học.',
   policy2Image: 'https://images.unsplash.com/photo-1577415124269-fc1140a69e91?q=80&w=1964&auto=format&fit=crop',
+  
+  policyTab0Label: 'ĐÀO TẠO VÀ PHÁT TRIỂN',
+  policyTab1Label: 'KHÔNG GIAN LÀM VIỆC',
+  policyTab2Label: 'HỆ THỐNG TRIẾT LÝ',
+  policyTab3Label: 'TẦM NHÌN - SỨ MỆNH - GIÁ TRỊ CỐT LÕI',
+  policyTab4Label: 'CHÍNH SÁCH PHÚC LỢI',
   
   policy3Title: 'Chính sách phúc lợi',
   policy3Benefits: [
@@ -453,13 +460,17 @@ export default function SiteContentAdmin() {
             </div>
           </section>
 
-          {/* Social Links */}
+          {/* Social Links & Contact */}
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
               <Facebook className="w-5 h-5 mr-2 text-[#c8102e]" />
-              Mạng xã hội
+              Thông tin liên hệ & Mạng xã hội
             </h3>
             <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hotline</label>
+                <input type="text" name="hotline" value={content.hotline} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Facebook URL</label>
                 <input type="text" name="facebookUrl" value={content.facebookUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
@@ -607,6 +618,33 @@ export default function SiteContentAdmin() {
               Chính sách & Phúc lợi
             </h3>
             <div className="space-y-8">
+              {/* Tab Labels */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+                <h4 className="font-bold text-sm text-gray-600 uppercase">Tiêu đề các Tab</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tab 1 (Đào tạo)</label>
+                    <input type="text" name="policyTab0Label" value={content.policyTab0Label} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tab 2 (Môi trường)</label>
+                    <input type="text" name="policyTab1Label" value={content.policyTab1Label} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tab 3 (Triết lý)</label>
+                    <input type="text" name="policyTab2Label" value={content.policyTab2Label} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tab 4 (Tầm nhìn)</label>
+                    <input type="text" name="policyTab3Label" value={content.policyTab3Label} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tab 5 (Phúc lợi)</label>
+                    <input type="text" name="policyTab4Label" value={content.policyTab4Label} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                </div>
+              </div>
+
               {/* Policy 1 */}
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                 <h4 className="font-bold text-sm text-gray-600 uppercase">Chính sách 1: Đào tạo</h4>
