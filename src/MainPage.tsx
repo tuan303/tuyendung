@@ -424,47 +424,47 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   </div>
 
                   {/* Tab Content */}
-                  <div className="overflow-hidden bg-white">
+                  <div className="overflow-hidden" style={{ borderRadius: '2rem' }}>
                     {activePolicyTab === 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
-                        <div className="p-8 md:p-12 flex flex-col justify-center bg-white">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
+                        <div className="order-1 md:order-1 h-full">
+                          <img 
+                            src={siteContent.policy1Image || "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop"} 
+                            alt="Đào tạo" 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="p-8 md:p-12 flex flex-col justify-center bg-white order-2 md:order-2">
                           <div className="flex items-center space-x-4 mb-6">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#c8102e' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               01
                             </div>
-                            <h4 className="text-2xl font-bold uppercase tracking-wide" style={{ color: '#c8102e' }}>Đào tạo và phát triển</h4>
+                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: '#c8102e' }}>Đào tạo và phát triển</h4>
                           </div>
                           <p className="text-gray-700 leading-relaxed text-base md:text-lg font-medium">
                             Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.
                           </p>
                         </div>
-                        <div className="p-4 flex items-center justify-center bg-white">
-                          <img 
-                            src={siteContent.policy1Image || "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop"} 
-                            alt="Đào tạo" 
-                            className="w-full h-full object-cover shadow-xl" 
-                            style={{ borderRadius: '2rem' }}
-                          />
-                        </div>
                       </div>
                     )}
 
                     {activePolicyTab === 1 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
-                        <div className="p-4 flex items-center justify-center bg-white order-1 md:order-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
+                        <div className="order-1 md:order-1 h-full">
                           <img 
                             src={siteContent.policy2Image || "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"} 
                             alt="Không gian làm việc" 
-                            className="w-full h-full object-cover shadow-xl" 
-                            style={{ borderRadius: '2rem' }}
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#c8102e' }}>
                           <div className="flex items-center space-x-4 mb-6">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#c8102e] font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               02
                             </div>
-                            <h4 className="text-2xl font-bold uppercase tracking-wide text-white">Không gian làm việc</h4>
+                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">Không gian làm việc</h4>
                           </div>
                           <p className="leading-relaxed text-base md:text-lg text-white font-medium">
                             Tại Trường Ngôi Sao Hoàng Mai, chúng tôi chú trọng đầu tư cơ sở vật chất đồng bộ, hiện đại và thân thiện với môi trường, nhằm kiến tạo một không gian làm việc sáng tạo, nơi mỗi cán bộ, giáo viên có thể phát huy tối đa năng lực của mình. Bên cạnh đó, hệ thống trang thiết bị tiên tiến cùng nền tảng công nghệ được ứng dụng linh hoạt trong giảng dạy và vận hành không chỉ nâng cao hiệu quả công việc mà còn góp phần tối ưu chất lượng dạy và học, mang đến trải nghiệm giáo dục toàn diện cho cả giáo viên và học sinh.
@@ -474,13 +474,21 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     )}
 
                     {activePolicyTab === 2 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
-                        <div className="p-8 md:p-12 flex flex-col justify-center" style={{ backgroundColor: '#2e8b3c' }}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
+                        <div className="order-1 md:order-1 h-full">
+                          <img 
+                            src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop" 
+                            alt="Triết lý" 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#2e8b3c' }}>
                           <div className="flex items-center space-x-4 mb-6">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#2e8b3c] font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#2e8b3c] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               03
                             </div>
-                            <h4 className="text-2xl font-bold uppercase tracking-wide text-white">Hệ thống triết lý</h4>
+                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">Hệ thống triết lý</h4>
                           </div>
                           <p className="leading-relaxed text-base md:text-lg text-white font-medium mb-4">
                             Giáo dục hướng đến phát triển toàn diện, tinh hoa và hội nhập, đặt nền trên đạo đức vững vàng, trí tuệ khai mở, thể chất dẻo dai, nhân cách trưởng thành và tinh thần hòa hợp sâu sắc.
@@ -490,33 +498,25 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                             <strong>Đạo đức, Trí tuệ, Thể chất, Nhân cách, Hoà hợp.</strong>
                           </p>
                         </div>
-                        <div className="p-4 flex items-center justify-center bg-white">
-                          <img 
-                            src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop" 
-                            alt="Triết lý" 
-                            className="w-full h-full object-cover shadow-xl" 
-                            style={{ borderRadius: '2rem' }}
-                          />
-                        </div>
                       </div>
                     )}
 
                     {activePolicyTab === 3 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
-                        <div className="p-4 flex items-center justify-center bg-white order-1 md:order-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
+                        <div className="order-1 md:order-1 h-full">
                           <img 
                             src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop" 
                             alt="Tầm nhìn" 
-                            className="w-full h-full object-cover shadow-xl" 
-                            style={{ borderRadius: '2rem' }}
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#f39c12' }}>
                           <div className="flex items-center space-x-4 mb-6">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#f39c12] font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#c8102e' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#f39c12] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#ffffff' }}>
                               04
                             </div>
-                            <h4 className="text-2xl font-bold uppercase tracking-wide text-white">Tầm nhìn - Sứ mệnh - Giá trị cốt lõi</h4>
+                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">Tầm nhìn - Sứ mệnh - Giá trị cốt lõi</h4>
                           </div>
                           <div className="space-y-4">
                             <div>
@@ -538,13 +538,21 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     )}
 
                     {activePolicyTab === 4 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
-                        <div className="p-8 md:p-12 flex flex-col justify-center order-1 md:order-1" style={{ backgroundColor: '#1a2b4c' }}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
+                        <div className="order-1 md:order-1 h-full">
+                          <img 
+                            src={siteContent.policy3Image || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
+                            alt="Phúc lợi" 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#1a2b4c' }}>
                           <div className="flex items-center space-x-4 mb-8">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#1a2b4c] font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#1a2b4c] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               05
                             </div>
-                            <h4 className="text-2xl font-bold uppercase tracking-wide text-white">Chính sách phúc lợi</h4>
+                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">Chính sách phúc lợi</h4>
                           </div>
                           <ul className="space-y-4">
                             <li className="flex items-start space-x-4">
@@ -580,14 +588,6 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                               <span className="text-white font-medium leading-relaxed text-base md:text-lg">Cơ hội thăng tiến, phát triển bản thân.</span>
                             </li>
                           </ul>
-                        </div>
-                        <div className="p-4 flex items-center justify-center bg-white order-2 md:order-2">
-                          <img 
-                            src={siteContent.policy3Image || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
-                            alt="Phúc lợi" 
-                            className="w-full h-full object-cover shadow-xl" 
-                            style={{ borderRadius: '2rem' }}
-                          />
                         </div>
                       </div>
                     )}
