@@ -85,23 +85,37 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     setIsSubmitting(true);
     try {
       let downloadURL = '';
-      try {
-        // 1. Upload file to Firebase Storage with a 5-second timeout
-        const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
-        
-        const uploadPromise = async () => {
-          await uploadBytes(fileRef, file);
-          return await getDownloadURL(fileRef);
-        };
+      let fileData = null;
+      let fileName = null;
 
-        const timeoutPromise = new Promise<string>((_, reject) => 
-          setTimeout(() => reject(new Error("Upload timeout")), 15000)
-        );
+      if (file) {
+        fileName = file.name;
+        // Read file as base64 for email attachment
+        const reader = new FileReader();
+        fileData = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-        downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
-      } catch (uploadError) {
-        console.warn("Could not upload file to storage, falling back to manual attachment:", uploadError);
-        // If upload fails (e.g. no storage rules or timeout), we continue but ask user to attach manually
+        try {
+          // 1. Upload file to Firebase Storage with a 15-second timeout
+          const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
+          
+          const uploadPromise = async () => {
+            await uploadBytes(fileRef, file);
+            return await getDownloadURL(fileRef);
+          };
+
+          const timeoutPromise = new Promise<string>((_, reject) => 
+            setTimeout(() => reject(new Error("Upload timeout")), 15000)
+          );
+
+          downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
+        } catch (uploadError) {
+          console.warn("Could not upload file to storage, falling back to email attachment only:", uploadError);
+          // If upload fails, we continue and send the base64 file directly via email
+        }
       }
 
       // 2. Prepare email content
@@ -113,7 +127,7 @@ Ngày sinh: ${dob}
 Email: ${email}
 Vị trí ứng tuyển: ${position}
 
-${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm file CV của bạn vào email này trước khi gửi)`}
+${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}
       `.trim();
 
       // 3. Send email via backend API
@@ -128,7 +142,9 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
           phone,
           email,
           position,
-          downloadURL
+          downloadURL,
+          fileData,
+          fileName
         }),
       });
 

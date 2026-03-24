@@ -178,7 +178,7 @@ apiRouter.all("/send-email", async (req, res) => {
       return res.status(405).json({ error: `Method ${req.method} not allowed.` });
     }
 
-    const { name, dob, phone, email, position, downloadURL } = data;
+    const { name, dob, phone, email, position, downloadURL, fileData, fileName } = data;
     if (!name || !phone || !email || !position) {
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
     }
@@ -202,16 +202,30 @@ apiRouter.all("/send-email", async (req, res) => {
       },
     });
     const subject = `[Ứng tuyển] ${position} - ${name}`;
-    const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Không có CV đính kèm)`}`.trim();
-    const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(Không có CV đính kèm)</em>`}</p>`;
-    await transporter.sendMail({
+    const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}`.trim();
+    const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
+    
+    const mailOptions: any = {
       from: `"${name}" <${smtpSettings.user}>`,
       replyTo: email,
       to: smtpSettings.recipient,
       subject: subject,
       text: textBody,
       html: htmlBody,
-    });
+    };
+
+    if (fileData && fileName) {
+      const base64Data = fileData.split(',')[1];
+      mailOptions.attachments = [
+        {
+          filename: fileName,
+          content: base64Data,
+          encoding: 'base64'
+        }
+      ];
+    }
+
+    await transporter.sendMail(mailOptions);
     res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to send email", details: error instanceof Error ? error.message : String(error) });
