@@ -230,7 +230,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
           <div className="flex flex-col items-start md:flex-row md:items-center justify-center gap-3 md:gap-8 text-sm font-medium">
             <div className="flex items-center space-x-2">
               <MapPin className="w-4 h-4 shrink-0" />
-              <span className="text-left">Địa chỉ: KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
+              <span className="text-left whitespace-nowrap">Địa chỉ: KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
             </div>
             <div className="flex items-center space-x-2">
               <Phone className="w-4 h-4 shrink-0" />
@@ -857,7 +857,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
               <ul className="space-y-4 text-white/70">
                 <li className="flex items-start space-x-3">
                   <MapPin className="w-5 h-5 shrink-0 mt-0.5" style={{ color: siteContent.primaryColor }} />
-                  <span>KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
+                  <span className="whitespace-nowrap">KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <Phone className="w-5 h-5 shrink-0" style={{ color: siteContent.primaryColor }} />
