@@ -858,6 +858,12 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   <Mail className="w-5 h-5 shrink-0" style={{ color: siteContent.primaryColor }} />
                   <span>tuyendung@hoangmaistarschool.edu.vn</span>
                 </li>
+                <li className="flex items-center space-x-3">
+                  <Facebook className="w-5 h-5 shrink-0" style={{ color: siteContent.primaryColor }} />
+                  <a href={siteContent.contactFacebookUrl || "https://www.facebook.com/tuyendungnshm"} target="_blank" rel="noreferrer" className="hover:text-white transition">
+                    {siteContent.contactFacebookUrl ? siteContent.contactFacebookUrl.replace('https://www.', '').replace('https://', '') : 'facebook.com/tuyendungnshm'}
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

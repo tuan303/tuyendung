@@ -45,6 +45,7 @@ export const defaultContent = {
   // Social Links
   facebookUrl: 'https://www.facebook.com/tuyendungnshm',
   youtubeUrl: 'https://www.youtube.com/@NgoiSaoHoangMai',
+  contactFacebookUrl: 'https://www.facebook.com/tuyendungnshm',
   
   // Section Order & Visibility
   sectionOrder: ['hero', 'nav', 'jobs', 'policies', 'form'],
@@ -465,6 +466,10 @@ export default function SiteContentAdmin() {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Youtube URL</label>
                 <input type="text" name="youtubeUrl" value={content.youtubeUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Facebook Fanpage (Liên hệ)</label>
+                <input type="text" name="contactFacebookUrl" value={content.contactFacebookUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
           </section>
