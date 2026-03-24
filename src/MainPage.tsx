@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -24,6 +24,7 @@ interface Job {
 export default function MainPage({ previewContent }: { previewContent?: typeof defaultContent }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [activePolicyTab, setActivePolicyTab] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [siteContent, setSiteContent] = useState(previewContent || defaultContent);
 
@@ -388,110 +389,280 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             );
           case 'policies':
             return siteContent.showPolicies && (
-              <div key="policies" className="mx-auto px-4" style={{ padding: `${siteContent.sectionSpacing}px 0`, maxWidth: `${siteContent.containerWidth}px` }}>
-                <div className="mb-16 flex justify-center">
-                  <div className="inline-block">
-                    <div className="flex items-center">
-                      <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider" style={{ color: siteContent.primaryColor }}>Chính sách</h2>
-                      <div className="ml-4 h-[2px] w-20 md:w-24 bg-gray-400"></div>
-                    </div>
-                    <div className="flex items-center mt-1 justify-end">
-                      <div className="mr-4 h-[2px] w-20 md:w-24 bg-gray-400"></div>
-                      <h3 className="text-4xl md:text-5xl font-black uppercase tracking-wider" style={{ color: siteContent.primaryColor }}>Nhân sự</h3>
-                    </div>
-                  </div>
+              <div key="policies" className="mx-auto px-4 font-sans" style={{ padding: `${siteContent.sectionSpacing}px 0`, maxWidth: `${siteContent.containerWidth}px` }}>
+                <div className="mb-12 text-center">
+                  <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider" style={{ color: siteContent.primaryColor }}>
+                    Sự nghiệp tại NSHM
+                  </h2>
                 </div>
 
-                {/* Policy 1 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center mb-16">
-                  <div className="order-2 md:order-1">
-                    <div className="flex items-center space-x-5 mb-8">
-                      <div 
-                        className="w-14 h-14 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-lg shrink-0 transition-colors duration-500"
-                        style={{ backgroundColor: siteContent.accentColor, boxShadow: `0 10px 15px -3px ${siteContent.accentColor}4d` }}
-                      >
-                        01
-                      </div>
-                      <h4 className="text-2xl font-bold uppercase tracking-wide" style={{ color: siteContent.primaryColor }}>{siteContent.policy1Title}</h4>
-                    </div>
-                    <p className="text-gray-600 leading-relaxed text-lg whitespace-pre-wrap">
-                      {siteContent.policy1Desc}
-                    </p>
-                  </div>
-                  <div className="order-1 md:order-2 overflow-hidden shadow-2xl h-[400px] md:h-[500px]" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                    <img src={siteContent.policy1Image} alt="Training" className="w-full h-full object-cover hover:scale-105 transition duration-700" />
-                  </div>
-                </div>
-
-                {/* Policy 2 */}
-                <div 
-                  className="overflow-hidden mb-16 shadow-2xl transition-colors duration-500"
-                  style={{ backgroundColor: siteContent.primaryColor, borderRadius: `${siteContent.borderRadius * 2.5}px` }}
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2">
-                    <div className="h-[400px] md:h-auto relative overflow-hidden">
-                      <img src={siteContent.policy2Image} alt="Environment" className="w-full h-full object-cover absolute inset-0 hover:scale-105 transition duration-700" />
-                      <div className="absolute inset-0 bg-black/20 mix-blend-multiply"></div>
-                    </div>
-                    <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center">
-                      <div className="flex items-center space-x-5 mb-8">
-                        <div 
-                          className="w-14 h-14 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-lg shrink-0 transition-colors duration-500"
-                          style={{ backgroundColor: siteContent.accentColor, boxShadow: `0 10px 15px -3px ${siteContent.accentColor}4d` }}
+                <div className="bg-white p-6 md:p-10 shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius * 2.5}px` }}>
+                  {/* Tabs */}
+                  <div className="mb-8">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
+                      {[
+                        { id: 0, label: 'ĐÀO TẠO VÀ PHÁT TRIỂN' },
+                        { id: 1, label: 'KHÔNG GIAN LÀM VIỆC' },
+                        { id: 2, label: 'HỆ THỐNG TRIẾT LÝ' },
+                        { id: 3, label: 'TẦM NHÌN - SỨ MỆNH GIÁ TRỊ CỐT LÕI' },
+                        { id: 4, label: 'CHÍNH SÁCH PHÚC LỢI' }
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActivePolicyTab(tab.id)}
+                          className={`px-4 py-4 rounded-xl font-bold text-xs md:text-sm transition-all duration-300 flex items-center justify-center text-center h-full hover:scale-105 transform ${
+                            activePolicyTab === tab.id 
+                              ? 'bg-[#c8102e] text-white shadow-lg' 
+                              : 'bg-[#c8102e] text-white opacity-90 hover:opacity-100'
+                          }`}
                         >
-                          02
-                        </div>
-                        <h4 className="text-2xl font-bold text-white uppercase tracking-wide">{siteContent.policy2Title}</h4>
-                      </div>
-                      <p className="text-white/95 leading-relaxed font-medium italic mb-8 text-lg whitespace-pre-wrap">
-                        {siteContent.policy2Quote}
-                      </p>
-                      <p className="text-white/80 leading-relaxed whitespace-pre-wrap">
-                        {siteContent.policy2Desc}
-                      </p>
+                          {tab.label}
+                        </button>
+                      ))}
                     </div>
+                    <div className="h-px bg-gray-200 w-full"></div>
                   </div>
-                </div>
 
-                {/* Policy 3 */}
-                <div 
-                  className="overflow-hidden mb-0 shadow-2xl transition-colors duration-500"
-                  style={{ backgroundColor: siteContent.secondaryColor, borderRadius: `${siteContent.borderRadius * 2.5}px` }}
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2">
-                    <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center order-2 md:order-1">
-                      <div className="flex items-center space-x-5 mb-10">
-                        <div 
-                          className="w-14 h-14 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-lg shrink-0 transition-colors duration-500"
-                          style={{ backgroundColor: siteContent.accentColor, boxShadow: `0 10px 15px -3px ${siteContent.accentColor}4d` }}
-                        >
-                          03
+                  {/* Tab Content */}
+                  <div className="overflow-hidden bg-white">
+                    {activePolicyTab === 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
+                        <div className="p-8 md:p-12 flex flex-col justify-center bg-white">
+                          <div className="flex items-center space-x-4 mb-6">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#c8102e' }}>
+                              01
+                            </div>
+                            <h4 className="text-2xl font-bold uppercase tracking-wide" style={{ color: '#c8102e' }}>Đào tạo và phát triển</h4>
+                          </div>
+                          <p className="text-gray-700 leading-relaxed text-base md:text-lg font-medium">
+                            Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.
+                          </p>
                         </div>
-                        <h4 className="text-2xl font-bold text-white uppercase tracking-wide">{siteContent.policy3Title}</h4>
+                        <div className="p-4 flex items-center justify-center bg-white">
+                          <img 
+                            src={siteContent.policy1Image || "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop"} 
+                            alt="Đào tạo" 
+                            className="w-full h-full object-cover shadow-xl" 
+                            style={{ borderRadius: '2rem' }}
+                          />
+                        </div>
                       </div>
-                      <ul className="space-y-6">
-                        {(typeof siteContent.policy3Benefits === 'string' 
-                          ? siteContent.policy3Benefits.split('\n') 
-                          : siteContent.policy3Benefits
-                        ).filter(Boolean).map((item: string, idx: number) => (
-                          <li key={idx} className="flex items-start space-x-4">
-                            <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: siteContent.accentColor }} />
-                            <span className="text-white/90 leading-relaxed text-lg">{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="h-[400px] md:h-auto p-8 md:p-12 flex items-center justify-center bg-white/5 relative order-1 md:order-2">
-                      <img src={siteContent.policy3Image || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} alt="Welfare" className="w-full h-full object-cover shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius}px` }} />
-                    </div>
+                    )}
+
+                    {activePolicyTab === 1 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
+                        <div className="p-4 flex items-center justify-center bg-white order-1 md:order-1">
+                          <img 
+                            src={siteContent.policy2Image || "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"} 
+                            alt="Không gian làm việc" 
+                            className="w-full h-full object-cover shadow-xl" 
+                            style={{ borderRadius: '2rem' }}
+                          />
+                        </div>
+                        <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#c8102e' }}>
+                          <div className="flex items-center space-x-4 mb-6">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#c8102e] font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                              02
+                            </div>
+                            <h4 className="text-2xl font-bold uppercase tracking-wide text-white">Không gian làm việc</h4>
+                          </div>
+                          <p className="leading-relaxed text-base md:text-lg text-white font-medium">
+                            Tại Trường Ngôi Sao Hoàng Mai, chúng tôi chú trọng đầu tư cơ sở vật chất đồng bộ, hiện đại và thân thiện với môi trường, nhằm kiến tạo một không gian làm việc sáng tạo, nơi mỗi cán bộ, giáo viên có thể phát huy tối đa năng lực của mình. Bên cạnh đó, hệ thống trang thiết bị tiên tiến cùng nền tảng công nghệ được ứng dụng linh hoạt trong giảng dạy và vận hành không chỉ nâng cao hiệu quả công việc mà còn góp phần tối ưu chất lượng dạy và học, mang đến trải nghiệm giáo dục toàn diện cho cả giáo viên và học sinh.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {activePolicyTab === 2 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
+                        <div className="p-8 md:p-12 flex flex-col justify-center" style={{ backgroundColor: '#2e8b3c' }}>
+                          <div className="flex items-center space-x-4 mb-6">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#2e8b3c] font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                              03
+                            </div>
+                            <h4 className="text-2xl font-bold uppercase tracking-wide text-white">Hệ thống triết lý</h4>
+                          </div>
+                          <p className="leading-relaxed text-base md:text-lg text-white font-medium mb-4">
+                            Giáo dục hướng đến phát triển toàn diện, tinh hoa và hội nhập, đặt nền trên đạo đức vững vàng, trí tuệ khai mở, thể chất dẻo dai, nhân cách trưởng thành và tinh thần hòa hợp sâu sắc.
+                          </p>
+                          <p className="leading-relaxed text-base md:text-lg text-white font-medium">
+                            Trên tinh thần đó, Trường Ngôi Sao Hoàng Mai xác lập và kiên định với 5 trụ cột giáo dục cốt lõi:<br/>
+                            <strong>Đạo đức, Trí tuệ, Thể chất, Nhân cách, Hoà hợp.</strong>
+                          </p>
+                        </div>
+                        <div className="p-4 flex items-center justify-center bg-white">
+                          <img 
+                            src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop" 
+                            alt="Triết lý" 
+                            className="w-full h-full object-cover shadow-xl" 
+                            style={{ borderRadius: '2rem' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {activePolicyTab === 3 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
+                        <div className="p-4 flex items-center justify-center bg-white order-1 md:order-1">
+                          <img 
+                            src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop" 
+                            alt="Tầm nhìn" 
+                            className="w-full h-full object-cover shadow-xl" 
+                            style={{ borderRadius: '2rem' }}
+                          />
+                        </div>
+                        <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#f39c12' }}>
+                          <div className="flex items-center space-x-4 mb-6">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#f39c12] font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#c8102e' }}>
+                              04
+                            </div>
+                            <h4 className="text-2xl font-bold uppercase tracking-wide text-white">Tầm nhìn - Sứ mệnh - Giá trị cốt lõi</h4>
+                          </div>
+                          <div className="space-y-4">
+                            <div>
+                              <strong className="text-lg md:text-xl block mb-1 text-white">Tầm nhìn</strong>
+                              <p className="text-white font-medium text-base md:text-lg">"Trở thành Trường học tinh hoa, mang bản sắc Việt và vươn tầm quốc tế"</p>
+                            </div>
+                            <div>
+                              <strong className="text-lg md:text-xl block mb-1 text-white">Sứ mệnh</strong>
+                              <p className="text-white font-medium text-base md:text-lg">"Kiến tạo nền tảng giáo dục tiên tiến, mang bản sắc Việt, chất lượng quốc tế"</p>
+                            </div>
+                            <div>
+                              <p className="text-white font-medium text-base md:text-lg">
+                                Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao <strong>5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.</strong>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activePolicyTab === 4 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[450px]">
+                        <div className="p-8 md:p-12 flex flex-col justify-center order-1 md:order-1" style={{ backgroundColor: '#1a2b4c' }}>
+                          <div className="flex items-center space-x-4 mb-8">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#1a2b4c] font-black text-lg shadow-lg shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                              05
+                            </div>
+                            <h4 className="text-2xl font-bold uppercase tracking-wide text-white">Chính sách phúc lợi</h4>
+                          </div>
+                          <ul className="space-y-4">
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Thưởng các ngày Lễ, Tết, Kỷ niệm thành lập trường, ngày Nhà giáo Việt Nam 20/11...</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Chế độ nghỉ mát, du xuân, teambuilding hàng năm.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Khám sức khỏe định kỳ hàng năm.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Chế độ ưu đãi học phí cho con em CBNV.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Tham gia BHXH, BHYT, BHTN theo quy định của Nhà nước.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Chế độ ăn trưa tại trường.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Môi trường làm việc chuyên nghiệp, năng động, sáng tạo.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Cơ hội thăng tiến, phát triển bản thân.</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div className="p-4 flex items-center justify-center bg-white order-2 md:order-2">
+                          <img 
+                            src={siteContent.policy3Image || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
+                            alt="Phúc lợi" 
+                            className="w-full h-full object-cover shadow-xl" 
+                            style={{ borderRadius: '2rem' }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             );
           case 'form':
             return siteContent.showForm && (
-              <div key="form" id="application-form" className="mx-auto px-4" style={{ marginBottom: `${siteContent.sectionSpacing}px`, maxWidth: `${siteContent.containerWidth}px` }}>
-                <div className="flex flex-col lg:flex-row overflow-hidden shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius * 2.5}px` }}>
+              <React.Fragment key="form">
+                {/* Quy trình tuyển dụng */}
+                <div className="mx-auto px-4 mb-16" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-wider text-center mb-12" style={{ color: siteContent.primaryColor }}>
+                    Quy trình tuyển dụng
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {/* Step 1 */}
+                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 1</h3>
+                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Ứng tuyển</p>
+                      <div className="w-16 h-16 flex items-center justify-center">
+                        <MousePointerClick className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    
+                    {/* Step 2 */}
+                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 2</h3>
+                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Sàng lọc hồ sơ</p>
+                      <div className="w-16 h-16 flex items-center justify-center">
+                        <FileText className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    
+                    {/* Step 3 */}
+                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 3</h3>
+                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Làm bài test/Phỏng vấn vòng 1</p>
+                      <div className="w-16 h-16 flex items-center justify-center">
+                        <Target className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    
+                    {/* Step 4 */}
+                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 4</h3>
+                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Dự giờ, giảng thử<br/><span className="text-sm normal-case">(Đối với vị trí GV)</span></p>
+                      <div className="w-16 h-16 flex items-center justify-center">
+                        <FileEdit className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    
+                    {/* Step 5 */}
+                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 5</h3>
+                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Phỏng vấn<br/>vòng cuối</p>
+                      <div className="w-16 h-16 flex items-center justify-center">
+                        <CircleDollarSign className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    
+                    {/* Step 6 */}
+                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 6</h3>
+                      <p className="text-gray-800 uppercase font-medium mb-6 text-sm md:text-base">Hoàn thiện hồ sơ<br/>cần thiết</p>
+                      <div className="w-16 h-16 flex items-center justify-center">
+                        <Layers className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="application-form" className="mx-auto px-4" style={{ marginBottom: `${siteContent.sectionSpacing}px`, maxWidth: `${siteContent.containerWidth}px` }}>
+                  <div className="flex flex-col lg:flex-row overflow-hidden shadow-2xl" style={{ borderRadius: `${siteContent.borderRadius * 2.5}px` }}>
                   {/* Left Form */}
                   <div 
                     className="w-full lg:w-5/12 p-6 sm:p-10 md:p-14 transition-colors duration-500"
@@ -601,9 +772,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   </div>
                 </div>
               </div>
-            );
-          default:
-            return null;
+            </React.Fragment>
+          );
+        default:
+          return null;
         }
       })}
 

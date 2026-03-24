@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Lexend", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-roboto: "Roboto", sans-serif;
   --font-montserrat: "Montserrat", sans-serif;
   --font-playfair: "Playfair Display", serif;
