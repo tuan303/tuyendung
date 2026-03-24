@@ -347,7 +347,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                             </div>
                             <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
                               <div className="flex items-center bg-gray-100 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
-                                <span className="font-medium" style={{ color: siteContent.primaryColor }}>Hạn nộp: {job.deadline}</span>
+                                <span className="font-bold" style={{ color: siteContent.primaryColor }}>Hạn nộp: {job.deadline}</span>
                               </div>
                               {job.jdUrl && (
                                 <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }} onClick={(e) => e.stopPropagation()}>
@@ -399,7 +399,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                   </h2>
                 </div>
 
-                <div className="p-6 md:p-10 shadow-2xl" style={{ backgroundColor: '#ffebd6', borderRadius: `${siteContent.borderRadius * 2.5}px` }}>
+                <div className="p-6 md:p-10 shadow-2xl" style={{ backgroundColor: siteContent.policySectionBgColor || '#ffebd6', borderRadius: `${siteContent.borderRadius * 2.5}px` }}>
                   {/* Tabs */}
                   <div className="mb-8">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
@@ -415,9 +415,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                           onClick={() => setActivePolicyTab(tab.id)}
                           className={`px-4 py-4 rounded-xl font-bold text-xs md:text-sm transition-all duration-300 flex items-center justify-center text-center h-full hover:scale-105 transform ${
                             activePolicyTab === tab.id 
-                              ? 'bg-[#c8102e] text-[#ffebd6] shadow-lg' 
-                              : 'bg-[#c8102e] text-[#ffebd6] opacity-90 hover:opacity-100'
+                              ? 'bg-[#c8102e] shadow-lg' 
+                              : 'bg-[#c8102e] opacity-90 hover:opacity-100'
                           }`}
+                          style={{ color: siteContent.policyTabTextColor || '#ffebd6' }}
                         >
                           {tab.label}
                         </button>
@@ -438,7 +439,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                             referrerPolicy="no-referrer"
                           />
                         </div>
-                        <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#ffebd6' }}>
+                        <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: siteContent.policySectionBgColor || '#ffebd6' }}>
                           <div className="flex items-center space-x-4 mb-6">
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               01
@@ -604,7 +605,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 {/* Quy trình tuyển dụng */}
                 <div className="mx-auto px-4 mb-20 text-center" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
                   <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4" style={{ color: siteContent.primaryColor }}>
-                    Quy trình tuyển dụng
+                    {siteContent.recruitmentTitle || 'Quy trình tuyển dụng'}
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-black rounded-full"></div>
                   </h2>
                 </div>
@@ -612,56 +613,56 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 <div className="mx-auto px-4 mb-20" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {/* Step 1 */}
-                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                    <div className="p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px`, backgroundColor: siteContent.recruitmentStepBgColor || '#ffecec' }}>
                       <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 1</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Ứng tuyển</p>
+                      <p className="uppercase font-bold mb-6 text-base md:text-lg" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }}>{siteContent.recruitmentStep1Title || 'Ứng tuyển'}</p>
                       <div className="w-16 h-16 flex items-center justify-center">
-                        <MousePointerClick className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                        <MousePointerClick className="w-12 h-12" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }} strokeWidth={1.5} />
                       </div>
                     </div>
                     
                     {/* Step 2 */}
-                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                    <div className="p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px`, backgroundColor: siteContent.recruitmentStepBgColor || '#ffecec' }}>
                       <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 2</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Sàng lọc hồ sơ</p>
+                      <p className="uppercase font-bold mb-6 text-base md:text-lg" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }}>{siteContent.recruitmentStep2Title || 'Sàng lọc hồ sơ'}</p>
                       <div className="w-16 h-16 flex items-center justify-center">
-                        <FileText className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                        <FileText className="w-12 h-12" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }} strokeWidth={1.5} />
                       </div>
                     </div>
                     
                     {/* Step 3 */}
-                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                    <div className="p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px`, backgroundColor: siteContent.recruitmentStepBgColor || '#ffecec' }}>
                       <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 3</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Làm bài test/Phỏng vấn vòng 1</p>
+                      <p className="uppercase font-bold mb-6 text-base md:text-lg" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }}>{siteContent.recruitmentStep3Title || 'Làm bài test/Phỏng vấn vòng 1'}</p>
                       <div className="w-16 h-16 flex items-center justify-center">
-                        <Target className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                        <Target className="w-12 h-12" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }} strokeWidth={1.5} />
                       </div>
                     </div>
                     
                     {/* Step 4 */}
-                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                    <div className="p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px`, backgroundColor: siteContent.recruitmentStepBgColor || '#ffecec' }}>
                       <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 4</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Dự giờ, giảng thử<br/><span className="text-base normal-case">(Đối với vị trí GV)</span></p>
+                      <p className="uppercase font-bold mb-6 text-base md:text-lg" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }}>{siteContent.recruitmentStep4Title || 'Dự giờ, giảng thử (Đối với vị trí GV)'}</p>
                       <div className="w-16 h-16 flex items-center justify-center">
-                        <FileEdit className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                        <FileEdit className="w-12 h-12" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }} strokeWidth={1.5} />
                       </div>
                     </div>
                     
                     {/* Step 5 */}
-                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                    <div className="p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px`, backgroundColor: siteContent.recruitmentStepBgColor || '#ffecec' }}>
                       <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 5</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Phỏng vấn<br/>vòng cuối</p>
+                      <p className="uppercase font-bold mb-6 text-base md:text-lg" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }}>{siteContent.recruitmentStep5Title || 'Phỏng vấn vòng cuối'}</p>
                       <div className="w-16 h-16 flex items-center justify-center">
-                        <CircleDollarSign className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                        <CircleDollarSign className="w-12 h-12" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }} strokeWidth={1.5} />
                       </div>
                     </div>
                     
                     {/* Step 6 */}
-                    <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
+                    <div className="p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px`, backgroundColor: siteContent.recruitmentStepBgColor || '#ffecec' }}>
                       <h3 className="font-black text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 6</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Hoàn thiện hồ sơ<br/>cần thiết</p>
+                      <p className="uppercase font-bold mb-6 text-base md:text-lg" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }}>{siteContent.recruitmentStep6Title || 'Hoàn thiện hồ sơ cần thiết'}</p>
                       <div className="w-16 h-16 flex items-center justify-center">
-                        <Layers className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
+                        <Layers className="w-12 h-12" style={{ color: siteContent.recruitmentStepTextColor || '#1f2937' }} strokeWidth={1.5} />
                       </div>
                     </div>
                   </div>
@@ -896,7 +897,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     </div>
                     <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
                       <div className="flex items-center bg-gray-100 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
-                        <span className="font-medium text-[#c8102e]">Hạn nộp: {selectedJob.deadline}</span>
+                        <span className="font-bold text-[#c8102e]">Hạn nộp: {selectedJob.deadline}</span>
                       </div>
                       {selectedJob.jdUrl && (
                         <a href={selectedJob.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>

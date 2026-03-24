@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'motion/react';
-import { Save, Image as ImageIcon, Type, Palette, Layout, ArrowUp, ArrowDown, Eye, EyeOff, GripVertical, Maximize2, Monitor, Smartphone, Tablet, Facebook, Youtube, X, Briefcase } from 'lucide-react';
+import { Save, Image as ImageIcon, Type, Palette, Layout, ArrowUp, ArrowDown, Eye, EyeOff, GripVertical, Maximize2, Monitor, Smartphone, Tablet, Facebook, Youtube, X, Briefcase, MousePointerClick } from 'lucide-react';
 import MainPage from './MainPage';
 
 export const defaultContent = {
@@ -79,7 +79,20 @@ export const defaultContent = {
   policy3Image: 'https://hoangmaistarschool.edu.vn/thongtin/20.jpg',
   
   // Footer
-  footerDescription: 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.'
+  footerDescription: 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.',
+  
+  // New Layout Styling
+  policySectionBgColor: '#ffebd6',
+  policyTabTextColor: '#ffebd6',
+  recruitmentTitle: 'Quy trình tuyển dụng',
+  recruitmentStepBgColor: '#ffecec',
+  recruitmentStepTextColor: '#1f2937', // text-gray-800
+  recruitmentStep1Title: 'Ứng tuyển',
+  recruitmentStep2Title: 'Sàng lọc hồ sơ',
+  recruitmentStep3Title: 'Làm bài test/Phỏng vấn vòng 1',
+  recruitmentStep4Title: 'Dự giờ, giảng thử (Đối với vị trí GV)',
+  recruitmentStep5Title: 'Phỏng vấn vòng cuối',
+  recruitmentStep6Title: 'Hoàn thiện hồ sơ cần thiết'
 };
 
 function SortableItem({ id, section, isVisible, toggleVisibility, idx }: any) {
@@ -351,6 +364,22 @@ export default function SiteContentAdmin() {
                     onChange={handleChange} 
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#c8102e]" 
                   />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Màu nền phần Chính sách</label>
+                    <div className="flex items-center space-x-2">
+                      <input type="color" name="policySectionBgColor" value={content.policySectionBgColor} onChange={handleChange} className="h-10 w-10 rounded cursor-pointer" />
+                      <input type="text" name="policySectionBgColor" value={content.policySectionBgColor} onChange={handleChange} className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Màu chữ nút Chính sách</label>
+                    <div className="flex items-center space-x-2">
+                      <input type="color" name="policyTabTextColor" value={content.policyTabTextColor} onChange={handleChange} className="h-10 w-10 rounded cursor-pointer" />
+                      <input type="text" name="policyTabTextColor" value={content.policyTabTextColor} onChange={handleChange} className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -626,6 +655,63 @@ export default function SiteContentAdmin() {
                     <label className="block text-xs font-bold text-gray-500 mb-1">Ảnh minh họa (URL)</label>
                     <input type="text" name="policy3Image" value={content.policy3Image} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Recruitment Section */}
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
+              <MousePointerClick className="w-5 h-5 mr-2 text-[#c8102e]" />
+              Quy trình tuyển dụng
+            </h3>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tiêu đề phần quy trình</label>
+                  <input type="text" name="recruitmentTitle" value={content.recruitmentTitle} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Màu nền các bước</label>
+                  <div className="flex items-center space-x-2">
+                    <input type="color" name="recruitmentStepBgColor" value={content.recruitmentStepBgColor} onChange={handleChange} className="h-10 w-10 rounded cursor-pointer" />
+                    <input type="text" name="recruitmentStepBgColor" value={content.recruitmentStepBgColor} onChange={handleChange} className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Màu chữ các bước</label>
+                  <div className="flex items-center space-x-2">
+                    <input type="color" name="recruitmentStepTextColor" value={content.recruitmentStepTextColor} onChange={handleChange} className="h-10 w-10 rounded cursor-pointer" />
+                    <input type="text" name="recruitmentStepTextColor" value={content.recruitmentStepTextColor} onChange={handleChange} className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Bước 1</label>
+                  <input type="text" name="recruitmentStep1Title" value={content.recruitmentStep1Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Bước 2</label>
+                  <input type="text" name="recruitmentStep2Title" value={content.recruitmentStep2Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Bước 3</label>
+                  <input type="text" name="recruitmentStep3Title" value={content.recruitmentStep3Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Bước 4</label>
+                  <input type="text" name="recruitmentStep4Title" value={content.recruitmentStep4Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Bước 5</label>
+                  <input type="text" name="recruitmentStep5Title" value={content.recruitmentStep5Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Bước 6</label>
+                  <input type="text" name="recruitmentStep6Title" value={content.recruitmentStep6Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                 </div>
               </div>
             </div>
