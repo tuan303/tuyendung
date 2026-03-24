@@ -76,7 +76,10 @@ export const defaultContent = {
     'Hỗ trợ học phí cho con em CBNV lên tới 100%.',
     'Thưởng các ngày Lễ tết, thưởng năm học, tham quan nghỉ mát hàng năm.'
   ].join('\n'),
-  policy3Image: 'https://hoangmaistarschool.edu.vn/thongtin/20.jpg'
+  policy3Image: 'https://hoangmaistarschool.edu.vn/thongtin/20.jpg',
+  
+  // Footer
+  footerDescription: 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.'
 };
 
 function SortableItem({ id, section, isVisible, toggleVisibility, idx }: any) {
@@ -624,6 +627,26 @@ export default function SiteContentAdmin() {
                     <input type="text" name="policy3Image" value={content.policy3Image} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Footer */}
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
+              <Layout className="w-5 h-5 mr-2 text-[#c8102e]" />
+              Nội dung Chân trang (Footer)
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mô tả chân trang</label>
+                <textarea 
+                  name="footerDescription" 
+                  value={content.footerDescription} 
+                  onChange={handleChange} 
+                  rows={4} 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" 
+                />
               </div>
             </div>
           </section>

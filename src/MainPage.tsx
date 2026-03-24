@@ -803,7 +803,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 />
               </div>
               <p className="text-white/70 leading-relaxed mb-8 max-w-md">
-                Ngôi Sao Hoàng Mai tự hào là môi trường giáo dục tiên tiến, nơi ươm mầm tài năng và phát triển toàn diện cho học sinh.
+                {siteContent.footerDescription || "Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng."}
               </p>
               <div className="flex space-x-4">
                 <a 
