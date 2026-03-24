@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
-  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit
+  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -821,6 +821,15 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 >
                   <Youtube className="w-5 h-5" />
                 </a>
+                {siteContent.websiteUrl && (
+                  <a 
+                    href={siteContent.websiteUrl} target="_blank" rel="noreferrer" 
+                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center transition"
+                    style={{ '--hover-bg': siteContent.primaryColor } as any}
+                  >
+                    <Globe className="w-5 h-5" />
+                  </a>
+                )}
               </div>
             </div>
 

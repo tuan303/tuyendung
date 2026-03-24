@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'motion/react';
-import { Save, Image as ImageIcon, Type, Palette, Layout, ArrowUp, ArrowDown, Eye, EyeOff, GripVertical, Maximize2, Monitor, Smartphone, Tablet, Facebook, Youtube, X, Briefcase, MousePointerClick } from 'lucide-react';
+import { Save, Image as ImageIcon, Type, Palette, Layout, ArrowUp, ArrowDown, Eye, EyeOff, GripVertical, Maximize2, Monitor, Smartphone, Tablet, Facebook, Youtube, X, Briefcase, MousePointerClick, Globe } from 'lucide-react';
 import MainPage from './MainPage';
 
 export const defaultContent = {
@@ -45,6 +45,7 @@ export const defaultContent = {
   // Social Links
   facebookUrl: 'https://www.facebook.com/tuyendungnshm',
   youtubeUrl: 'https://www.youtube.com/@NgoiSaoHoangMai',
+  websiteUrl: 'https://hoangmaistarschool.edu.vn/',
   contactFacebookUrl: 'https://www.facebook.com/tuyendungnshm',
   
   // Section Order & Visibility
@@ -466,6 +467,10 @@ export default function SiteContentAdmin() {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Youtube URL</label>
                 <input type="text" name="youtubeUrl" value={content.youtubeUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Website URL</label>
+                <input type="text" name="websiteUrl" value={content.websiteUrl} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Facebook Fanpage (Liên hệ)</label>
