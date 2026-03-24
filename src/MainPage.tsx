@@ -299,8 +299,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             return siteContent.showJobs && (
               <div key="jobs" className="mx-auto px-4 relative" style={{ padding: `${siteContent.sectionSpacing}px 0`, maxWidth: `${siteContent.containerWidth}px` }}>
                 <div className="text-center mb-14">
-                  <h2 className="text-3xl font-bold uppercase tracking-wide" style={{ color: siteContent.secondaryColor }}>{siteContent.jobsTitle}</h2>
-                  <div className="w-16 h-1 mx-auto mt-4 rounded-full" style={{ backgroundColor: siteContent.primaryColor }}></div>
+                  <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4" style={{ color: siteContent.primaryColor }}>
+                    {siteContent.jobsTitle}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1.5 bg-black rounded-full"></div>
+                  </h2>
                 </div>
                 
                 <div className="relative px-0 sm:px-12">
@@ -390,9 +392,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
           case 'policies':
             return siteContent.showPolicies && (
               <div key="policies" className="mx-auto px-4 font-sans" style={{ padding: `${siteContent.sectionSpacing}px 0`, maxWidth: `${siteContent.containerWidth}px` }}>
-                <div className="mb-12 text-center">
-                  <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider" style={{ color: siteContent.primaryColor }}>
+                <div className="mb-16 text-center">
+                  <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4" style={{ color: siteContent.primaryColor }}>
                     Sự nghiệp tại NSHM
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1.5 bg-black rounded-full"></div>
                   </h2>
                 </div>
 
@@ -437,12 +440,12 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center bg-white order-2 md:order-2">
                           <div className="flex items-center space-x-4 mb-6">
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               01
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: '#c8102e' }}>Đào tạo và phát triển</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight" style={{ color: '#c8102e' }}>Đào tạo và phát triển</h4>
                           </div>
-                          <p className="text-gray-700 leading-relaxed text-base md:text-lg font-medium">
+                          <p className="text-gray-700 leading-relaxed text-sm md:text-base font-medium">
                             Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.
                           </p>
                         </div>
@@ -461,12 +464,12 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#c8102e' }}>
                           <div className="flex items-center space-x-4 mb-6">
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               02
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">Không gian làm việc</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">Không gian làm việc</h4>
                           </div>
-                          <p className="leading-relaxed text-base md:text-lg text-white font-medium">
+                          <p className="leading-relaxed text-sm md:text-base text-white font-medium">
                             Tại Trường Ngôi Sao Hoàng Mai, chúng tôi chú trọng đầu tư cơ sở vật chất đồng bộ, hiện đại và thân thiện với môi trường, nhằm kiến tạo một không gian làm việc sáng tạo, nơi mỗi cán bộ, giáo viên có thể phát huy tối đa năng lực của mình. Bên cạnh đó, hệ thống trang thiết bị tiên tiến cùng nền tảng công nghệ được ứng dụng linh hoạt trong giảng dạy và vận hành không chỉ nâng cao hiệu quả công việc mà còn góp phần tối ưu chất lượng dạy và học, mang đến trải nghiệm giáo dục toàn diện cho cả giáo viên và học sinh.
                           </p>
                         </div>
@@ -485,12 +488,12 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#2e8b3c' }}>
                           <div className="flex items-center space-x-4 mb-6">
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#2e8b3c] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#2e8b3c] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               03
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">Hệ thống triết lý</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">Hệ thống triết lý</h4>
                           </div>
-                          <p className="leading-relaxed text-base md:text-lg text-white font-medium mb-4">
+                          <p className="leading-relaxed text-sm md:text-base text-white font-medium mb-4">
                             Giáo dục hướng đến phát triển toàn diện, tinh hoa và hội nhập, đặt nền trên đạo đức vững vàng, trí tuệ khai mở, thể chất dẻo dai, nhân cách trưởng thành và tinh thần hòa hợp sâu sắc.
                           </p>
                           <p className="leading-relaxed text-base md:text-lg text-white font-medium">
@@ -513,22 +516,22 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#f39c12' }}>
                           <div className="flex items-center space-x-4 mb-6">
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#f39c12] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#ffffff' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#f39c12] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#ffffff' }}>
                               04
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">Tầm nhìn - Sứ mệnh - Giá trị cốt lõi</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">Tầm nhìn - Sứ mệnh - Giá trị cốt lõi</h4>
                           </div>
                           <div className="space-y-4">
                             <div>
-                              <strong className="text-lg md:text-xl block mb-1 text-white">Tầm nhìn</strong>
-                              <p className="text-white font-medium text-base md:text-lg">"Trở thành Trường học tinh hoa, mang bản sắc Việt và vươn tầm quốc tế"</p>
+                              <strong className="text-base md:text-lg block mb-1 text-white">Tầm nhìn</strong>
+                              <p className="text-white font-medium text-sm md:text-base">"Trở thành Trường học tinh hoa, mang bản sắc Việt và vươn tầm quốc tế"</p>
                             </div>
                             <div>
-                              <strong className="text-lg md:text-xl block mb-1 text-white">Sứ mệnh</strong>
-                              <p className="text-white font-medium text-base md:text-lg">"Kiến tạo nền tảng giáo dục tiên tiến, mang bản sắc Việt, chất lượng quốc tế"</p>
+                              <strong className="text-base md:text-lg block mb-1 text-white">Sứ mệnh</strong>
+                              <p className="text-white font-medium text-sm md:text-base">"Kiến tạo nền tảng giáo dục tiên tiến, mang bản sắc Việt, chất lượng quốc tế"</p>
                             </div>
                             <div>
-                              <p className="text-white font-medium text-base md:text-lg">
+                              <p className="text-white font-medium text-sm md:text-base">
                                 Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao <strong>5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.</strong>
                               </p>
                             </div>
@@ -549,43 +552,43 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#1a2b4c' }}>
                           <div className="flex items-center space-x-4 mb-8">
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#1a2b4c] font-black text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#1a2b4c] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               05
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">Chính sách phúc lợi</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">Chính sách phúc lợi</h4>
                           </div>
                           <ul className="space-y-4">
                             <li className="flex items-start space-x-4">
                               <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Thưởng các ngày Lễ, Tết, Kỷ niệm thành lập trường, ngày Nhà giáo Việt Nam 20/11...</span>
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Thưởng các ngày Lễ, Tết, Kỷ niệm thành lập trường, ngày Nhà giáo Việt Nam 20/11...</span>
                             </li>
                             <li className="flex items-start space-x-4">
                               <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Chế độ nghỉ mát, du xuân, teambuilding hàng năm.</span>
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Chế độ nghỉ mát, du xuân, teambuilding hàng năm.</span>
                             </li>
                             <li className="flex items-start space-x-4">
                               <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Khám sức khỏe định kỳ hàng năm.</span>
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Khám sức khỏe định kỳ hàng năm.</span>
                             </li>
                             <li className="flex items-start space-x-4">
                               <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Chế độ ưu đãi học phí cho con em CBNV.</span>
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Chế độ ưu đãi học phí cho con em CBNV.</span>
                             </li>
                             <li className="flex items-start space-x-4">
                               <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Tham gia BHXH, BHYT, BHTN theo quy định của Nhà nước.</span>
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Tham gia BHXH, BHYT, BHTN theo quy định của Nhà nước.</span>
                             </li>
                             <li className="flex items-start space-x-4">
                               <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Chế độ ăn trưa tại trường.</span>
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Chế độ ăn trưa tại trường.</span>
                             </li>
                             <li className="flex items-start space-x-4">
                               <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Môi trường làm việc chuyên nghiệp, năng động, sáng tạo.</span>
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Môi trường làm việc chuyên nghiệp, năng động, sáng tạo.</span>
                             </li>
                             <li className="flex items-start space-x-4">
                               <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                              <span className="text-white font-medium leading-relaxed text-base md:text-lg">Cơ hội thăng tiến, phát triển bản thân.</span>
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Cơ hội thăng tiến, phát triển bản thân.</span>
                             </li>
                           </ul>
                         </div>
@@ -599,16 +602,19 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             return siteContent.showForm && (
               <React.Fragment key="form">
                 {/* Quy trình tuyển dụng */}
-                <div className="mx-auto px-4 mb-16" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-wider text-center mb-12" style={{ color: siteContent.primaryColor }}>
+                <div className="mx-auto px-4 mb-20 text-center" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
+                  <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4" style={{ color: siteContent.primaryColor }}>
                     Quy trình tuyển dụng
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1.5 bg-black rounded-full"></div>
                   </h2>
+                </div>
                   
+                <div className="mx-auto px-4 mb-20" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {/* Step 1 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 1</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Ứng tuyển</p>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 1</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Ứng tuyển</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <MousePointerClick className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -616,8 +622,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 2 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 2</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Sàng lọc hồ sơ</p>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 2</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Sàng lọc hồ sơ</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <FileText className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -625,8 +631,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 3 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 3</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Làm bài test/Phỏng vấn vòng 1</p>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 3</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Làm bài test/Phỏng vấn vòng 1</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <Target className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -634,8 +640,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 4 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 4</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Dự giờ, giảng thử<br/><span className="text-lg normal-case">(Đối với vị trí GV)</span></p>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 4</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Dự giờ, giảng thử<br/><span className="text-base normal-case">(Đối với vị trí GV)</span></p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <FileEdit className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -643,8 +649,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 5 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 5</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Phỏng vấn<br/>vòng cuối</p>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 5</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Phỏng vấn<br/>vòng cuối</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <CircleDollarSign className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -652,8 +658,8 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     
                     {/* Step 6 */}
                     <div className="bg-[#ffecec] p-8 text-center flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-shadow" style={{ borderRadius: `${siteContent.borderRadius * 2}px` }}>
-                      <h3 className="font-bold text-2xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 6</h3>
-                      <p className="text-gray-800 uppercase font-bold mb-6 text-lg md:text-xl">Hoàn thiện hồ sơ<br/>cần thiết</p>
+                      <h3 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>BƯỚC 6</h3>
+                      <p className="text-gray-800 uppercase font-bold mb-6 text-base md:text-lg">Hoàn thiện hồ sơ<br/>cần thiết</p>
                       <div className="w-16 h-16 flex items-center justify-center">
                         <Layers className="w-12 h-12 text-gray-800" strokeWidth={1.5} />
                       </div>
@@ -668,7 +674,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                     className="w-full lg:w-5/12 p-6 sm:p-10 md:p-14 transition-colors duration-500"
                     style={{ backgroundColor: siteContent.primaryColor }}
                   >
-                    <h3 className="text-2xl sm:text-3xl font-black text-white mb-3 uppercase tracking-wide">Ứng tuyển online</h3>
+                    <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3 uppercase tracking-wide">Ứng tuyển online</h3>
                     <p className="text-white/80 mb-10 text-sm font-medium">Yêu cầu ứng viên điền đúng và đủ thông tin theo mẫu:</p>
                     
                     <form className="space-y-6" onSubmit={handleFormSubmit}>
