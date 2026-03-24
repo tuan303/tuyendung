@@ -216,7 +216,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
         className="text-white py-2 px-4 transition-colors duration-500 pt-[max(0.5rem,env(safe-area-inset-top))]"
         style={{ backgroundColor: siteContent.primaryColor }}
       >
-        <div className="mx-auto flex flex-col md:flex-row justify-between items-center text-sm" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
+        <div className="mx-auto flex flex-col md:flex-row justify-between items-center text-base" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
           <a href="https://hoangmaistarschool.edu.vn/" target="_blank" rel="noreferrer" className="flex items-center mb-3 md:mb-0 hover:opacity-80 transition-opacity">
             <img 
               src={siteContent.logoUrl} 
@@ -227,7 +227,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
             />
           </a>
           
-          <div className="flex flex-col items-start md:flex-row md:items-center justify-center gap-3 md:gap-8 text-xs font-medium">
+          <div className="flex flex-col items-start md:flex-row md:items-center justify-center gap-3 md:gap-8 text-sm font-medium">
             <div className="flex items-center space-x-2">
               <MapPin className="w-4 h-4 shrink-0" />
               <span className="text-left">Địa chỉ: KĐT Kim Văn - Kim Lũ, Định Công, Hà Nội</span>
@@ -301,7 +301,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 <div className="text-center mb-14">
                   <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4" style={{ color: siteContent.primaryColor }}>
                     {siteContent.jobsTitle}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1.5 bg-black rounded-full"></div>
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-black rounded-full"></div>
                   </h2>
                 </div>
                 
@@ -395,7 +395,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 <div className="mb-16 text-center">
                   <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4" style={{ color: siteContent.primaryColor }}>
                     Sự nghiệp tại NSHM
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1.5 bg-black rounded-full"></div>
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-black rounded-full"></div>
                   </h2>
                 </div>
 
@@ -605,7 +605,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(Vui lòng đính kèm 
                 <div className="mx-auto px-4 mb-20 text-center" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
                   <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4" style={{ color: siteContent.primaryColor }}>
                     Quy trình tuyển dụng
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1.5 bg-black rounded-full"></div>
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-black rounded-full"></div>
                   </h2>
                 </div>
                   
