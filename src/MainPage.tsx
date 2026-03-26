@@ -452,7 +452,6 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                             src={siteContent.policy1Image || "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop"} 
                             alt="Đào tạo" 
                             className="w-full h-full object-cover" 
-                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: siteContent.policySectionBgColor || '#ffebd6' }}>
@@ -476,7 +475,6 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                             src={siteContent.policy2Image || "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"} 
                             alt="Không gian làm việc" 
                             className="w-full h-full object-cover" 
-                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#c8102e' }}>
@@ -500,7 +498,6 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                             src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop" 
                             alt="Triết lý" 
                             className="w-full h-full object-cover" 
-                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#2e8b3c' }}>
@@ -525,10 +522,9 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
                         <div className="order-1 md:order-1 h-full">
                           <img 
-                            src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop" 
+                            src="https://nshm.vn/td/gtcl.png" 
                             alt="Tầm nhìn" 
                             className="w-full h-full object-cover" 
-                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#f39c12' }}>
@@ -564,7 +560,6 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                             src={siteContent.policy3Image || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
                             alt="Phúc lợi" 
                             className="w-full h-full object-cover" 
-                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#1a2b4c' }}>
