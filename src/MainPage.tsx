@@ -522,7 +522,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
                         <div className="order-1 md:order-1 h-full">
                           <img 
-                            src="https://nshm.vn/td/gtcl.png" 
+                            src="https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url=https%3A%2F%2Fnshm.vn%2Ftd%2Fgtcl.png" 
                             alt="Tầm nhìn" 
                             className="w-full h-full object-cover" 
                           />
