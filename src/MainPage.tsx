@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
@@ -27,6 +28,47 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [activePolicyTab, setActivePolicyTab] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [siteContent, setSiteContent] = useState(previewContent || defaultContent);
+  const [philosophySlide, setPhilosophySlide] = useState(0);
+  const [workspaceSlide, setWorkspaceSlide] = useState(0);
+  const [trainingSlide, setTrainingSlide] = useState(0);
+
+  const philosophyImages = [
+    "https://hoangmaistarschool.edu.vn/thongtin/httl1.png",
+    "https://hoangmaistarschool.edu.vn/thongtin/httl1.png"
+  ];
+
+  const workspaceImages = [
+    "https://hoangmaistarschool.edu.vn/thongtin/kg1.jpg",
+    "https://hoangmaistarschool.edu.vn/thongtin/kg2.jpg",
+    "https://hoangmaistarschool.edu.vn/thongtin/kg3.jpg",
+    "https://hoangmaistarschool.edu.vn/thongtin/kg4.jpg"
+  ];
+
+  const trainingImages = [
+    "https://hoangmaistarschool.edu.vn/thongtin/dtpt1.jpg",
+    "https://hoangmaistarschool.edu.vn/thongtin/dtpt2.jpg"
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPhilosophySlide((prev) => (prev + 1) % philosophyImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setWorkspaceSlide((prev) => (prev + 1) % workspaceImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTrainingSlide((prev) => (prev + 1) % trainingImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Update siteContent if previewContent changes
   useEffect(() => {
@@ -447,12 +489,19 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                   <div className="overflow-hidden" style={{ borderRadius: '2rem' }}>
                     {activePolicyTab === 0 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
-                        <div className="order-1 md:order-1 h-full">
-                          <img 
-                            src={siteContent.policy1Image || "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop"} 
-                            alt="Đào tạo" 
-                            className="w-full h-full object-cover" 
-                          />
+                        <div className="order-1 md:order-1 h-full relative overflow-hidden min-h-[300px] md:min-h-full">
+                          <AnimatePresence initial={false}>
+                            <motion.img
+                              key={trainingSlide}
+                              src={trainingImages[trainingSlide]}
+                              alt="Đào tạo"
+                              className="w-full h-full object-cover absolute inset-0"
+                              initial={{ x: '100%' }}
+                              animate={{ x: 0 }}
+                              exit={{ x: '-100%' }}
+                              transition={{ duration: 0.5, ease: 'easeInOut' }}
+                            />
+                          </AnimatePresence>
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: siteContent.policySectionBgColor || '#ffebd6' }}>
                           <div className="flex items-center space-x-4 mb-6">
@@ -470,12 +519,19 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
 
                     {activePolicyTab === 1 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
-                        <div className="order-1 md:order-1 h-full">
-                          <img 
-                            src={siteContent.policy2Image || "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"} 
-                            alt="Không gian làm việc" 
-                            className="w-full h-full object-cover" 
-                          />
+                        <div className="order-1 md:order-1 h-full relative overflow-hidden min-h-[300px] md:min-h-full">
+                          <AnimatePresence initial={false}>
+                            <motion.img
+                              key={workspaceSlide}
+                              src={workspaceImages[workspaceSlide]}
+                              alt="Không gian làm việc"
+                              className="w-full h-full object-cover absolute inset-0"
+                              initial={{ x: '100%' }}
+                              animate={{ x: 0 }}
+                              exit={{ x: '-100%' }}
+                              transition={{ duration: 0.5, ease: 'easeInOut' }}
+                            />
+                          </AnimatePresence>
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#c8102e' }}>
                           <div className="flex items-center space-x-4 mb-6">
@@ -493,12 +549,19 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
 
                     {activePolicyTab === 2 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
-                        <div className="order-1 md:order-1 h-full">
-                          <img 
-                            src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop" 
-                            alt="Triết lý" 
-                            className="w-full h-full object-cover" 
-                          />
+                        <div className="order-1 md:order-1 h-full relative overflow-hidden min-h-[300px] md:min-h-full">
+                          <AnimatePresence initial={false}>
+                            <motion.img
+                              key={philosophySlide}
+                              src={philosophyImages[philosophySlide]}
+                              alt="Triết lý"
+                              className="w-full h-full object-cover absolute inset-0"
+                              initial={{ x: '100%' }}
+                              animate={{ x: 0 }}
+                              exit={{ x: '-100%' }}
+                              transition={{ duration: 0.5, ease: 'easeInOut' }}
+                            />
+                          </AnimatePresence>
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#2e8b3c' }}>
                           <div className="flex items-center space-x-4 mb-6">
@@ -522,7 +585,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
                         <div className="order-1 md:order-1 h-full">
                           <img 
-                            src="https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url=https%3A%2F%2Fnshm.vn%2Ftd%2Fgtcl.png" 
+                            src="https://hoangmaistarschool.edu.vn/thongtin/gtcl.png" 
                             alt="Tầm nhìn" 
                             className="w-full h-full object-cover" 
                           />
