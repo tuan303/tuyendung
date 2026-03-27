@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
-  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe
+  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -829,8 +829,59 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                         <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Họ và tên *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                        <input type="text" value={dob} onChange={(e) => setDob(e.target.value)} placeholder="Ngày sinh *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
-                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Điện thoại *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
+                        <div className="relative flex items-center">
+                          <input 
+                            type="text" 
+                            value={dob} 
+                            onChange={(e) => {
+                              let val = e.target.value.replace(/\D/g, '');
+                              if (val.length > 6) val = val.slice(0, 6);
+                              let formatted = val;
+                              if (val.length > 4) {
+                                formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4, 6)}`;
+                              } else if (val.length > 2) {
+                                formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}`;
+                              }
+                              setDob(formatted);
+                            }} 
+                            placeholder="Ngày sinh (dd/mm/yy) *" 
+                            pattern="(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/[0-9]{2}"
+                            title="Định dạng ngày sinh: dd/mm/yy"
+                            className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base pr-10" 
+                            style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} 
+                            required 
+                          />
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 w-6 h-6">
+                            <Calendar className="w-5 h-5 text-white/60 pointer-events-none absolute top-0.5 left-0.5" />
+                            <input 
+                              type="date" 
+                              onChange={(e) => {
+                                const dateVal = e.target.value;
+                                if (dateVal) {
+                                  const [yyyy, mm, dd] = dateVal.split('-');
+                                  const yy = yyyy.slice(2);
+                                  setDob(`${dd}/${mm}/${yy}`);
+                                }
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              title="Chọn ngày"
+                            />
+                          </div>
+                        </div>
+                        <input 
+                          type="tel" 
+                          value={phone} 
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            if (val.length <= 10) setPhone(val);
+                          }} 
+                          pattern="0[0-9]{9}"
+                          title="Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0"
+                          placeholder="Điện thoại *" 
+                          className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" 
+                          style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} 
+                          required 
+                        />
                       </div>
                       <div>
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />

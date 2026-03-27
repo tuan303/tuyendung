@@ -254,6 +254,10 @@ async function startServer() {
     }
   });
 
+let cachedSmtpSettings: any = null;
+let lastSmtpCacheTime = 0;
+const SMTP_CACHE_TTL = 60 * 1000; // 1 minute
+
   apiRouter.all("/send-email", async (req, res) => {
     console.log(`>>> Hit API send-email [${req.method}]`);
     const bodySize = JSON.stringify(req.body).length;
@@ -273,12 +277,21 @@ async function startServer() {
       if (!name || !phone || !email || !position) {
         return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
       }
-      const docRef = doc(clientDb, "settings", "smtp");
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) {
-        return res.status(500).json({ error: "SMTP settings not configured" });
+
+      let smtpSettings = null;
+      if (cachedSmtpSettings && Date.now() - lastSmtpCacheTime < SMTP_CACHE_TTL) {
+        smtpSettings = cachedSmtpSettings;
+      } else {
+        const docRef = doc(clientDb, "settings", "smtp");
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+          return res.status(500).json({ error: "SMTP settings not configured" });
+        }
+        smtpSettings = docSnap.data();
+        cachedSmtpSettings = smtpSettings;
+        lastSmtpCacheTime = Date.now();
       }
-      const smtpSettings = docSnap.data();
+
       if (!smtpSettings || !smtpSettings.host || !smtpSettings.port || !smtpSettings.user || !smtpSettings.pass || !smtpSettings.recipient) {
         return res.status(500).json({ error: "Incomplete SMTP settings" });
       }
@@ -331,14 +344,19 @@ async function startServer() {
         ];
       }
 
-      console.log(`Sending application email to ${smtpSettings.recipient}...`);
-      const info = await transporter.sendMail(mailOptions);
-      console.log("Email sent successfully! MessageId:", info.messageId);
+      console.log(`Sending application email to ${smtpSettings.recipient} in background...`);
+      transporter.sendMail(mailOptions)
+        .then((info) => {
+          console.log("Email sent successfully in background! MessageId:", info.messageId);
+        })
+        .catch((error) => {
+          console.error("Error sending email in background:", error);
+        });
       
-      res.status(200).json({ success: true, message: "Email sent successfully", messageId: info.messageId });
+      res.status(200).json({ success: true, message: "Application received and email is being sent" });
     } catch (error) {
-      console.error("Error sending email:", error);
-      res.status(500).json({ error: "Failed to send email", details: error instanceof Error ? error.message : String(error) });
+      console.error("Error preparing email:", error);
+      res.status(500).json({ error: "Failed to prepare email", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
