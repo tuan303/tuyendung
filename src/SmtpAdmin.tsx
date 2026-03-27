@@ -30,14 +30,23 @@ export default function SmtpAdmin() {
           
           if (data.pass) {
             // Decrypt password
-            const response = await fetch('/api/decrypt-password', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ encryptedPassword: data.pass }),
-            });
-            if (response.ok) {
-              const result = await response.json();
-              setPass(result.decryptedPassword || '');
+            try {
+              const response = await fetch('/api/decrypt-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ encryptedPassword: data.pass }),
+              });
+              if (response.ok) {
+                const result = await response.json();
+                if (result.decryptedPassword === "__DECRYPTION_FAILED__") {
+                  setMessage({ text: '⚠️ Mật khẩu SMTP hiện tại không thể giải mã (do thay đổi khóa hệ thống). Vui lòng nhập lại mật khẩu mới.', type: 'error' });
+                  setPass('');
+                } else {
+                  setPass(result.decryptedPassword || '');
+                }
+              }
+            } catch (e) {
+              console.error("Decryption request failed:", e);
             }
           }
         }

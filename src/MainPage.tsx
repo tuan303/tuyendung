@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
@@ -108,6 +108,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [position, setPosition] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const itemsPerPage = 4;
   const totalPages = Math.ceil(jobs.length / itemsPerPage);
@@ -219,7 +220,11 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
           const contentType = response.headers.get("content-type");
           if (contentType && contentType.includes("application/json")) {
             const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
+            if (errorData.code === "DECRYPTION_FAILED") {
+              errorMessage = "Hệ thống đang bảo trì cấu hình Email. Vui lòng liên hệ quản trị viên để cập nhật lại mật khẩu SMTP.";
+            } else {
+              errorMessage = errorData.error || errorMessage;
+            }
           } else {
             const textError = await response.text();
             console.error("Non-JSON error response:", textError);
@@ -828,6 +833,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
                             type="file" 
                             accept=".pdf,.docx" 
                             onChange={handleFileChange} 
+                            ref={fileInputRef}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                             required 
                           />

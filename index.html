@@ -10,6 +10,28 @@
     <meta name="description" content="Cổng thông tin tuyển dụng chính thức của Trường Ngôi Sao Hoàng Mai. Cập nhật các vị trí giáo viên, nhân viên mới nhất." />
     <meta name="keywords" content="tuyendungngoisaohoang mai, tuyendunggiao vien, tuyendungnamhocmoi, ngoisaohoangmaituyendung" />
     <title>TUYỂN DỤNG - TRƯỜNG NGÔI SAO HOÀNG MAI</title>
+    <script>
+      // Debug and protect window.fetch
+      (function() {
+        const originalFetch = window.fetch;
+        try {
+          Object.defineProperty(window, 'fetch', {
+            get: function() { return originalFetch; },
+            set: function(val) { 
+              console.error('CRITICAL: Something tried to overwrite window.fetch!', new Error().stack);
+              // We don't throw here to avoid breaking the caller if it's just a check, 
+              // but the 'getter-only' nature of the property will throw the TypeError 
+              // that the user is seeing, which helps us locate the source in the stack trace.
+            },
+            configurable: false,
+            enumerable: true
+          });
+          console.log('window.fetch protected and monitored.');
+        } catch (e) {
+          console.warn('Could not protect window.fetch, it might already be read-only:', e.message);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -21,20 +21,34 @@ const firebaseConfig = {
 const clientApp = initializeClientApp(firebaseConfig, "serverApp");
 const clientDb = getClientFirestore(clientApp);
 
-const ENCRYPTION_KEY = crypto.createHash('sha256').update(String(process.env.GEMINI_API_KEY || '12345678901234567890123456789012')).digest();
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '12345678901234567890123456789012';
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("WARNING: GEMINI_API_KEY is not set. Using default encryption key. Decryption of existing data will fail if the previous key was different.");
+}
+
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(String(GEMINI_API_KEY)).digest();
 const IV_LENGTH = 16;
 
 function encrypt(text: string) {
   if (!text) return text;
-  let iv = crypto.randomBytes(IV_LENGTH);
-  let cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
+  try {
+    let iv = crypto.randomBytes(IV_LENGTH);
+    let cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(text);
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    return iv.toString('hex') + ':' + encrypted.toString('hex');
+  } catch (e: any) {
+    console.error("Encryption error:", e);
+    throw new Error(`Lỗi mã hóa: ${e.message}`);
+  }
 }
 
 function decrypt(text: string) {
-  if (!text || !text.includes(':')) return text;
+  if (!text) return "";
+  if (!text.includes(':')) {
+    console.warn("Decryption warning: Text is not in encrypted format (missing ':')");
+    return text;
+  }
   try {
     let textParts = text.split(':');
     let iv = Buffer.from(textParts.shift()!, 'hex');
@@ -43,9 +57,15 @@ function decrypt(text: string) {
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
-  } catch (e) {
-    console.error("Decryption error:", e);
-    return "";
+  } catch (e: any) {
+    console.error("Decryption error details:", {
+      message: e.message,
+      stack: e.stack,
+      textLength: text.length,
+      hasKey: !!GEMINI_API_KEY
+    });
+    // Return a special marker so we know it failed due to key mismatch
+    return "__DECRYPTION_FAILED__";
   }
 }
 
@@ -261,6 +281,14 @@ async function startServer() {
         return res.status(500).json({ error: "Incomplete SMTP settings" });
       }
       const decryptedPass = decrypt(smtpSettings.pass);
+      if (decryptedPass === "__DECRYPTION_FAILED__") {
+        console.error("CRITICAL: SMTP password decryption failed. This usually means the GEMINI_API_KEY has changed.");
+        return res.status(500).json({ 
+          error: "Lỗi giải mã mật khẩu SMTP. Vui lòng vào trang Quản trị > Cài đặt Email và nhập lại mật khẩu SMTP để cập nhật mã hóa mới.",
+          code: "DECRYPTION_FAILED"
+        });
+      }
+
       console.log(`Creating transporter for ${smtpSettings.host}:${smtpSettings.port} (User: ${smtpSettings.user})`);
       
       const transporter = nodemailer.createTransport({
