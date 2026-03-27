@@ -835,18 +835,18 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                             value={dob} 
                             onChange={(e) => {
                               let val = e.target.value.replace(/\D/g, '');
-                              if (val.length > 6) val = val.slice(0, 6);
+                              if (val.length > 8) val = val.slice(0, 8);
                               let formatted = val;
                               if (val.length > 4) {
-                                formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4, 6)}`;
+                                formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4, 8)}`;
                               } else if (val.length > 2) {
                                 formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}`;
                               }
                               setDob(formatted);
                             }} 
-                            placeholder="Ngày sinh (dd/mm/yy) *" 
-                            pattern="(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/[0-9]{2}"
-                            title="Định dạng ngày sinh: dd/mm/yy"
+                            placeholder="Ngày sinh (dd/mm/yyyy) *" 
+                            pattern="(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/[0-9]{4}"
+                            title="Định dạng ngày sinh: dd/mm/yyyy"
                             className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base pr-10" 
                             style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} 
                             required 
@@ -859,8 +859,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                                 const dateVal = e.target.value;
                                 if (dateVal) {
                                   const [yyyy, mm, dd] = dateVal.split('-');
-                                  const yy = yyyy.slice(2);
-                                  setDob(`${dd}/${mm}/${yy}`);
+                                  setDob(`${dd}/${mm}/${yyyy}`);
                                 }
                               }}
                               className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
