@@ -148,6 +148,12 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
       return;
     }
 
+    // Check file size (5MB limit)
+    if (file && file.size > 5 * 1024 * 1024) {
+      alert("File CV của bạn quá lớn (trên 5MB). Vui lòng nén file hoặc sử dụng file PDF có dung lượng nhỏ hơn.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       let downloadURL = '';
@@ -174,7 +180,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
           };
 
           const timeoutPromise = new Promise<string>((_, reject) => 
-            setTimeout(() => reject(new Error("Upload timeout")), 15000)
+            setTimeout(() => reject(new Error("Upload timeout")), 30000)
           );
 
           downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
@@ -209,7 +215,9 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
           email,
           position,
           downloadURL,
-          fileData,
+          // Only send base64 data if we don't have a download URL (fallback)
+          // to avoid 413 Payload Too Large errors from the proxy
+          fileData: downloadURL ? null : fileData,
           fileName
         }),
       });
@@ -228,7 +236,11 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
           } else {
             const textError = await response.text();
             console.error("Non-JSON error response:", textError);
-            errorMessage = `Server error (${response.status}): ${response.statusText}`;
+            if (response.status === 413) {
+              errorMessage = "File CV của bạn quá lớn. Vui lòng nén file hoặc sử dụng file PDF có dung lượng nhỏ hơn (dưới 5MB).";
+            } else {
+              errorMessage = `Server error (${response.status}): ${response.statusText}`;
+            }
           }
         } catch (e) {
           console.error("Error parsing error response:", e);
