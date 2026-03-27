@@ -115,6 +115,12 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        alert("Kích thước file quá lớn. Vui lòng chọn file dưới 10MB.");
+        return;
+      }
+
       if (validTypes.includes(selectedFile.type)) {
         setFile(selectedFile);
       } else {
@@ -146,24 +152,13 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
           reader.readAsDataURL(file);
         });
 
-        try {
-          // 1. Upload file to Firebase Storage with a 15-second timeout
-          const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
-          
-          const uploadPromise = async () => {
-            await uploadBytes(fileRef, file);
-            return await getDownloadURL(fileRef);
-          };
-
-          const timeoutPromise = new Promise<string>((_, reject) => 
-            setTimeout(() => reject(new Error("Upload timeout")), 15000)
-          );
-
-          downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
-        } catch (uploadError) {
-          console.warn("Could not upload file to storage, falling back to email attachment only:", uploadError);
-          // If upload fails, we continue and send the base64 file directly via email
-        }
+        // Upload file to Firebase Storage in the background to make submission faster
+        const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
+        uploadBytes(fileRef, file).then(() => {
+          console.log("File uploaded to Firebase Storage successfully in the background.");
+        }).catch((err) => {
+          console.warn("Background upload failed:", err);
+        });
       }
 
       // 2. Prepare email content
