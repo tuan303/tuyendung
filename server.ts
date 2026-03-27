@@ -90,8 +90,8 @@ async function startServer() {
 
   // 1. GLOBAL MIDDLEWARE - MUST BE FIRST
   app.use(cors());
-  app.use(express.json({ limit: '50mb' }));
-  const urlencodedLimit = '50mb';
+  app.use(express.json({ limit: '100mb' }));
+  const urlencodedLimit = '100mb';
   app.use(express.urlencoded({ limit: urlencodedLimit, extended: true }));
 
   // Error handler for JSON parsing and other middleware errors
@@ -256,6 +256,8 @@ async function startServer() {
 
   apiRouter.all("/send-email", async (req, res) => {
     console.log(`>>> Hit API send-email [${req.method}]`);
+    const bodySize = JSON.stringify(req.body).length;
+    console.log(`[Email API] Received request. Body size: ${Math.round(bodySize / 1024)} KB`);
     try {
       let data;
       if (req.method === 'POST') {

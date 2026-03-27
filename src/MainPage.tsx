@@ -157,26 +157,31 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     setIsSubmitting(true);
     try {
       let downloadURL = '';
-      let fileData = null;
+      let fileData: string | null = null;
       let fileName = null;
 
       if (file) {
         fileName = file.name;
+        console.log(`[Form] Processing file: ${fileName} (${Math.round(file.size / 1024)} KB)`);
+        
         // Read file as base64 for email attachment
         const reader = new FileReader();
-        fileData = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
+        fileData = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
 
         try {
-          // 1. Upload file to Firebase Storage with a 15-second timeout
+          // 1. Upload file to Firebase Storage with a 30-second timeout
+          console.log("[Form] Attempting to upload to Firebase Storage...");
           const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
           
           const uploadPromise = async () => {
             await uploadBytes(fileRef, file);
-            return await getDownloadURL(fileRef);
+            const url = await getDownloadURL(fileRef);
+            console.log("[Form] Firebase Storage upload successful:", url);
+            return url;
           };
 
           const timeoutPromise = new Promise<string>((_, reject) => 
@@ -184,23 +189,35 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
           );
 
           downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
-        } catch (uploadError) {
-          console.warn("Could not upload file to storage, falling back to email attachment only:", uploadError);
-          // If upload fails, we continue and send the base64 file directly via email
+        } catch (uploadError: any) {
+          console.warn("[Form] Firebase Storage upload failed:", uploadError);
+          
+          // If the file is larger than 100KB, do NOT fallback to base64 because
+          // the server proxy will likely reject it with a 413 Payload Too Large error.
+          if (file.size > 100 * 1024) {
+            throw new Error("Không thể tải lên file CV. Vui lòng liên hệ quản trị viên để kiểm tra cấu hình Firebase Storage (Security Rules cần cho phép public write vào thư mục 'cvs/'). Chi tiết lỗi: " + (uploadError.message || "Unknown error"));
+          } else {
+            console.log("[Form] File is small enough (<100KB), attempting fallback to email attachment.");
+          }
         }
       }
 
-      // 2. Prepare email content
-      const subject = `[Ứng tuyển] ${position} - ${name}`;
-      const body = `
-Họ và tên: ${name}
-Ngày sinh: ${dob}
-Điện thoại: ${phone}
-Email: ${email}
-Vị trí ứng tuyển: ${position}
+      // 2. Prepare request body
+      const requestBody = {
+        name,
+        dob,
+        phone,
+        email,
+        position,
+        downloadURL,
+        // Only send base64 data if we don't have a download URL (fallback)
+        // to avoid 413 Payload Too Large errors from the proxy
+        fileData: downloadURL ? null : fileData,
+        fileName
+      };
 
-${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}
-      `.trim();
+      const bodyString = JSON.stringify(requestBody);
+      console.log(`[Form] Sending request to /api/send-email. Body size: ${Math.round(bodyString.length / 1024)} KB`);
 
       // 3. Send email via backend API
       const response = await fetch('/api/send-email', {
@@ -208,18 +225,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name,
-          dob,
-          phone,
-          email,
-          position,
-          downloadURL,
-          // Only send base64 data if we don't have a download URL (fallback)
-          // to avoid 413 Payload Too Large errors from the proxy
-          fileData: downloadURL ? null : fileData,
-          fileName
-        }),
+        body: bodyString,
       });
 
       if (!response.ok) {
