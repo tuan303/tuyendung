@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
@@ -28,53 +27,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [activePolicyTab, setActivePolicyTab] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [siteContent, setSiteContent] = useState(previewContent || defaultContent);
-  const [philosophySlide, setPhilosophySlide] = useState(0);
-  const [workspaceSlide, setWorkspaceSlide] = useState(0);
-  const [trainingSlide, setTrainingSlide] = useState(0);
-
-  const philosophyImages = siteContent.philosophyImages 
-    ? siteContent.philosophyImages.split('\n').filter(url => url.trim() !== '')
-    : [
-        "https://hoangmaistarschool.edu.vn/thongtin/httl1.png",
-        "https://hoangmaistarschool.edu.vn/thongtin/httl1.png"
-      ];
-
-  const workspaceImages = siteContent.workspaceImages
-    ? siteContent.workspaceImages.split('\n').filter(url => url.trim() !== '')
-    : [
-        "https://hoangmaistarschool.edu.vn/thongtin/kg1.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/kg2.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/kg3.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/kg4.jpg"
-      ];
-
-  const trainingImages = siteContent.trainingImages
-    ? siteContent.trainingImages.split('\n').filter(url => url.trim() !== '')
-    : [
-        "https://hoangmaistarschool.edu.vn/thongtin/dtpt1.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/dtpt2.jpg"
-      ];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPhilosophySlide((prev) => (prev + 1) % philosophyImages.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setWorkspaceSlide((prev) => (prev + 1) % workspaceImages.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTrainingSlide((prev) => (prev + 1) % trainingImages.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Update siteContent if previewContent changes
   useEffect(() => {
@@ -91,8 +43,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [position, setPosition] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
 
   const itemsPerPage = 4;
   const totalPages = Math.ceil(jobs.length / itemsPerPage);
@@ -113,33 +63,12 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     setCurrentSlide((prev) => (prev - 1 + totalPages) % totalPages);
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        alert("Kích thước file quá lớn. Vui lòng chọn file dưới 10MB.");
-        return;
-      }
-
       if (validTypes.includes(selectedFile.type)) {
         setFile(selectedFile);
-        setUploadingFile(true);
-        setUploadedFileUrl(null);
-        
-        try {
-          const fileRef = ref(storage, `cvs/${Date.now()}_${selectedFile.name}`);
-          await uploadBytes(fileRef, selectedFile);
-          const url = await getDownloadURL(fileRef);
-          setUploadedFileUrl(url);
-        } catch (error) {
-          console.error("Error uploading file:", error);
-          alert("Có lỗi khi tải file lên. Vui lòng thử lại.");
-          setFile(null);
-        } finally {
-          setUploadingFile(false);
-        }
       } else {
         alert("Vui lòng chọn file PDF hoặc DOCX.");
       }
@@ -153,18 +82,42 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
       return;
     }
 
-    if (uploadingFile) {
-      alert("File CV đang được tải lên. Vui lòng đợi trong giây lát...");
-      return;
-    }
-
-    if (!uploadedFileUrl) {
-      alert("Chưa tải được file CV. Vui lòng chọn lại file.");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
+      let downloadURL = '';
+      let fileData = null;
+      let fileName = null;
+
+      if (file) {
+        fileName = file.name;
+        // Read file as base64 for email attachment
+        const reader = new FileReader();
+        fileData = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        try {
+          // 1. Upload file to Firebase Storage with a 15-second timeout
+          const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
+          
+          const uploadPromise = async () => {
+            await uploadBytes(fileRef, file);
+            return await getDownloadURL(fileRef);
+          };
+
+          const timeoutPromise = new Promise<string>((_, reject) => 
+            setTimeout(() => reject(new Error("Upload timeout")), 15000)
+          );
+
+          downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
+        } catch (uploadError) {
+          console.warn("Could not upload file to storage, falling back to email attachment only:", uploadError);
+          // If upload fails, we continue and send the base64 file directly via email
+        }
+      }
+
       // 2. Prepare email content
       const subject = `[Ứng tuyển] ${position} - ${name}`;
       const body = `
@@ -174,7 +127,7 @@ Ngày sinh: ${dob}
 Email: ${email}
 Vị trí ứng tuyển: ${position}
 
-Link CV đính kèm: ${uploadedFileUrl}
+${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}
       `.trim();
 
       // 3. Send email via backend API
@@ -189,24 +142,15 @@ Link CV đính kèm: ${uploadedFileUrl}
           phone,
           email,
           position,
-          downloadURL: uploadedFileUrl,
-          fileName: file.name
+          downloadURL,
+          fileData,
+          fileName
         }),
       });
 
       if (!response.ok) {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to send email");
-        } else {
-          const errorText = await response.text();
-          console.error("Non-JSON error response:", response.status, errorText);
-          if (response.status === 413) {
-            throw new Error("File đính kèm quá lớn. Vui lòng giảm dung lượng file.");
-          }
-          throw new Error(`Lỗi máy chủ (${response.status}). Vui lòng thử lại sau.`);
-        }
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send email");
       }
 
       // 4. Reset form
@@ -216,7 +160,6 @@ Link CV đính kèm: ${uploadedFileUrl}
       setEmail('');
       setPosition('');
       setFile(null);
-      setUploadedFileUrl(null);
       
       alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công.");
     } catch (error: any) {
@@ -254,18 +197,9 @@ Link CV đính kèm: ${uploadedFileUrl}
         setSiteContent({
           ...defaultContent,
           ...data,
-          policy5Benefits: Array.isArray(data.policy5Benefits) 
-            ? data.policy5Benefits.join('\n') 
-            : (data.policy5Benefits || defaultContent.policy5Benefits),
-          trainingImages: Array.isArray(data.trainingImages)
-            ? data.trainingImages.join('\n')
-            : (data.trainingImages || defaultContent.trainingImages),
-          workspaceImages: Array.isArray(data.workspaceImages)
-            ? data.workspaceImages.join('\n')
-            : (data.workspaceImages || defaultContent.workspaceImages),
-          philosophyImages: Array.isArray(data.philosophyImages)
-            ? data.philosophyImages.join('\n')
-            : (data.philosophyImages || defaultContent.philosophyImages)
+          policy3Benefits: Array.isArray(data.policy3Benefits) 
+            ? data.policy3Benefits.join('\n') 
+            : data.policy3Benefits || defaultContent.policy3Benefits
         });
       }
     }, (error) => {
@@ -513,29 +447,23 @@ Link CV đính kèm: ${uploadedFileUrl}
                   <div className="overflow-hidden" style={{ borderRadius: '2rem' }}>
                     {activePolicyTab === 0 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
-                        <div className="order-1 md:order-1 h-full relative overflow-hidden min-h-[300px] md:min-h-full">
-                          <AnimatePresence initial={false}>
-                            <motion.img
-                              key={trainingSlide}
-                              src={trainingImages[trainingSlide]}
-                              alt="Đào tạo"
-                              className="w-full h-full object-cover absolute inset-0"
-                              initial={{ x: '100%' }}
-                              animate={{ x: 0 }}
-                              exit={{ x: '-100%' }}
-                              transition={{ duration: 0.5, ease: 'easeInOut' }}
-                            />
-                          </AnimatePresence>
+                        <div className="order-1 md:order-1 h-full">
+                          <img 
+                            src={siteContent.policy1Image || "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop"} 
+                            alt="Đào tạo" 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: siteContent.policySectionBgColor || '#ffebd6' }}>
                           <div className="flex items-center space-x-4 mb-6">
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               01
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight" style={{ color: '#c8102e' }}>{siteContent.policy1Title || 'Đào tạo và phát triển'}</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight" style={{ color: '#c8102e' }}>Đào tạo và phát triển</h4>
                           </div>
-                          <p className="text-gray-700 leading-relaxed text-sm md:text-base font-medium whitespace-pre-line">
-                            {siteContent.policy1Desc || 'Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.'}
+                          <p className="text-gray-700 leading-relaxed text-sm md:text-base font-medium">
+                            Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.
                           </p>
                         </div>
                       </div>
@@ -543,29 +471,23 @@ Link CV đính kèm: ${uploadedFileUrl}
 
                     {activePolicyTab === 1 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
-                        <div className="order-1 md:order-1 h-full relative overflow-hidden min-h-[300px] md:min-h-full">
-                          <AnimatePresence initial={false}>
-                            <motion.img
-                              key={workspaceSlide}
-                              src={workspaceImages[workspaceSlide]}
-                              alt="Không gian làm việc"
-                              className="w-full h-full object-cover absolute inset-0"
-                              initial={{ x: '100%' }}
-                              animate={{ x: 0 }}
-                              exit={{ x: '-100%' }}
-                              transition={{ duration: 0.5, ease: 'easeInOut' }}
-                            />
-                          </AnimatePresence>
+                        <div className="order-1 md:order-1 h-full">
+                          <img 
+                            src={siteContent.policy2Image || "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"} 
+                            alt="Không gian làm việc" 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#c8102e' }}>
                           <div className="flex items-center space-x-4 mb-6">
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#c8102e] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               02
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">{siteContent.policy2Title || 'Không gian làm việc'}</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">Không gian làm việc</h4>
                           </div>
-                          <p className="leading-relaxed text-sm md:text-base text-white font-medium whitespace-pre-line">
-                            {siteContent.policy2Desc || 'Tại Trường Ngôi Sao Hoàng Mai, chúng tôi chú trọng đầu tư cơ sở vật chất đồng bộ, hiện đại và thân thiện với môi trường, nhằm kiến tạo một không gian làm việc sáng tạo, nơi mỗi cán bộ, giáo viên có thể phát huy tối đa năng lực của mình. Bên cạnh đó, hệ thống trang thiết bị tiên tiến cùng nền tảng công nghệ được ứng dụng linh hoạt trong giảng dạy và vận hành không chỉ nâng cao hiệu quả công việc mà còn góp phần tối ưu chất lượng dạy và học, mang đến trải nghiệm giáo dục toàn diện cho cả giáo viên và học sinh.'}
+                          <p className="leading-relaxed text-sm md:text-base text-white font-medium">
+                            Tại Trường Ngôi Sao Hoàng Mai, chúng tôi chú trọng đầu tư cơ sở vật chất đồng bộ, hiện đại và thân thiện với môi trường, nhằm kiến tạo một không gian làm việc sáng tạo, nơi mỗi cán bộ, giáo viên có thể phát huy tối đa năng lực của mình. Bên cạnh đó, hệ thống trang thiết bị tiên tiến cùng nền tảng công nghệ được ứng dụng linh hoạt trong giảng dạy và vận hành không chỉ nâng cao hiệu quả công việc mà còn góp phần tối ưu chất lượng dạy và học, mang đến trải nghiệm giáo dục toàn diện cho cả giáo viên và học sinh.
                           </p>
                         </div>
                       </div>
@@ -573,32 +495,27 @@ Link CV đính kèm: ${uploadedFileUrl}
 
                     {activePolicyTab === 2 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
-                        <div className="order-1 md:order-1 h-full relative overflow-hidden min-h-[300px] md:min-h-full">
-                          <AnimatePresence initial={false}>
-                            <motion.img
-                              key={philosophySlide}
-                              src={philosophyImages[philosophySlide]}
-                              alt="Triết lý"
-                              className="w-full h-full object-cover absolute inset-0"
-                              initial={{ x: '100%' }}
-                              animate={{ x: 0 }}
-                              exit={{ x: '-100%' }}
-                              transition={{ duration: 0.5, ease: 'easeInOut' }}
-                            />
-                          </AnimatePresence>
+                        <div className="order-1 md:order-1 h-full">
+                          <img 
+                            src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop" 
+                            alt="Triết lý" 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#2e8b3c' }}>
                           <div className="flex items-center space-x-4 mb-6">
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#2e8b3c] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               03
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">{siteContent.policy3Title || 'Hệ thống triết lý'}</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">Hệ thống triết lý</h4>
                           </div>
-                          <p className="leading-relaxed text-sm md:text-base text-white font-medium mb-4 whitespace-pre-line">
-                            {siteContent.policy3Desc1 || 'Giáo dục hướng đến phát triển toàn diện, tinh hoa và hội nhập, đặt nền trên đạo đức vững vàng, trí tuệ khai mở, thể chất dẻo dai, nhân cách trưởng thành và tinh thần hòa hợp sâu sắc.'}
+                          <p className="leading-relaxed text-sm md:text-base text-white font-medium mb-4">
+                            Giáo dục hướng đến phát triển toàn diện, tinh hoa và hội nhập, đặt nền trên đạo đức vững vàng, trí tuệ khai mở, thể chất dẻo dai, nhân cách trưởng thành và tinh thần hòa hợp sâu sắc.
                           </p>
-                          <p className="leading-relaxed text-base md:text-lg text-white font-medium whitespace-pre-line">
-                            {siteContent.policy3Desc2 || 'Trên tinh thần đó, Trường Ngôi Sao Hoàng Mai xác lập và kiên định với 5 trụ cột giáo dục cốt lõi:\nĐạo đức, Trí tuệ, Thể chất, Nhân cách, Hoà hợp.'}
+                          <p className="leading-relaxed text-base md:text-lg text-white font-medium">
+                            Trên tinh thần đó, Trường Ngôi Sao Hoàng Mai xác lập và kiên định với 5 trụ cột giáo dục cốt lõi:<br/>
+                            <strong>Đạo đức, Trí tuệ, Thể chất, Nhân cách, Hoà hợp.</strong>
                           </p>
                         </div>
                       </div>
@@ -608,9 +525,10 @@ Link CV đính kèm: ${uploadedFileUrl}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
                         <div className="order-1 md:order-1 h-full">
                           <img 
-                            src={siteContent.coreValuesImage || "https://hoangmaistarschool.edu.vn/thongtin/gtcl.png"} 
+                            src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop" 
                             alt="Tầm nhìn" 
                             className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#f39c12' }}>
@@ -618,20 +536,20 @@ Link CV đính kèm: ${uploadedFileUrl}
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#f39c12] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#ffffff' }}>
                               04
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">{siteContent.policy4Title || 'Tầm nhìn - Sứ mệnh - Giá trị cốt lõi'}</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">Tầm nhìn - Sứ mệnh - Giá trị cốt lõi</h4>
                           </div>
                           <div className="space-y-4">
                             <div>
                               <strong className="text-base md:text-lg block mb-1 text-white">Tầm nhìn</strong>
-                              <p className="text-white font-medium text-sm md:text-base whitespace-pre-line">{siteContent.policy4Vision || '"Trở thành Trường học tinh hoa, mang bản sắc Việt và vươn tầm quốc tế"'}</p>
+                              <p className="text-white font-medium text-sm md:text-base">"Trở thành Trường học tinh hoa, mang bản sắc Việt và vươn tầm quốc tế"</p>
                             </div>
                             <div>
                               <strong className="text-base md:text-lg block mb-1 text-white">Sứ mệnh</strong>
-                              <p className="text-white font-medium text-sm md:text-base whitespace-pre-line">{siteContent.policy4Mission || '"Kiến tạo nền tảng giáo dục tiên tiến, mang bản sắc Việt, chất lượng quốc tế"'}</p>
+                              <p className="text-white font-medium text-sm md:text-base">"Kiến tạo nền tảng giáo dục tiên tiến, mang bản sắc Việt, chất lượng quốc tế"</p>
                             </div>
                             <div>
-                              <p className="text-white font-medium text-sm md:text-base whitespace-pre-line">
-                                {siteContent.policy4CoreValues || 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.'}
+                              <p className="text-white font-medium text-sm md:text-base">
+                                Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao <strong>5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.</strong>
                               </p>
                             </div>
                           </div>
@@ -643,9 +561,10 @@ Link CV đính kèm: ${uploadedFileUrl}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
                         <div className="order-1 md:order-1 h-full">
                           <img 
-                            src={siteContent.benefitsImage || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
+                            src={siteContent.policy3Image || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
                             alt="Phúc lợi" 
                             className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#1a2b4c' }}>
@@ -653,24 +572,41 @@ Link CV đính kèm: ${uploadedFileUrl}
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#1a2b4c] font-bold text-xl shadow-md shrink-0" style={{ backgroundColor: '#f39c12' }}>
                               05
                             </div>
-                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">{siteContent.policy5Title || 'Chính sách phúc lợi'}</h4>
+                            <h4 className="text-2xl md:text-3xl font-bold uppercase tracking-tight text-white">Chính sách phúc lợi</h4>
                           </div>
                           <ul className="space-y-4">
-                            {(siteContent.policy5Benefits ? siteContent.policy5Benefits.split('\n') : [
-                              'Thưởng các ngày Lễ, Tết, Kỷ niệm thành lập trường, ngày Nhà giáo Việt Nam 20/11...',
-                              'Chế độ nghỉ mát, du xuân, teambuilding hàng năm.',
-                              'Khám sức khỏe định kỳ hàng năm.',
-                              'Chế độ ưu đãi học phí cho con em CBNV.',
-                              'Tham gia BHXH, BHYT, BHTN theo quy định của Nhà nước.',
-                              'Chế độ ăn trưa tại trường.',
-                              'Môi trường làm việc chuyên nghiệp, năng động, sáng tạo.',
-                              'Cơ hội thăng tiến, phát triển bản thân.'
-                            ]).map((benefit, index) => (
-                              <li key={index} className="flex items-start space-x-4">
-                                <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
-                                <span className="text-white font-medium leading-relaxed text-sm md:text-base">{benefit}</span>
-                              </li>
-                            ))}
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Thưởng các ngày Lễ, Tết, Kỷ niệm thành lập trường, ngày Nhà giáo Việt Nam 20/11...</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Chế độ nghỉ mát, du xuân, teambuilding hàng năm.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Khám sức khỏe định kỳ hàng năm.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Chế độ ưu đãi học phí cho con em CBNV.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Tham gia BHXH, BHYT, BHTN theo quy định của Nhà nước.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Chế độ ăn trưa tại trường.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Môi trường làm việc chuyên nghiệp, năng động, sáng tạo.</span>
+                            </li>
+                            <li className="flex items-start space-x-4">
+                              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" style={{ color: '#f39c12' }} />
+                              <span className="text-white font-medium leading-relaxed text-sm md:text-base">Cơ hội thăng tiến, phát triển bản thân.</span>
+                            </li>
                           </ul>
                         </div>
                       </div>
@@ -798,11 +734,11 @@ Link CV đính kèm: ${uploadedFileUrl}
 
                       <button 
                         type="submit" 
-                        disabled={isSubmitting || uploadingFile} 
-                        className="w-full bg-white font-bold uppercase tracking-widest py-4 mt-8 transition shadow-lg transition-colors duration-500 disabled:opacity-50"
+                        disabled={isSubmitting} 
+                        className="w-full bg-white font-bold uppercase tracking-widest py-4 mt-8 transition shadow-lg transition-colors duration-500"
                         style={{ color: siteContent.primaryColor, borderRadius: `${siteContent.borderRadius}px` }}
                       >
-                        {isSubmitting ? 'Đang xử lý...' : uploadingFile ? 'Đang tải file lên...' : 'Nộp hồ sơ'}
+                        {isSubmitting ? 'Đang xử lý...' : 'Nộp hồ sơ'}
                       </button>
                     </form>
                   </div>

@@ -65,33 +65,12 @@ export const defaultContent = {
   
   policy1Title: 'Đào tạo và phát triển',
   policy1Desc: 'Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.',
-  trainingImages: [
-    "https://hoangmaistarschool.edu.vn/thongtin/dtpt1.jpg",
-    "https://hoangmaistarschool.edu.vn/thongtin/dtpt2.jpg"
-  ].join('\n'),
+  policy1Image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop',
   
-  policy2Title: 'Không gian làm việc',
-  policy2Desc: 'Tại Trường Ngôi Sao Hoàng Mai, chúng tôi chú trọng đầu tư cơ sở vật chất đồng bộ, hiện đại và thân thiện với môi trường, nhằm kiến tạo một không gian làm việc sáng tạo, nơi mỗi cán bộ, giáo viên có thể phát huy tối đa năng lực của mình. Bên cạnh đó, hệ thống trang thiết bị tiên tiến cùng nền tảng công nghệ được ứng dụng linh hoạt trong giảng dạy và vận hành không chỉ nâng cao hiệu quả công việc mà còn góp phần tối ưu chất lượng dạy và học, mang đến trải nghiệm giáo dục toàn diện cho cả giáo viên và học sinh.',
-  workspaceImages: [
-    "https://hoangmaistarschool.edu.vn/thongtin/kg1.jpg",
-    "https://hoangmaistarschool.edu.vn/thongtin/kg2.jpg",
-    "https://hoangmaistarschool.edu.vn/thongtin/kg3.jpg",
-    "https://hoangmaistarschool.edu.vn/thongtin/kg4.jpg"
-  ].join('\n'),
-
-  policy3Title: 'Hệ thống triết lý',
-  policy3Desc1: 'Giáo dục hướng đến phát triển toàn diện, tinh hoa và hội nhập, đặt nền trên đạo đức vững vàng, trí tuệ khai mở, thể chất dẻo dai, nhân cách trưởng thành và tinh thần hòa hợp sâu sắc.',
-  policy3Desc2: 'Trên tinh thần đó, Trường Ngôi Sao Hoàng Mai xác lập và kiên định với 5 trụ cột giáo dục cốt lõi:\nĐạo đức, Trí tuệ, Thể chất, Nhân cách, Hoà hợp.',
-  philosophyImages: [
-    "https://hoangmaistarschool.edu.vn/thongtin/httl1.png",
-    "https://hoangmaistarschool.edu.vn/thongtin/httl1.png"
-  ].join('\n'),
-
-  policy4Title: 'Tầm nhìn - Sứ mệnh - Giá trị cốt lõi',
-  policy4Vision: '"Trở thành Trường học tinh hoa, mang bản sắc Việt và vươn tầm quốc tế"',
-  policy4Mission: '"Kiến tạo nền tảng giáo dục tiên tiến, mang bản sắc Việt, chất lượng quốc tế"',
-  policy4CoreValues: 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.',
-  coreValuesImage: 'https://hoangmaistarschool.edu.vn/thongtin/gtcl.png',
+  policy2Title: 'Môi trường làm việc',
+  policy2Quote: '"Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng."',
+  policy2Desc: 'Bên cạnh đó, với cơ sở vật chất, trang thiết bị hiện đại và nền tảng công nghệ tiên tiến cũng là những ưu thế giúp Giáo viên và Học sinh Trường Ngôi Sao Hoàng Mai tối ưu hiệu quả dạy và học.',
+  policy2Image: 'https://images.unsplash.com/photo-1577415124269-fc1140a69e91?q=80&w=1964&auto=format&fit=crop',
   
   policyTab0Label: 'ĐÀO TẠO VÀ PHÁT TRIỂN',
   policyTab1Label: 'KHÔNG GIAN LÀM VIỆC',
@@ -99,14 +78,14 @@ export const defaultContent = {
   policyTab3Label: 'TẦM NHÌN - SỨ MỆNH - GIÁ TRỊ CỐT LÕI',
   policyTab4Label: 'CHÍNH SÁCH PHÚC LỢI',
   
-  policy5Title: 'Chính sách phúc lợi',
-  policy5Benefits: [
-    'Thưởng các ngày Lễ, Tết, Kỷ niệm thành lập trường, ngày Nhà giáo Việt Nam 20/11...',
-    'Chế độ nghỉ mát, du xuân, teambuilding hàng năm.',
-    'Khám sức khỏe định kỳ hàng năm.',
-    'Chế độ ưu đãi học phí cho con em CBNV.'
+  policy3Title: 'Chính sách phúc lợi',
+  policy3Benefits: [
+    'Mức lương và quyền lợi cạnh tranh tùy thuộc vào kinh nghiệm và năng lực.',
+    'Tài trợ ăn sáng, ăn trưa tại trường, tham gia BHXH, BHYT... và bảo hiểm chăm sóc sức khỏe.',
+    'Hỗ trợ học phí cho con em CBNV lên tới 100%.',
+    'Thưởng các ngày Lễ tết, thưởng năm học, tham quan nghỉ mát hàng năm.'
   ].join('\n'),
-  benefitsImage: 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop',
+  policy3Image: 'https://hoangmaistarschool.edu.vn/thongtin/20.jpg',
   
   // Footer
   footerDescription: 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.',
@@ -193,18 +172,9 @@ export default function SiteContentAdmin() {
           setContent({
             ...defaultContent,
             ...data,
-            policy5Benefits: Array.isArray(data.policy5Benefits) 
-              ? data.policy5Benefits.join('\n') 
-              : (data.policy5Benefits || defaultContent.policy5Benefits),
-            trainingImages: Array.isArray(data.trainingImages)
-              ? data.trainingImages.join('\n')
-              : (data.trainingImages || defaultContent.trainingImages),
-            workspaceImages: Array.isArray(data.workspaceImages)
-              ? data.workspaceImages.join('\n')
-              : (data.workspaceImages || defaultContent.workspaceImages),
-            philosophyImages: Array.isArray(data.philosophyImages)
-              ? data.philosophyImages.join('\n')
-              : (data.philosophyImages || defaultContent.philosophyImages)
+            policy3Benefits: Array.isArray(data.policy3Benefits) 
+              ? data.policy3Benefits.join('\n') 
+              : data.policy3Benefits || defaultContent.policy3Benefits
           });
         }
       } catch (error) {
@@ -230,10 +200,7 @@ export default function SiteContentAdmin() {
       const docRef = doc(db, 'siteContent', 'main');
       const dataToSave = {
         ...content,
-        policy5Benefits: content.policy5Benefits ? content.policy5Benefits.split('\n').filter((b: string) => b.trim() !== '') : [],
-        trainingImages: content.trainingImages ? content.trainingImages.split('\n').filter((b: string) => b.trim() !== '') : [],
-        workspaceImages: content.workspaceImages ? content.workspaceImages.split('\n').filter((b: string) => b.trim() !== '') : [],
-        philosophyImages: content.philosophyImages ? content.philosophyImages.split('\n').filter((b: string) => b.trim() !== '') : []
+        policy3Benefits: content.policy3Benefits.split('\n').filter(b => b.trim() !== '')
       };
       await setDoc(docRef, dataToSave);
       alert('Đã lưu cấu hình giao diện thành công!');
@@ -680,107 +647,61 @@ export default function SiteContentAdmin() {
 
               {/* Policy 1 */}
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
-                <h4 className="font-bold text-sm text-gray-600 uppercase">Tab 1: Đào tạo</h4>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
+                <h4 className="font-bold text-sm text-gray-600 uppercase">Chính sách 1: Đào tạo</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
                     <label className="block text-xs font-bold text-gray-500 mb-1">Tiêu đề</label>
                     <input type="text" name="policy1Title" value={content.policy1Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-xs font-bold text-gray-500 mb-1">Mô tả</label>
                     <textarea name="policy1Desc" value={content.policy1Desc} onChange={handleChange} rows={3} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Danh sách ảnh slide (Mỗi dòng 1 URL)</label>
-                    <textarea name="trainingImages" value={content.trainingImages} onChange={handleChange} rows={3} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Ảnh minh họa (URL)</label>
+                    <input type="text" name="policy1Image" value={content.policy1Image} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                 </div>
               </div>
 
               {/* Policy 2 */}
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
-                <h4 className="font-bold text-sm text-gray-600 uppercase">Tab 2: Không gian làm việc</h4>
+                <h4 className="font-bold text-sm text-gray-600 uppercase">Chính sách 2: Môi trường</h4>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Tiêu đề</label>
                     <input type="text" name="policy2Title" value={content.policy2Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Mô tả</label>
-                    <textarea name="policy2Desc" value={content.policy2Desc} onChange={handleChange} rows={4} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Câu trích dẫn (Quote)</label>
+                    <textarea name="policy2Quote" value={content.policy2Quote} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Danh sách ảnh slide (Mỗi dòng 1 URL)</label>
-                    <textarea name="workspaceImages" value={content.workspaceImages} onChange={handleChange} rows={4} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Mô tả thêm</label>
+                    <textarea name="policy2Desc" value={content.policy2Desc} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Ảnh minh họa (URL)</label>
+                    <input type="text" name="policy2Image" value={content.policy2Image} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                 </div>
               </div>
 
               {/* Policy 3 */}
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
-                <h4 className="font-bold text-sm text-gray-600 uppercase">Tab 3: Hệ thống triết lý</h4>
+                <h4 className="font-bold text-sm text-gray-600 uppercase">Chính sách 3: Phúc lợi</h4>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Tiêu đề</label>
                     <input type="text" name="policy3Title" value={content.policy3Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Mô tả 1</label>
-                    <textarea name="policy3Desc1" value={content.policy3Desc1} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Mô tả 2</label>
-                    <textarea name="policy3Desc2" value={content.policy3Desc2} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Danh sách ảnh slide (Mỗi dòng 1 URL)</label>
-                    <textarea name="philosophyImages" value={content.philosophyImages} onChange={handleChange} rows={3} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Policy 4 */}
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
-                <h4 className="font-bold text-sm text-gray-600 uppercase">Tab 4: Tầm nhìn - Sứ mệnh - Giá trị cốt lõi</h4>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Tiêu đề</label>
-                    <input type="text" name="policy4Title" value={content.policy4Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Tầm nhìn</label>
-                    <textarea name="policy4Vision" value={content.policy4Vision} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Sứ mệnh</label>
-                    <textarea name="policy4Mission" value={content.policy4Mission} onChange={handleChange} rows={2} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Giá trị cốt lõi</label>
-                    <textarea name="policy4CoreValues" value={content.policy4CoreValues} onChange={handleChange} rows={3} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Ảnh minh họa (URL)</label>
-                    <input type="text" name="coreValuesImage" value={content.coreValuesImage} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Policy 5 */}
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
-                <h4 className="font-bold text-sm text-gray-600 uppercase">Tab 5: Phúc lợi</h4>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Tiêu đề</label>
-                    <input type="text" name="policy5Title" value={content.policy5Title} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
-                  </div>
-                  <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Danh sách phúc lợi (Mỗi dòng 1 mục)</label>
-                    <textarea name="policy5Benefits" value={content.policy5Benefits} onChange={handleChange} rows={5} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" placeholder="Mức lương cạnh tranh...&#10;Hỗ trợ ăn trưa..." />
+                    <textarea name="policy3Benefits" value={content.policy3Benefits} onChange={handleChange} rows={5} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" placeholder="Mức lương cạnh tranh...&#10;Hỗ trợ ăn trưa..." />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Ảnh minh họa (URL)</label>
-                    <input type="text" name="benefitsImage" value={content.benefitsImage} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                    <input type="text" name="policy3Image" value={content.policy3Image} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                 </div>
               </div>
