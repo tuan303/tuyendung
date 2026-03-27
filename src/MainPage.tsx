@@ -191,14 +191,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
           downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
         } catch (uploadError: any) {
           console.warn("[Form] Firebase Storage upload failed:", uploadError);
-          
-          // If the file is larger than 100KB, do NOT fallback to base64 because
-          // the server proxy will likely reject it with a 413 Payload Too Large error.
-          if (file.size > 100 * 1024) {
-            throw new Error("Không thể tải lên file CV. Vui lòng liên hệ quản trị viên để kiểm tra cấu hình Firebase Storage (Security Rules cần cho phép public write vào thư mục 'cvs/'). Chi tiết lỗi: " + (uploadError.message || "Unknown error"));
-          } else {
-            console.log("[Form] File is small enough (<100KB), attempting fallback to email attachment.");
-          }
+          console.log("[Form] Attempting fallback to email attachment.");
         }
       }
 
