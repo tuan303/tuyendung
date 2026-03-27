@@ -214,9 +214,24 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send email");
+        let errorMessage = "Failed to send email";
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } else {
+            const textError = await response.text();
+            console.error("Non-JSON error response:", textError);
+            errorMessage = `Server error (${response.status}): ${response.statusText}`;
+          }
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        throw new Error(errorMessage);
       }
+
+      alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công.");
 
       // 4. Reset form
       setName('');
@@ -225,8 +240,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
       setEmail('');
       setPosition('');
       setFile(null);
-      
-      alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công.");
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error: any) {
       console.error("Error submitting application:", error);
       alert(`Có lỗi xảy ra khi gửi hồ sơ: ${error.message || "Vui lòng thử lại sau."}`);

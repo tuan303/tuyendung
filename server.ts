@@ -71,7 +71,20 @@ async function startServer() {
   // 1. GLOBAL MIDDLEWARE - MUST BE FIRST
   app.use(cors());
   app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  const urlencodedLimit = '50mb';
+  app.use(express.urlencoded({ limit: urlencodedLimit, extended: true }));
+
+  // Error handler for JSON parsing and other middleware errors
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/backend-api/')) {
+      console.error(`[API Error] ${req.method} ${req.path}:`, err);
+      return res.status(err.status || 500).json({ 
+        error: err.message || "Internal Server Error",
+        status: err.status || 500
+      });
+    }
+    next(err);
+  });
 
   // 2. LOGGING MIDDLEWARE
   app.use((req, res, next) => {
@@ -248,6 +261,8 @@ async function startServer() {
         return res.status(500).json({ error: "Incomplete SMTP settings" });
       }
       const decryptedPass = decrypt(smtpSettings.pass);
+      console.log(`Creating transporter for ${smtpSettings.host}:${smtpSettings.port} (User: ${smtpSettings.user})`);
+      
       const transporter = nodemailer.createTransport({
         host: smtpSettings.host,
         port: parseInt(smtpSettings.port),
@@ -256,13 +271,17 @@ async function startServer() {
           user: smtpSettings.user,
           pass: decryptedPass,
         },
+        connectionTimeout: 20000, // 20s
+        greetingTimeout: 20000,
+        socketTimeout: 30000,
       });
+
       const subject = `[Ứng tuyển] ${position} - ${name}`;
       const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}`.trim();
       const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
       
       const mailOptions: any = {
-        from: `"${name}" <${smtpSettings.user}>`,
+        from: `"Hệ thống Tuyển dụng" <${smtpSettings.user}>`, // Consistent with test email
         replyTo: email,
         to: smtpSettings.recipient,
         subject: subject,
@@ -271,6 +290,7 @@ async function startServer() {
       };
 
       if (fileData && fileName) {
+        console.log(`Attaching file: ${fileName} (${Math.round(fileData.length / 1024)} KB)`);
         const base64Data = fileData.split(',')[1];
         mailOptions.attachments = [
           {
@@ -279,26 +299,13 @@ async function startServer() {
             encoding: 'base64'
           }
         ];
-      } else if (downloadURL && fileName) {
-        try {
-          const fileRes = await fetch(downloadURL);
-          if (fileRes.ok) {
-            const arrayBuffer = await fileRes.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            mailOptions.attachments = [
-              {
-                filename: fileName,
-                content: buffer
-              }
-            ];
-          }
-        } catch (e) {
-          console.error("Failed to fetch file from downloadURL for attachment", e);
-        }
       }
 
-      await transporter.sendMail(mailOptions);
-      res.status(200).json({ success: true, message: "Email sent successfully" });
+      console.log(`Sending application email to ${smtpSettings.recipient}...`);
+      const info = await transporter.sendMail(mailOptions);
+      console.log("Email sent successfully! MessageId:", info.messageId);
+      
+      res.status(200).json({ success: true, message: "Email sent successfully", messageId: info.messageId });
     } catch (error) {
       console.error("Error sending email:", error);
       res.status(500).json({ error: "Failed to send email", details: error instanceof Error ? error.message : String(error) });
