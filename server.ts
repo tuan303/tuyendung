@@ -279,6 +279,22 @@ async function startServer() {
             encoding: 'base64'
           }
         ];
+      } else if (downloadURL && fileName) {
+        try {
+          const fileRes = await fetch(downloadURL);
+          if (fileRes.ok) {
+            const arrayBuffer = await fileRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            mailOptions.attachments = [
+              {
+                filename: fileName,
+                content: buffer
+              }
+            ];
+          }
+        } catch (e) {
+          console.error("Failed to fetch file from downloadURL for attachment", e);
+        }
       }
 
       await transporter.sendMail(mailOptions);

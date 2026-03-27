@@ -91,6 +91,8 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [position, setPosition] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
 
   const itemsPerPage = 4;
   const totalPages = Math.ceil(jobs.length / itemsPerPage);
@@ -111,7 +113,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     setCurrentSlide((prev) => (prev - 1 + totalPages) % totalPages);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -123,6 +125,21 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
 
       if (validTypes.includes(selectedFile.type)) {
         setFile(selectedFile);
+        setUploadingFile(true);
+        setUploadedFileUrl(null);
+        
+        try {
+          const fileRef = ref(storage, `cvs/${Date.now()}_${selectedFile.name}`);
+          await uploadBytes(fileRef, selectedFile);
+          const url = await getDownloadURL(fileRef);
+          setUploadedFileUrl(url);
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          alert("Có lỗi khi tải file lên. Vui lòng thử lại.");
+          setFile(null);
+        } finally {
+          setUploadingFile(false);
+        }
       } else {
         alert("Vui lòng chọn file PDF hoặc DOCX.");
       }
@@ -136,31 +153,18 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
       return;
     }
 
+    if (uploadingFile) {
+      alert("File CV đang được tải lên. Vui lòng đợi trong giây lát...");
+      return;
+    }
+
+    if (!uploadedFileUrl) {
+      alert("Chưa tải được file CV. Vui lòng chọn lại file.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      let downloadURL = '';
-      let fileData = null;
-      let fileName = null;
-
-      if (file) {
-        fileName = file.name;
-        // Read file as base64 for email attachment
-        const reader = new FileReader();
-        fileData = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        // Upload file to Firebase Storage in the background to make submission faster
-        const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
-        uploadBytes(fileRef, file).then(() => {
-          console.log("File uploaded to Firebase Storage successfully in the background.");
-        }).catch((err) => {
-          console.warn("Background upload failed:", err);
-        });
-      }
-
       // 2. Prepare email content
       const subject = `[Ứng tuyển] ${position} - ${name}`;
       const body = `
@@ -170,7 +174,7 @@ Ngày sinh: ${dob}
 Email: ${email}
 Vị trí ứng tuyển: ${position}
 
-${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}
+Link CV đính kèm: ${uploadedFileUrl}
       `.trim();
 
       // 3. Send email via backend API
@@ -185,15 +189,24 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
           phone,
           email,
           position,
-          downloadURL,
-          fileData,
-          fileName
+          downloadURL: uploadedFileUrl,
+          fileName: file.name
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send email");
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to send email");
+        } else {
+          const errorText = await response.text();
+          console.error("Non-JSON error response:", response.status, errorText);
+          if (response.status === 413) {
+            throw new Error("File đính kèm quá lớn. Vui lòng giảm dung lượng file.");
+          }
+          throw new Error(`Lỗi máy chủ (${response.status}). Vui lòng thử lại sau.`);
+        }
       }
 
       // 4. Reset form
@@ -203,6 +216,7 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
       setEmail('');
       setPosition('');
       setFile(null);
+      setUploadedFileUrl(null);
       
       alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công.");
     } catch (error: any) {
@@ -784,11 +798,11 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
 
                       <button 
                         type="submit" 
-                        disabled={isSubmitting} 
-                        className="w-full bg-white font-bold uppercase tracking-widest py-4 mt-8 transition shadow-lg transition-colors duration-500"
+                        disabled={isSubmitting || uploadingFile} 
+                        className="w-full bg-white font-bold uppercase tracking-widest py-4 mt-8 transition shadow-lg transition-colors duration-500 disabled:opacity-50"
                         style={{ color: siteContent.primaryColor, borderRadius: `${siteContent.borderRadius}px` }}
                       >
-                        {isSubmitting ? 'Đang xử lý...' : 'Nộp hồ sơ'}
+                        {isSubmitting ? 'Đang xử lý...' : uploadingFile ? 'Đang tải file lên...' : 'Nộp hồ sơ'}
                       </button>
                     </form>
                   </div>
