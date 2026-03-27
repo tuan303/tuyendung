@@ -173,25 +173,33 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
         });
 
         try {
-          // 1. Upload file to Firebase Storage with a 30-second timeout
-          console.log("[Form] Attempting to upload to Firebase Storage...");
-          const fileRef = ref(storage, `cvs/${Date.now()}_${file.name}`);
+          // 1. Upload file to Google Drive via Apps Script
+          console.log("[Form] Attempting to upload to Google Drive...");
+          const scriptUrl = "https://script.google.com/macros/s/AKfycbyQrhSTCDCvXrXXFyoDO71jpN_zxyKqQ9Z4GUSXE_MlW3tJQ8NQOIisjPNbblxfDueXhA/exec";
           
-          const uploadPromise = async () => {
-            await uploadBytes(fileRef, file);
-            const url = await getDownloadURL(fileRef);
-            console.log("[Form] Firebase Storage upload successful:", url);
-            return url;
-          };
+          const uploadResponse = await fetch(scriptUrl, {
+            method: 'POST',
+            // Use text/plain to avoid CORS preflight issues with Google Apps Script
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8',
+            },
+            body: JSON.stringify({
+              fileName: file.name,
+              mimeType: file.type || 'application/octet-stream',
+              fileData: fileData
+            })
+          });
 
-          const timeoutPromise = new Promise<string>((_, reject) => 
-            setTimeout(() => reject(new Error("Upload timeout")), 30000)
-          );
-
-          downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
+          const result = await uploadResponse.json();
+          if (result.status === 'success') {
+            downloadURL = result.fileUrl;
+            console.log("[Form] Google Drive upload successful:", downloadURL);
+          } else {
+            throw new Error(result.message || "Lỗi không xác định từ Google Drive");
+          }
         } catch (uploadError: any) {
-          console.warn("[Form] Firebase Storage upload failed:", uploadError);
-          console.log("[Form] Attempting fallback to email attachment.");
+          console.error("[Form] Google Drive upload failed:", uploadError);
+          throw new Error("Không thể tải lên file CV lên Google Drive. Chi tiết lỗi: " + (uploadError.message || "Unknown error"));
         }
       }
 
@@ -236,7 +244,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
             const textError = await response.text();
             console.error("Non-JSON error response:", textError);
             if (response.status === 413) {
-              errorMessage = "File CV của bạn quá lớn. Vui lòng nén file hoặc sử dụng file PDF có dung lượng nhỏ hơn (dưới 5MB).";
+              errorMessage = "File CV của bạn quá lớn để gửi qua email dự phòng. Vui lòng liên hệ quản trị viên để kiểm tra cấu hình Firebase Storage.";
             } else {
               errorMessage = `Server error (${response.status}): ${response.statusText}`;
             }
