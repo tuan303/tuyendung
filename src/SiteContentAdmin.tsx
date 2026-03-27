@@ -107,6 +107,11 @@ export const defaultContent = {
     'Chế độ ưu đãi học phí cho con em CBNV.'
   ].join('\n'),
   benefitsImage: 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop',
+  benefitsImages: [
+    'https://hoangmaistarschool.edu.vn/thongtin/cs2.jpg',
+    'https://hoangmaistarschool.edu.vn/thongtin/cs3.jpg',
+    'https://hoangmaistarschool.edu.vn/thongtin/cs4.jpg'
+  ].join('\n'),
   
   // Footer
   footerDescription: 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.',
@@ -204,7 +209,10 @@ export default function SiteContentAdmin() {
               : (data.workspaceImages || defaultContent.workspaceImages),
             philosophyImages: Array.isArray(data.philosophyImages)
               ? data.philosophyImages.join('\n')
-              : (data.philosophyImages || defaultContent.philosophyImages)
+              : (data.philosophyImages || defaultContent.philosophyImages),
+            benefitsImages: Array.isArray(data.benefitsImages)
+              ? data.benefitsImages.join('\n')
+              : (data.benefitsImages || defaultContent.benefitsImages)
           });
         }
       } catch (error) {
@@ -233,7 +241,8 @@ export default function SiteContentAdmin() {
         policy5Benefits: content.policy5Benefits ? content.policy5Benefits.split('\n').filter((b: string) => b.trim() !== '') : [],
         trainingImages: content.trainingImages ? content.trainingImages.split('\n').filter((b: string) => b.trim() !== '') : [],
         workspaceImages: content.workspaceImages ? content.workspaceImages.split('\n').filter((b: string) => b.trim() !== '') : [],
-        philosophyImages: content.philosophyImages ? content.philosophyImages.split('\n').filter((b: string) => b.trim() !== '') : []
+        philosophyImages: content.philosophyImages ? content.philosophyImages.split('\n').filter((b: string) => b.trim() !== '') : [],
+        benefitsImages: content.benefitsImages ? content.benefitsImages.split('\n').filter((b: string) => b.trim() !== '') : []
       };
       await setDoc(docRef, dataToSave);
       alert('Đã lưu cấu hình giao diện thành công!');
@@ -779,7 +788,11 @@ export default function SiteContentAdmin() {
                     <textarea name="policy5Benefits" value={content.policy5Benefits} onChange={handleChange} rows={5} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" placeholder="Mức lương cạnh tranh...&#10;Hỗ trợ ăn trưa..." />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Ảnh minh họa (URL)</label>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Danh sách ảnh slide (Mỗi dòng 1 URL)</label>
+                    <textarea name="benefitsImages" value={content.benefitsImages} onChange={handleChange} rows={4} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Ảnh minh họa tĩnh (URL - Dùng nếu không có slide)</label>
                     <input type="text" name="benefitsImage" value={content.benefitsImage} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm" />
                   </div>
                 </div>

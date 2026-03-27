@@ -31,6 +31,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [philosophySlide, setPhilosophySlide] = useState(0);
   const [workspaceSlide, setWorkspaceSlide] = useState(0);
   const [trainingSlide, setTrainingSlide] = useState(0);
+  const [benefitsSlide, setBenefitsSlide] = useState(0);
 
   const philosophyImages = siteContent.philosophyImages 
     ? siteContent.philosophyImages.split('\n').filter(url => url.trim() !== '')
@@ -55,6 +56,14 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
         "https://hoangmaistarschool.edu.vn/thongtin/dtpt2.jpg"
       ];
 
+  const benefitsImages = siteContent.benefitsImages
+    ? siteContent.benefitsImages.split('\n').filter(url => url.trim() !== '')
+    : [
+        "https://hoangmaistarschool.edu.vn/thongtin/cs2.jpg",
+        "https://hoangmaistarschool.edu.vn/thongtin/cs3.jpg",
+        "https://hoangmaistarschool.edu.vn/thongtin/cs4.jpg"
+      ];
+
   useEffect(() => {
     const timer = setInterval(() => {
       setPhilosophySlide((prev) => (prev + 1) % philosophyImages.length);
@@ -75,6 +84,14 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     }, 3000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (benefitsImages.length <= 1) return;
+    const timer = setInterval(() => {
+      setBenefitsSlide((prev) => (prev + 1) % benefitsImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [benefitsImages.length]);
 
   // Update siteContent if previewContent changes
   useEffect(() => {
@@ -256,7 +273,10 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
             : (data.workspaceImages || defaultContent.workspaceImages),
           philosophyImages: Array.isArray(data.philosophyImages)
             ? data.philosophyImages.join('\n')
-            : (data.philosophyImages || defaultContent.philosophyImages)
+            : (data.philosophyImages || defaultContent.philosophyImages),
+          benefitsImages: Array.isArray(data.benefitsImages)
+            ? data.benefitsImages.join('\n')
+            : (data.benefitsImages || defaultContent.benefitsImages)
         });
       }
     }, (error) => {
@@ -632,12 +652,29 @@ ${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đín
 
                     {activePolicyTab === 4 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
-                        <div className="order-1 md:order-1 h-full">
-                          <img 
-                            src={siteContent.benefitsImage || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
-                            alt="Phúc lợi" 
-                            className="w-full h-full object-cover" 
-                          />
+                        <div className="order-1 md:order-1 h-full relative overflow-hidden min-h-[300px] md:min-h-full">
+                          {benefitsImages.length > 0 ? (
+                            <AnimatePresence initial={false}>
+                              <motion.img
+                                key={benefitsSlide}
+                                src={benefitsImages[benefitsSlide]}
+                                alt="Phúc lợi"
+                                className="w-full h-full object-cover absolute inset-0"
+                                initial={{ x: '100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '-100%' }}
+                                transition={{ duration: 0.5, ease: 'easeInOut' }}
+                                referrerPolicy="no-referrer"
+                              />
+                            </AnimatePresence>
+                          ) : (
+                            <img 
+                              src={siteContent.benefitsImage || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
+                              alt="Phúc lợi" 
+                              className="w-full h-full object-cover" 
+                              referrerPolicy="no-referrer"
+                            />
+                          )}
                         </div>
                         <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-2" style={{ backgroundColor: '#1a2b4c' }}>
                           <div className="flex items-center space-x-4 mb-8">

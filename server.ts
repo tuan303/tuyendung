@@ -70,8 +70,8 @@ async function startServer() {
 
   // 1. GLOBAL MIDDLEWARE - MUST BE FIRST
   app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   // 2. LOGGING MIDDLEWARE
   app.use((req, res, next) => {
@@ -279,6 +279,22 @@ async function startServer() {
             encoding: 'base64'
           }
         ];
+      } else if (downloadURL && fileName) {
+        try {
+          const fileRes = await fetch(downloadURL);
+          if (fileRes.ok) {
+            const arrayBuffer = await fileRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            mailOptions.attachments = [
+              {
+                filename: fileName,
+                content: buffer
+              }
+            ];
+          }
+        } catch (e) {
+          console.error("Failed to fetch file from downloadURL for attachment", e);
+        }
       }
 
       await transporter.sendMail(mailOptions);
