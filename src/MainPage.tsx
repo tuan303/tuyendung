@@ -13,6 +13,7 @@ import { defaultContent } from './SiteContentAdmin';
 interface Job {
   id: string;
   title: string;
+  department?: string;
   description: string;
   requirements: string;
   deadline: string;
@@ -25,6 +26,7 @@ interface Job {
 export default function MainPage({ previewContent }: { previewContent?: typeof defaultContent }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [activeDepartmentTab, setActiveDepartmentTab] = useState<'Khối Nhà Trường' | 'Khối Vận Hành'>('Khối Nhà Trường');
   const [activePolicyTab, setActivePolicyTab] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [siteContent, setSiteContent] = useState(previewContent || defaultContent);
@@ -139,15 +141,18 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   };
 
   const itemsPerPage = 4;
-  const totalPages = Math.ceil(jobs.length / itemsPerPage);
+  
+  // Filter jobs based on selected department tab (default is 'Khối Nhà Trường')
+  const filteredJobs = jobs.filter(job => job.department === activeDepartmentTab || (!job.department && activeDepartmentTab === 'Khối Nhà Trường'));
+  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
 
   useEffect(() => {
-    if (jobs.length <= itemsPerPage) return;
+    if (filteredJobs.length <= itemsPerPage) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % totalPages);
     }, 5000);
     return () => clearInterval(timer);
-  }, [jobs.length, totalPages]);
+  }, [filteredJobs.length, totalPages]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % totalPages);
@@ -301,7 +306,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     }
   };
 
-  const visibleJobs = jobs.slice(currentSlide * itemsPerPage, (currentSlide + 1) * itemsPerPage);
+  const visibleJobs = filteredJobs.slice(currentSlide * itemsPerPage, (currentSlide + 1) * itemsPerPage);
 
   useEffect(() => {
     const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
@@ -458,14 +463,30 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
             return siteContent.showJobs && (
               <div key="jobs" className="mx-auto px-4 relative" style={{ padding: `${siteContent.sectionSpacing}px 0`, maxWidth: `${siteContent.containerWidth}px` }}>
                 <div className="text-center mb-14">
-                  <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4" style={{ color: siteContent.primaryColor }}>
+                  <h2 className="text-2xl md:text-3xl lg:text-[42px] font-bold uppercase tracking-wider inline-block relative pb-4 mb-8" style={{ color: siteContent.primaryColor }}>
                     {siteContent.jobsTitle}
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-black rounded-full"></div>
                   </h2>
+                  <div className="flex justify-center space-x-4 mb-4">
+                    <button
+                      onClick={() => { setActiveDepartmentTab('Khối Nhà Trường'); setCurrentSlide(0); }}
+                      className={`px-6 py-2 rounded-full font-semibold transition-colors ${activeDepartmentTab === 'Khối Nhà Trường' ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      style={{ backgroundColor: activeDepartmentTab === 'Khối Nhà Trường' ? siteContent.primaryColor : undefined }}
+                    >
+                      KHỐI NHÀ TRƯỜNG
+                    </button>
+                    <button
+                      onClick={() => { setActiveDepartmentTab('Khối Vận Hành'); setCurrentSlide(0); }}
+                      className={`px-6 py-2 rounded-full font-semibold transition-colors ${activeDepartmentTab === 'Khối Vận Hành' ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      style={{ backgroundColor: activeDepartmentTab === 'Khối Vận Hành' ? siteContent.primaryColor : undefined }}
+                    >
+                      KHỐI VẬN HÀNH
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="relative px-0 sm:px-12">
-                  {jobs.length > itemsPerPage && (
+                  {filteredJobs.length > itemsPerPage && (
                     <>
                       <button 
                         onClick={prevSlide}

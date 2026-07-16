@@ -11,6 +11,7 @@ import 'react-quill-new/dist/quill.snow.css';
 interface Job {
   id: string;
   title: string;
+  department?: string;
   description: string;
   requirements: string;
   deadline: string;
@@ -120,6 +121,7 @@ export default function Admin() {
 
   // Form states
   const [title, setTitle] = useState('');
+  const [department, setDepartment] = useState<'Khối Nhà Trường' | 'Khối Vận Hành'>('Khối Nhà Trường');
   const [description, setDescription] = useState('');
   const [requirements, setRequirements] = useState('');
   const [deadline, setDeadline] = useState('');
@@ -231,6 +233,7 @@ export default function Admin() {
       if (editingJobId) {
         await updateDoc(doc(db, 'jobs', editingJobId), {
           title,
+          department,
           description,
           requirements,
           deadline: formattedDeadline,
@@ -240,6 +243,7 @@ export default function Admin() {
       } else {
         await addDoc(collection(db, 'jobs'), {
           title,
+          department,
           description,
           requirements,
           deadline: formattedDeadline,
@@ -263,6 +267,7 @@ export default function Admin() {
   const handleEdit = (job: Job) => {
     setEditingJobId(job.id);
     setTitle(job.title);
+    setDepartment((job.department as 'Khối Nhà Trường' | 'Khối Vận Hành') || 'Khối Nhà Trường');
     setDescription(job.description);
     setRequirements(job.requirements);
     // Convert dd/mm/yyyy back to yyyy-mm-dd for input type="date"
@@ -278,6 +283,7 @@ export default function Admin() {
   const handleCancelEdit = () => {
     setEditingJobId(null);
     setTitle('');
+    setDepartment('Khối Nhà Trường');
     setDescription('');
     setRequirements('');
     setDeadline('');
@@ -525,6 +531,34 @@ export default function Admin() {
                   placeholder="VD: Giáo viên Tiếng Anh"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Khối bộ phận *</label>
+                <div className="flex space-x-6">
+                  <label className="flex items-center cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="department"
+                      value="Khối Nhà Trường"
+                      checked={department === 'Khối Nhà Trường'}
+                      onChange={(e) => setDepartment(e.target.value as any)}
+                      className="w-4 h-4 text-[#c8102e] border-gray-300 focus:ring-[#c8102e]"
+                    />
+                    <span className="ml-2 text-gray-700">Khối Nhà Trường</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="department"
+                      value="Khối Vận Hành"
+                      checked={department === 'Khối Vận Hành'}
+                      onChange={(e) => setDepartment(e.target.value as any)}
+                      className="w-4 h-4 text-[#c8102e] border-gray-300 focus:ring-[#c8102e]"
+                    />
+                    <span className="ml-2 text-gray-700">Khối Vận Hành</span>
+                  </label>
+                </div>
               </div>
               
               <div>
