@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
-  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar
+  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar, Share2, Check
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -109,6 +109,34 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check URL parameters for jobId when jobs are loaded
+    const params = new URLSearchParams(window.location.search);
+    const jobId = params.get('jobId');
+    if (jobId && jobs.length > 0) {
+      const jobToOpen = jobs.find(j => j.id === jobId);
+      if (jobToOpen) {
+        setSelectedJob(jobToOpen);
+        // Clean up URL without reloading page
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [jobs]);
+
+  const handleShareJob = (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation(); // Prevent opening the modal if clicked on card
+    const url = new URL(window.location.href);
+    url.searchParams.set('jobId', jobId);
+    
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      setCopiedJobId(jobId);
+      setTimeout(() => setCopiedJobId(null), 2000);
+    }).catch(err => {
+      console.error('Failed to copy link:', err);
+    });
+  };
 
   const itemsPerPage = 4;
   const totalPages = Math.ceil(jobs.length / itemsPerPage);
@@ -486,6 +514,19 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                                   <span>Xem JD</span>
                                 </a>
                               )}
+                              <button 
+                                onClick={(e) => handleShareJob(e, job.id)}
+                                className="flex items-center text-gray-500 hover:text-gray-700 bg-gray-100 px-2 py-1 transition-colors"
+                                style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}
+                                title="Chia sẻ liên kết"
+                              >
+                                {copiedJobId === job.id ? (
+                                  <Check className="w-3 h-3 text-green-600 mr-1" />
+                                ) : (
+                                  <Share2 className="w-3 h-3 mr-1" />
+                                )}
+                                <span>{copiedJobId === job.id ? "Đã chép" : "Chia sẻ"}</span>
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -1117,6 +1158,19 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                           <span>Xem JD</span>
                         </a>
                       )}
+                      <button 
+                        onClick={(e) => handleShareJob(e, selectedJob.id)}
+                        className="flex items-center text-gray-500 hover:text-gray-700 bg-gray-100 px-2 py-1 transition-colors"
+                        style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}
+                        title="Chia sẻ liên kết"
+                      >
+                        {copiedJobId === selectedJob.id ? (
+                          <Check className="w-3 h-3 text-green-600 mr-1" />
+                        ) : (
+                          <Share2 className="w-3 h-3 mr-1" />
+                        )}
+                        <span>{copiedJobId === selectedJob.id ? "Đã chép" : "Chia sẻ"}</span>
+                      </button>
                     </div>
                   </div>
                 </div>
