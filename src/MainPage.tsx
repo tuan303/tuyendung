@@ -16,6 +16,8 @@ interface Job {
   department?: string;
   description: string;
   requirements: string;
+  benefits?: string;
+  workingHours?: string;
   deadline: string;
   jdUrl?: string;
   createdAt: any;
@@ -1226,6 +1228,32 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                   dangerouslySetInnerHTML={{ __html: selectedJob.requirements.replace(/&nbsp;|\u00A0/g, ' ') }}
                 />
               </div>
+
+              {selectedJob.benefits && (
+                <div>
+                  <h3 className="text-lg font-bold mb-3 uppercase tracking-wide flex items-center" style={{ color: siteContent.secondaryColor }}>
+                    <div className="w-2 h-6 rounded-full mr-3" style={{ backgroundColor: siteContent.primaryColor }}></div>
+                    Chế độ
+                  </h3>
+                  <div 
+                    className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: selectedJob.benefits.replace(/&nbsp;|\u00A0/g, ' ') }}
+                  />
+                </div>
+              )}
+
+              {selectedJob.workingHours && (
+                <div>
+                  <h3 className="text-lg font-bold mb-3 uppercase tracking-wide flex items-center" style={{ color: siteContent.secondaryColor }}>
+                    <div className="w-2 h-6 rounded-full mr-3" style={{ backgroundColor: siteContent.accentColor }}></div>
+                    Thời gian làm việc
+                  </h3>
+                  <div 
+                    className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: selectedJob.workingHours.replace(/&nbsp;|\u00A0/g, ' ') }}
+                  />
+                </div>
+              )}
             </div>
             
             <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end gap-4">

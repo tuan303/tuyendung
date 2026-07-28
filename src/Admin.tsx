@@ -14,6 +14,8 @@ interface Job {
   department?: string;
   description: string;
   requirements: string;
+  benefits?: string;
+  workingHours?: string;
   deadline: string;
   jdUrl?: string;
   createdAt: any;
@@ -76,6 +78,24 @@ const JobCard = ({ job, onDelete, onToggleHide, onEdit }: {
             dangerouslySetInnerHTML={{ __html: job.requirements }}
           />
         </div>
+        {expanded && job.benefits && (
+          <div>
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Chế độ</h4>
+            <div 
+              className="text-sm text-gray-700 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: job.benefits }}
+            />
+          </div>
+        )}
+        {expanded && job.workingHours && (
+          <div>
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Thời gian làm việc</h4>
+            <div 
+              className="text-sm text-gray-700 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: job.workingHours }}
+            />
+          </div>
+        )}
       </div>
 
       <button 
@@ -124,6 +144,8 @@ export default function Admin() {
   const [department, setDepartment] = useState<'Khối Nhà Trường' | 'Khối Vận Hành'>('Khối Nhà Trường');
   const [description, setDescription] = useState('');
   const [requirements, setRequirements] = useState('');
+  const [benefits, setBenefits] = useState('');
+  const [workingHours, setWorkingHours] = useState('');
   const [deadline, setDeadline] = useState('');
   const [jdUrl, setJdUrl] = useState('');
   const [username, setUsername] = useState('');
@@ -219,7 +241,7 @@ export default function Admin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !description || !requirements || !deadline) {
+    if (!title || !description || !requirements || !benefits || !workingHours || !deadline) {
       alert("Vui lòng điền đầy đủ thông tin bắt buộc.");
       return;
     }
@@ -236,6 +258,8 @@ export default function Admin() {
           department,
           description,
           requirements,
+          benefits,
+          workingHours,
           deadline: formattedDeadline,
           jdUrl: jdUrl || null,
         });
@@ -246,6 +270,8 @@ export default function Admin() {
           department,
           description,
           requirements,
+          benefits,
+          workingHours,
           deadline: formattedDeadline,
           jdUrl: jdUrl || null,
           createdAt: serverTimestamp(),
@@ -270,6 +296,8 @@ export default function Admin() {
     setDepartment((job.department as 'Khối Nhà Trường' | 'Khối Vận Hành') || 'Khối Nhà Trường');
     setDescription(job.description);
     setRequirements(job.requirements);
+    setBenefits(job.benefits || '');
+    setWorkingHours(job.workingHours || '');
     // Convert dd/mm/yyyy back to yyyy-mm-dd for input type="date"
     const formattedDeadline = job.deadline.includes('/') 
       ? job.deadline.split('/').reverse().join('-') 
@@ -286,6 +314,8 @@ export default function Admin() {
     setDepartment('Khối Nhà Trường');
     setDescription('');
     setRequirements('');
+    setBenefits('');
+    setWorkingHours('');
     setDeadline('');
     setJdUrl('');
   };
@@ -583,6 +613,32 @@ export default function Admin() {
                     onChange={setRequirements}
                     className="bg-white rounded-lg"
                     placeholder="Các yêu cầu về bằng cấp, kinh nghiệm..."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Chế độ *</label>
+                <div className="quill-container">
+                  <ReactQuill 
+                    theme="snow"
+                    value={benefits}
+                    onChange={setBenefits}
+                    className="bg-white rounded-lg"
+                    placeholder="Các chế độ phúc lợi, lương thưởng..."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian làm việc *</label>
+                <div className="quill-container">
+                  <ReactQuill 
+                    theme="snow"
+                    value={workingHours}
+                    onChange={setWorkingHours}
+                    className="bg-white rounded-lg"
+                    placeholder="Thời gian làm việc trong ngày, trong tuần..."
                   />
                 </div>
               </div>
