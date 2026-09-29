@@ -69,15 +69,33 @@ service cloud.firestore {
     }
 
     function isValidJob(data) {
-      return data.keys().hasOnly(['title', 'description', 'requirements', 'deadline', 'jdUrl', 'createdAt', 'authorUid', 'isHidden']) &&
+      return data.keys().hasOnly(['title', 'department', 'description', 'requirements', 'benefits', 'workingHours', 'deadline', 'jdUrl', 'createdAt', 'authorUid', 'isHidden']) &&
              validStringLength('title', 1, 100) &&
-             validStringLength('description', 1, 5000) &&
-             validStringLength('requirements', 1, 5000) &&
-             validStringLength('deadline', 1, 20) &&
-             isValidOptionalString('jdUrl', 0, 500) &&
+             isValidOptionalString('department', 0, 100) &&
+             validStringLength('description', 1, 10000) &&
+             validStringLength('requirements', 1, 10000) &&
+             isValidOptionalString('benefits', 0, 10000) &&
+             isValidOptionalString('workingHours', 0, 10000) &&
+             validStringLength('deadline', 1, 50) &&
+             isValidOptionalString('jdUrl', 0, 1000) &&
              data.createdAt is timestamp &&
              data.authorUid is string &&
              isValidOptionalBoolean('isHidden');
+    }
+
+    function isValidApplication(data) {
+      return data.keys().hasOnly(['jobId', 'jobTitle', 'name', 'dob', 'phone', 'email', 'cvUrl', 'fileName', 'status', 'notes', 'createdAt']) &&
+             validStringLength('jobTitle', 1, 200) &&
+             validStringLength('name', 1, 200) &&
+             validStringLength('phone', 1, 50) &&
+             validStringLength('email', 1, 200) &&
+             isValidOptionalString('jobId', 0, 128) &&
+             isValidOptionalString('dob', 0, 50) &&
+             isValidOptionalString('cvUrl', 0, 2000) &&
+             isValidOptionalString('fileName', 0, 500) &&
+             isValidOptionalString('status', 0, 50) &&
+             isValidOptionalString('notes', 0, 2000) &&
+             data.createdAt is timestamp;
     }
 
     function isValidSiteContent(data) {
@@ -109,6 +127,13 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAdmin() && hasRequiredFields(['title', 'description', 'requirements', 'deadline', 'createdAt', 'authorUid']) && isValidJob(request.resource.data) && uidUnchanged();
       allow update: if isAdmin() && isValidJob(request.resource.data) && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    match /applications/{applicationId} {
+      allow read: if isAdmin();
+      allow create: if hasRequiredFields(['jobTitle', 'name', 'phone', 'email', 'createdAt']) && isValidApplication(request.resource.data);
+      allow update: if isAdmin() && isValidApplication(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAdmin();
     }
 

@@ -5,7 +5,7 @@ import {
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
   ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar, Share2, Check
 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './firebase';
 import { defaultContent } from './SiteContentAdmin';
@@ -110,6 +110,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [position, setPosition] = useState('');
+  const [selectedJobId, setSelectedJobId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -238,13 +239,36 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
         }
       }
 
-      // 2. Prepare request body
+      // 2. Prepare request body and save application to Firestore
+      const matchedJob = jobs.find(j => j.id === selectedJobId) || jobs.find(j => j.title.trim().toLowerCase() === position.trim().toLowerCase());
+      const targetJobId = matchedJob ? matchedJob.id : (selectedJobId || '');
+
+      try {
+        await addDoc(collection(db, 'applications'), {
+          jobId: targetJobId,
+          jobTitle: position.trim(),
+          name: name.trim(),
+          dob: dob.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+          cvUrl: downloadURL || '',
+          fileName: fileName || '',
+          status: 'new',
+          notes: '',
+          createdAt: serverTimestamp(),
+        });
+        console.log("[Form] Successfully saved candidate application to Firestore");
+      } catch (dbError) {
+        console.error("[Form] Error saving application to Firestore:", dbError);
+      }
+
       const requestBody = {
         name,
         dob,
         phone,
         email,
         position,
+        jobId: targetJobId,
         downloadURL,
         // Only send base64 data if we don't have a download URL (fallback)
         // to avoid 413 Payload Too Large errors from the proxy
@@ -298,6 +322,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
       setPhone('');
       setEmail('');
       setPosition('');
+      setSelectedJobId('');
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error: any) {
@@ -950,7 +975,17 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required />
                       </div>
                       <div className="relative">
-                        <select value={position} onChange={(e) => setPosition(e.target.value)} className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition appearance-none cursor-pointer text-[16px] md:text-base" style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} required>
+                        <select 
+                          value={position} 
+                          onChange={(e) => {
+                            setPosition(e.target.value);
+                            const matched = jobs.find(j => j.title === e.target.value);
+                            setSelectedJobId(matched ? matched.id : '');
+                          }} 
+                          className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition appearance-none cursor-pointer text-[16px] md:text-base" 
+                          style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} 
+                          required
+                        >
                           <option value="" disabled>Vị trí ứng tuyển *</option>
                           {jobs.map((job) => (
                             <option key={job.id} value={job.title} className="text-gray-800">{job.title}</option>
@@ -1261,6 +1296,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                 onClick={() => {
                   if (selectedJob) {
                     setPosition(selectedJob.title);
+                    setSelectedJobId(selectedJob.id);
                     setSelectedJob(null);
                     setTimeout(() => {
                       const formElement = document.getElementById('application-form');

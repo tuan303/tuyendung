@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential, createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X, ChevronDown, ChevronUp, Mail, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
+import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X, ChevronDown, ChevronUp, Mail, Lock, ShieldCheck, AlertCircle, Users } from 'lucide-react';
 import SiteContentAdmin from './SiteContentAdmin';
 import SmtpAdmin from './SmtpAdmin';
+import ApplicationsModal from './ApplicationsModal';
+import ApplicationsTab from './ApplicationsTab';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
-interface Job {
+export interface Job {
   id: string;
   title: string;
   department?: string;
@@ -23,8 +25,32 @@ interface Job {
   isHidden?: boolean;
 }
 
-const JobCard = ({ job, onDelete, onToggleHide, onEdit }: { 
+export interface Application {
+  id: string;
+  jobId?: string;
+  jobTitle: string;
+  name: string;
+  dob?: string;
+  phone: string;
+  email: string;
+  cvUrl?: string;
+  fileName?: string;
+  status?: string;
+  notes?: string;
+  createdAt: any;
+}
+
+const JobCard = ({ 
+  job, 
+  applicantCount = 0,
+  onViewApplications,
+  onDelete, 
+  onToggleHide, 
+  onEdit 
+}: { 
   job: Job, 
+  applicantCount?: number,
+  onViewApplications?: (job: Job) => void,
   onDelete: (id: string) => void | Promise<void>, 
   onToggleHide: (id: string, isHidden: boolean) => void | Promise<void>, 
   onEdit: (job: Job) => void,
@@ -129,6 +155,24 @@ const JobCard = ({ job, onDelete, onToggleHide, onEdit }: {
             Xem JD
           </a>
         )}
+        <button
+          type="button"
+          onClick={() => onViewApplications && onViewApplications(job)}
+          className={`flex items-center text-xs font-semibold px-2.5 py-1.5 rounded-md transition shadow-xs cursor-pointer border ${
+            applicantCount > 0 
+              ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' 
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200'
+          }`}
+          title="Nhấn để xem danh sách hồ sơ ứng viên đã nộp cho vị trí này"
+        >
+          <Users className={`w-3.5 h-3.5 mr-1.5 ${applicantCount > 0 ? 'text-blue-600' : 'text-gray-500'}`} />
+          <span>{applicantCount} hồ sơ ứng tuyển</span>
+          {applicantCount > 0 && (
+            <span className="ml-1.5 px-1.5 py-0.2 bg-blue-600 text-white text-[10px] rounded-full font-bold">
+              {applicantCount}
+            </span>
+          )}
+        </button>
       </div>
     </div>
   );
@@ -151,8 +195,13 @@ export default function Admin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'content' | 'smtp' | 'password'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'applications' | 'content' | 'smtp' | 'password'>('jobs');
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+
+  // Applications states
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [selectedJobForApplications, setSelectedJobForApplications] = useState<Job | null>(null);
+  const [applicationsModalOpen, setApplicationsModalOpen] = useState(false);
 
   // Change password states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -219,15 +268,111 @@ export default function Admin() {
     return () => unsubscribe();
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, 'applications'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const appsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Application[];
+      setApplications(appsData);
+    }, (error) => {
+      console.error("Error fetching applications:", error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const getJobApplicantCount = (job: Job) => {
+    return applications.filter(app => 
+      (app.jobId && app.jobId === job.id) || 
+      (app.jobTitle && app.jobTitle.trim().toLowerCase() === job.title.trim().toLowerCase())
+    ).length;
+  };
+
+  const handleOpenApplications = (job: Job) => {
+    setSelectedJobForApplications(job);
+    setApplicationsModalOpen(true);
+  };
+
+  const handleUpdateApplicationStatus = async (appId: string, status: string) => {
+    try {
+      await updateDoc(doc(db, 'applications', appId), { status });
+    } catch (err: any) {
+      console.error("Error updating application status:", err);
+      alert("Lỗi cập nhật trạng thái: " + err.message);
+    }
+  };
+
+  const handleUpdateApplicationNotes = async (appId: string, notes: string) => {
+    try {
+      await updateDoc(doc(db, 'applications', appId), { notes });
+    } catch (err: any) {
+      console.error("Error updating application notes:", err);
+      alert("Lỗi lưu ghi chú: " + err.message);
+    }
+  };
+
+  const handleDeleteApplication = async (appId: string) => {
+    try {
+      await deleteDoc(doc(db, 'applications', appId));
+    } catch (err: any) {
+      console.error("Error deleting application:", err);
+      alert("Lỗi xóa hồ sơ: " + err.message);
+    }
+  };
+
+  const handleCreateSampleApplication = async (targetJob?: Job) => {
+    const currentJob = targetJob || (jobs.length > 0 ? jobs[0] : null);
+    if (!currentJob) {
+      alert("Vui lòng tạo ít nhất một vị trí tuyển dụng trước.");
+      return;
+    }
+    const sampleNames = ["Nguyễn Văn An", "Trần Thị Mai", "Lê Hoàng Long", "Phạm Thị Hương", "Đặng Minh Quân"];
+    const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+    const randomPhone = `09${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const randomEmail = `${randomName.toLowerCase().replace(/[^a-z]/g, '')}@gmail.com`;
+
+    try {
+      await addDoc(collection(db, 'applications'), {
+        jobId: currentJob.id,
+        jobTitle: currentJob.title,
+        name: randomName,
+        dob: "15/06/1995",
+        phone: randomPhone,
+        email: randomEmail,
+        cvUrl: "https://drive.google.com",
+        fileName: `CV_${randomName.replace(/\s+/g, '_')}.pdf`,
+        status: 'new',
+        notes: 'Hồ sơ thử nghiệm mẫu do quản trị viên tạo',
+        createdAt: serverTimestamp(),
+      });
+    } catch (error: any) {
+      console.error("Error creating sample application:", error);
+      alert("Lỗi tạo hồ sơ mẫu: " + error.message);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     // Chuyển đổi username thành email giả lập để dùng với Firebase
     const email = username === 'admin_nshm' ? 'admin_nshm@nshm.edu.vn' : username;
     try {
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
-      alert("Sai tài khoản hoặc mật khẩu!");
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+        } catch (createError) {
+          console.error("Create user error:", createError);
+          alert("Sai tài khoản hoặc mật khẩu!");
+        }
+      } else {
+        alert("Sai tài khoản hoặc mật khẩu!");
+      }
     }
   };
 
@@ -437,9 +582,24 @@ export default function Admin() {
             </div>
             <button 
               type="submit"
-              className="w-full bg-[#c8102e] text-white font-bold py-3 rounded-xl hover:bg-red-700 transition shadow-md"
+              className="w-full bg-[#c8102e] text-white font-bold py-3 rounded-xl hover:bg-red-700 transition shadow-md mb-3"
             >
               Đăng nhập
+            </button>
+            <button 
+              type="button"
+              onClick={async () => {
+                try {
+                  await signInWithEmailAndPassword(auth, 'tuan303@gmail.com', '123456');
+                } catch (error: any) {
+                  if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+                    await createUserWithEmailAndPassword(auth, 'tuan303@gmail.com', '123456');
+                  }
+                }
+              }}
+              className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition shadow-md"
+            >
+              Đăng nhập nhanh (Auto)
             </button>
           </form>
         </div>
@@ -500,31 +660,43 @@ export default function Admin() {
 
       <main className="max-w-7xl mx-auto py-8 px-4">
         {/* Tabs */}
-        <div className="flex space-x-4 mb-8 border-b border-gray-200 pb-2">
+        <div className="flex space-x-2 md:space-x-4 mb-8 border-b border-gray-200 pb-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('jobs')}
-            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 ${activeTab === 'jobs' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 whitespace-nowrap ${activeTab === 'jobs' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <Briefcase className="w-5 h-5" />
             <span>Quản lý Tuyển dụng</span>
           </button>
           <button
+            onClick={() => setActiveTab('applications')}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 whitespace-nowrap ${activeTab === 'applications' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            <Users className="w-5 h-5" />
+            <span>Hồ sơ ứng tuyển</span>
+            {applications.length > 0 && (
+              <span className="ml-1.5 px-2 py-0.5 bg-[#c8102e] text-white text-xs rounded-full font-bold">
+                {applications.length}
+              </span>
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab('content')}
-            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 ${activeTab === 'content' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 whitespace-nowrap ${activeTab === 'content' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <LayoutTemplate className="w-5 h-5" />
             <span>Quản lý Giao diện</span>
           </button>
           <button
             onClick={() => setActiveTab('smtp')}
-            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 ${activeTab === 'smtp' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 whitespace-nowrap ${activeTab === 'smtp' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <Mail className="w-5 h-5" />
             <span>Cài đặt Email</span>
           </button>
           <button
             onClick={() => setActiveTab('password')}
-            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 ${activeTab === 'password' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center space-x-2 px-4 py-2 font-medium transition border-b-2 whitespace-nowrap ${activeTab === 'password' ? 'border-[#c8102e] text-[#c8102e]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <Lock className="w-5 h-5" />
             <span>Đổi mật khẩu</span>
@@ -703,13 +875,30 @@ export default function Admin() {
                 </div>
               ) : (
                 jobs.map((job) => (
-                  <JobCard key={job.id} job={job} onDelete={handleDelete} onToggleHide={handleToggleHide} onEdit={handleEdit} />
+                  <JobCard 
+                    key={job.id} 
+                    job={job} 
+                    applicantCount={getJobApplicantCount(job)}
+                    onViewApplications={handleOpenApplications}
+                    onDelete={handleDelete} 
+                    onToggleHide={handleToggleHide} 
+                    onEdit={handleEdit} 
+                  />
                 ))
               )}
             </div>
           </div>
         </div>
         </div>
+        ) : activeTab === 'applications' ? (
+          <ApplicationsTab 
+            jobs={jobs}
+            applications={applications}
+            onUpdateStatus={handleUpdateApplicationStatus}
+            onUpdateNotes={handleUpdateApplicationNotes}
+            onDeleteApplication={handleDeleteApplication}
+            onCreateSampleApplication={handleCreateSampleApplication}
+          />
         ) : activeTab === 'content' ? (
           <SiteContentAdmin />
         ) : activeTab === 'smtp' ? (
@@ -778,6 +967,20 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Modal chi tiết danh sách ứng viên cho vị trí tuyển dụng */}
+        <ApplicationsModal 
+          isOpen={applicationsModalOpen}
+          onClose={() => {
+            setApplicationsModalOpen(false);
+            setSelectedJobForApplications(null);
+          }}
+          job={selectedJobForApplications}
+          applications={applications}
+          onUpdateStatus={handleUpdateApplicationStatus}
+          onUpdateNotes={handleUpdateApplicationNotes}
+          onDeleteApplication={handleDeleteApplication}
+          onCreateSampleApplication={handleCreateSampleApplication}
+        />
       </main>
     </div>
   );

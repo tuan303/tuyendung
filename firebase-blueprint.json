@@ -9,6 +9,10 @@
           "type": "string",
           "description": "Vị trí tuyển dụng"
         },
+        "department": {
+          "type": "string",
+          "description": "Khối bộ phận"
+        },
         "description": {
           "type": "string",
           "description": "Mô tả công việc"
@@ -16,6 +20,14 @@
         "requirements": {
           "type": "string",
           "description": "Yêu cầu ứng viên"
+        },
+        "benefits": {
+          "type": "string",
+          "description": "Chế độ"
+        },
+        "workingHours": {
+          "type": "string",
+          "description": "Thời gian làm việc"
         },
         "deadline": {
           "type": "string",
@@ -39,6 +51,25 @@
         }
       },
       "required": ["title", "description", "requirements", "deadline", "createdAt", "authorUid"]
+    },
+    "Application": {
+      "title": "Application",
+      "description": "Candidate application for a job",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string", "description": "ID của vị trí ứng tuyển" },
+        "jobTitle": { "type": "string", "description": "Tên vị trí ứng tuyển" },
+        "name": { "type": "string", "description": "Họ và tên ứng viên" },
+        "dob": { "type": "string", "description": "Ngày sinh" },
+        "phone": { "type": "string", "description": "Số điện thoại" },
+        "email": { "type": "string", "description": "Email" },
+        "cvUrl": { "type": "string", "description": "Đường dẫn tải file CV" },
+        "fileName": { "type": "string", "description": "Tên file CV" },
+        "status": { "type": "string", "description": "Trạng thái hồ sơ" },
+        "notes": { "type": "string", "description": "Ghi chú của ban tuyển dụng" },
+        "createdAt": { "type": "timestamp", "description": "Thời gian nộp hồ sơ" }
+      },
+      "required": ["jobTitle", "name", "phone", "email", "createdAt"]
     },
     "SiteContent": {
       "title": "Site Content",
@@ -74,6 +105,12 @@
         "$ref": "#/entities/Job"
       },
       "description": "Collection of job postings"
+    },
+    "applications/{applicationId}": {
+      "schema": {
+        "$ref": "#/entities/Application"
+      },
+      "description": "Collection of candidate job applications"
     }
   }
 }

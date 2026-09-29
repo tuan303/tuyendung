@@ -178,7 +178,7 @@ apiRouter.all("/send-email", async (req, res) => {
       return res.status(405).json({ error: `Method ${req.method} not allowed.` });
     }
 
-    const { name, dob, phone, email, position, downloadURL, fileData, fileName } = data;
+    const { name, dob, phone, email, position, downloadURL, fileData, fileName, jobId } = data;
     if (!name || !phone || !email || !position) {
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
     }
