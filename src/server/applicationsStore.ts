@@ -86,3 +86,19 @@ export async function deleteApplication(id: string): Promise<boolean> {
   await saveApplications(filtered);
   return true;
 }
+
+const UPLOADS_DIR = path.resolve(process.cwd(), 'data', 'uploads');
+
+export async function saveUploadedFile(fileName: string, base64Data: string): Promise<string> {
+  await fs.mkdir(UPLOADS_DIR, { recursive: true });
+  const ext = path.extname(fileName) || '.pdf';
+  const base = path.basename(fileName, ext).replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF-]/g, '_');
+  const safeName = `${Date.now()}_${base}${ext}`;
+  const filePath = path.join(UPLOADS_DIR, safeName);
+
+  const base64Content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+  const buffer = Buffer.from(base64Content, 'base64');
+  await fs.writeFile(filePath, buffer);
+
+  return `/api/uploads/${encodeURIComponent(safeName)}`;
+}

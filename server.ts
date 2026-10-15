@@ -7,7 +7,7 @@ import cors from "cors";
 import crypto from "crypto";
 import { initializeApp as initializeClientApp } from "firebase/app";
 import { getFirestore as getClientFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-import { getApplications, addApplication, updateApplication, deleteApplication } from "./src/server/applicationsStore";
+import { getApplications, addApplication, updateApplication, deleteApplication, saveUploadedFile } from "./src/server/applicationsStore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBtsC_4jAhCI7YJd8J-SiTYg9t7WH6Mvm8",
@@ -93,7 +93,10 @@ async function startServer() {
   app.use(cors());
   app.use(express.json({ limit: '100mb' }));
   const urlencodedLimit = '100mb';
-  app.use(express.urlencoded({ limit: urlencodedLimit, extended: true }));
+  const uploadsDir = path.resolve(process.cwd(), 'data', 'uploads');
+  fs.mkdir(uploadsDir, { recursive: true }).catch(console.error);
+  app.use('/api/uploads', express.static(uploadsDir));
+  app.use('/backend-api/uploads', express.static(uploadsDir));
 
   // Error handler for JSON parsing and other middleware errors
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -279,6 +282,17 @@ const SMTP_CACHE_TTL = 60 * 1000; // 1 minute
         return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
       }
 
+      // If candidate attached file data, save to disk
+      let resolvedCvUrl = downloadURL || '';
+      if (fileData && fileName) {
+        try {
+          resolvedCvUrl = await saveUploadedFile(fileName, fileData);
+          console.log(`[Email API] Saved uploaded CV: ${resolvedCvUrl}`);
+        } catch (uploadSaveErr) {
+          console.error("[Email API] Error saving uploaded CV file:", uploadSaveErr);
+        }
+      }
+
       // 1. ALWAYS persist application in server storage FIRST (Guaranteed capture)
       let savedAppRecord = null;
       try {
@@ -289,8 +303,8 @@ const SMTP_CACHE_TTL = 60 * 1000; // 1 minute
           dob: dob || '',
           phone,
           email,
-          cvUrl: downloadURL || '',
-          downloadURL: downloadURL || '',
+          cvUrl: resolvedCvUrl,
+          downloadURL: resolvedCvUrl,
           fileName: fileName || '',
           status: 'new',
           notes: '',
@@ -334,8 +348,9 @@ const SMTP_CACHE_TTL = 60 * 1000; // 1 minute
             });
 
             const subject = `[Ứng tuyển] ${position} - ${name}`;
-            const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}`.trim();
-            const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
+            const cvLinkToUse = resolvedCvUrl || downloadURL;
+            const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${cvLinkToUse ? `Link CV đính kèm: ${cvLinkToUse}` : `(File CV được đính kèm trong email này)`}`.trim();
+            const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${cvLinkToUse ? `<strong>Link CV đính kèm:</strong> <a href="${cvLinkToUse}">${cvLinkToUse}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
             
             const mailOptions: any = {
               from: `"Hệ thống Tuyển dụng" <${smtpSettings.user}>`,

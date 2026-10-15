@@ -10,8 +10,6 @@ import { collection, query, orderBy, onSnapshot, doc, addDoc, serverTimestamp } 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './firebase';
 import { defaultContent } from './SiteContentAdmin';
-import ApplicationsModal from './ApplicationsModal';
-import { Application } from './Admin';
 
 interface Job {
   id: string;
@@ -119,122 +117,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
 
-  // Applications state & counting
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [selectedJobForApplications, setSelectedJobForApplications] = useState<Job | null>(null);
-  const [applicationsModalOpen, setApplicationsModalOpen] = useState(false);
-
-  const fetchApplications = async () => {
-    try {
-      const res = await fetch('/api/applications');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          setApplications(json.data);
-        }
-      }
-    } catch (e) {
-      console.error("Error fetching applications:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchApplications();
-    const interval = setInterval(fetchApplications, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const getJobApplicantCount = (job: Job) => {
-    const jobNorm = (job.title || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    return applications.filter(app => {
-      if (app.jobId && app.jobId === job.id) return true;
-      if (app.jobTitle && (app.jobTitle || '').trim().replace(/\s+/g, ' ').toLowerCase() === jobNorm) return true;
-      return false;
-    }).length;
-  };
-
-  const handleOpenApplications = (job: Job, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setSelectedJobForApplications(job);
-    setApplicationsModalOpen(true);
-  };
-
-  const handleCreateApplication = async (data: Partial<Application>) => {
-    try {
-      const res = await fetch('/api/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          setApplications(prev => [json.data, ...prev]);
-        }
-      }
-    } catch (error) {
-      console.error("Error creating application:", error);
-    }
-  };
-
-  const handleCreateSampleApplication = async (targetJob?: Job) => {
-    const currentJob = targetJob || (jobs.length > 0 ? jobs[0] : null);
-    if (!currentJob) return;
-    const sampleNames = ["Nguyễn Thu Hà", "Trần Minh Quân", "Lê Hoàng Long", "Phạm Thị Hương", "Đặng Minh Quân"];
-    const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
-    const randomPhone = `09${Math.floor(10000000 + Math.random() * 90000000)}`;
-    const randomEmail = `${randomName.toLowerCase().replace(/[^a-z]/g, '')}@gmail.com`;
-
-    await handleCreateApplication({
-      jobId: currentJob.id,
-      jobTitle: currentJob.title,
-      name: randomName,
-      dob: "15/06/1995",
-      phone: randomPhone,
-      email: randomEmail,
-      cvUrl: "https://drive.google.com",
-      downloadURL: "https://drive.google.com",
-      fileName: `CV_${randomName.replace(/\s+/g, '_')}.pdf`,
-      status: 'new',
-      notes: 'Hồ sơ thử nghiệm do người dùng tạo để kiểm tra số lượng',
-      createdAt: new Date().toISOString()
-    });
-  };
-
-  const handleUpdateApplicationStatus = async (appId: string, status: string) => {
-    try {
-      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
-      await fetch(`/api/applications/${appId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-    } catch (err) {
-      console.error("Error updating status:", err);
-    }
-  };
-
-  const handleUpdateApplicationNotes = async (appId: string, notes: string) => {
-    try {
-      setApplications(prev => prev.map(a => a.id === appId ? { ...a, notes } : a));
-      await fetch(`/api/applications/${appId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes })
-      });
-    } catch (err) {
-      console.error("Error updating notes:", err);
-    }
-  };
-
-  const handleDeleteApplication = async (appId: string) => {
-    try {
-      setApplications(prev => prev.filter(a => a.id !== appId));
-      await fetch(`/api/applications/${appId}`, { method: 'DELETE' });
-    } catch (err) {
-      console.error("Error deleting application:", err);
-    }
-  };
 
   useEffect(() => {
     // Check URL parameters for jobId when jobs are loaded
@@ -312,121 +194,56 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
 
     setIsSubmitting(true);
     try {
-      let downloadURL = '';
       let fileData: string | null = null;
-      let fileName = null;
+      let fileName: string | null = null;
 
       if (file) {
         fileName = file.name;
         console.log(`[Form] Processing file: ${fileName} (${Math.round(file.size / 1024)} KB)`);
         
-        // Read file as base64 for email attachment
+        // Read file as base64 for upload and storage
         const reader = new FileReader();
         fileData = await new Promise<string>((resolve, reject) => {
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-
-        try {
-          // 1. Upload file to Google Drive via Apps Script
-          console.log("[Form] Attempting to upload to Google Drive...");
-          const scriptUrl = "https://script.google.com/macros/s/AKfycbyQrhSTCDCvXrXXFyoDO71jpN_zxyKqQ9Z4GUSXE_MlW3tJQ8NQOIisjPNbblxfDueXhA/exec";
-          
-          const uploadResponse = await fetch(scriptUrl, {
-            method: 'POST',
-            // Use text/plain to avoid CORS preflight issues with Google Apps Script
-            headers: {
-              'Content-Type': 'text/plain;charset=utf-8',
-            },
-            body: JSON.stringify({
-              fileName: file.name,
-              mimeType: file.type || 'application/octet-stream',
-              fileData: fileData
-            })
-          });
-
-          const result = await uploadResponse.json();
-          if (result.status === 'success') {
-            downloadURL = result.fileUrl;
-            console.log("[Form] Google Drive upload successful:", downloadURL);
-          } else {
-            throw new Error(result.message || "Lỗi không xác định từ Google Drive");
-          }
-        } catch (uploadError: any) {
-          console.error("[Form] Google Drive upload failed:", uploadError);
-          throw new Error("Không thể tải lên file CV lên Google Drive. Chi tiết lỗi: " + (uploadError.message || "Unknown error"));
-        }
       }
 
-      // 2. Prepare request body and save application to Firestore
       const matchedJob = jobs.find(j => j.id === selectedJobId) || jobs.find(j => j.title.trim().toLowerCase() === position.trim().toLowerCase());
       const targetJobId = matchedJob ? matchedJob.id : (selectedJobId || '');
 
-      try {
-        await addDoc(collection(db, 'applications'), {
-          jobId: targetJobId,
-          jobTitle: position.trim(),
-          name: name.trim(),
-          dob: dob.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
-          cvUrl: downloadURL || '',
-          fileName: fileName || '',
-          status: 'new',
-          notes: '',
-          createdAt: serverTimestamp(),
-        });
-        console.log("[Form] Successfully saved candidate application to Firestore");
-      } catch (dbError) {
-        console.error("[Form] Error saving application to Firestore:", dbError);
-      }
-
       const requestBody = {
-        name,
-        dob,
-        phone,
-        email,
-        position,
+        name: name.trim(),
+        dob: dob.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        position: position.trim(),
         jobId: targetJobId,
-        downloadURL,
-        // Only send base64 data if we don't have a download URL (fallback)
-        // to avoid 413 Payload Too Large errors from the proxy
-        fileData: downloadURL ? null : fileData,
+        fileData,
         fileName
       };
 
-      const bodyString = JSON.stringify(requestBody);
-      console.log(`[Form] Sending request to /api/send-email. Body size: ${Math.round(bodyString.length / 1024)} KB`);
+      console.log(`[Form] Submitting application for "${position.trim()}" (${name.trim()})...`);
 
-      // 3. Send email via backend API
+      // Submit via backend API
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: bodyString,
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        let errorMessage = "Failed to send email";
+        let errorMessage = "Không thể gửi hồ sơ";
         try {
           const contentType = response.headers.get("content-type");
           if (contentType && contentType.includes("application/json")) {
             const errorData = await response.json();
-            if (errorData.code === "DECRYPTION_FAILED") {
-              errorMessage = "Hệ thống đang bảo trì cấu hình Email. Vui lòng liên hệ quản trị viên để cập nhật lại mật khẩu SMTP.";
-            } else {
-              errorMessage = errorData.error || errorMessage;
-            }
+            errorMessage = errorData.error || errorMessage;
           } else {
-            const textError = await response.text();
-            console.error("Non-JSON error response:", textError);
-            if (response.status === 413) {
-              errorMessage = "File CV của bạn quá lớn để gửi qua email dự phòng. Vui lòng liên hệ quản trị viên để kiểm tra cấu hình Firebase Storage.";
-            } else {
-              errorMessage = `Server error (${response.status}): ${response.statusText}`;
-            }
+            errorMessage = `Lỗi máy chủ (${response.status})`;
           }
         } catch (e) {
           console.error("Error parsing error response:", e);
@@ -434,10 +251,9 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
         throw new Error(errorMessage);
       }
 
-      alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công.");
-      fetchApplications();
+      alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công đến bộ phận Tuyển dụng.");
 
-      // 4. Reset form
+      // Reset form
       setName('');
       setDob('');
       setPhone('');
@@ -685,25 +501,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                               <div className="flex items-center bg-gray-100 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
                                 <span className="font-bold" style={{ color: siteContent.primaryColor }}>Hạn nộp: {job.deadline}</span>
                               </div>
-                              <button
-                                type="button"
-                                onClick={(e) => handleOpenApplications(job, e)}
-                                className={`flex items-center text-xs font-semibold px-2 py-1 transition cursor-pointer border ${
-                                  getJobApplicantCount(job) > 0 
-                                    ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' 
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200'
-                                }`}
-                                style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}
-                                title="Nhấn để xem danh sách hồ sơ ứng viên đã ứng tuyển"
-                              >
-                                <Users className={`w-3.5 h-3.5 mr-1 ${getJobApplicantCount(job) > 0 ? 'text-blue-600' : 'text-gray-500'}`} />
-                                <span>{getJobApplicantCount(job)} hồ sơ ứng tuyển</span>
-                                {getJobApplicantCount(job) > 0 && (
-                                  <span className="ml-1 px-1.5 py-0.2 bg-blue-600 text-white text-[10px] rounded-full font-bold">
-                                    {getJobApplicantCount(job)}
-                                  </span>
-                                )}
-                              </button>
                               {job.jdUrl && (
                                 <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }} onClick={(e) => e.stopPropagation()}>
                                   <FileText className="w-3 h-3 mr-1" />
@@ -1362,25 +1159,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                       <div className="flex items-center bg-gray-100 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
                         <span className="font-bold text-[#c8102e]">Hạn nộp: {selectedJob.deadline}</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenApplications(selectedJob)}
-                        className={`flex items-center text-xs font-semibold px-2.5 py-1 transition cursor-pointer border ${
-                          getJobApplicantCount(selectedJob) > 0 
-                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200'
-                        }`}
-                        style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}
-                        title="Nhấn để xem danh sách hồ sơ ứng viên đã ứng tuyển"
-                      >
-                        <Users className={`w-3.5 h-3.5 mr-1 ${getJobApplicantCount(selectedJob) > 0 ? 'text-blue-600' : 'text-gray-500'}`} />
-                        <span>{getJobApplicantCount(selectedJob)} hồ sơ ứng tuyển</span>
-                        {getJobApplicantCount(selectedJob) > 0 && (
-                          <span className="ml-1 px-1.5 py-0.2 bg-blue-600 text-white text-[10px] rounded-full font-bold">
-                            {getJobApplicantCount(selectedJob)}
-                          </span>
-                        )}
-                      </button>
                       {selectedJob.jdUrl && (
                         <a href={selectedJob.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
                           <FileText className="w-3 h-3 mr-1" />
@@ -1462,65 +1240,40 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
               )}
             </div>
             
-            <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50 flex flex-wrap justify-between items-center gap-4">
+            <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end items-center gap-3">
               <button 
-                type="button"
-                onClick={() => handleOpenApplications(selectedJob)}
-                className="flex items-center text-xs sm:text-sm font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3.5 py-2.5 rounded-lg border border-blue-200 transition cursor-pointer"
-                title="Xem danh sách hồ sơ ứng viên đã nộp cho vị trí này"
+                onClick={() => {
+                  if (selectedJob) {
+                    setPosition(selectedJob.title);
+                    setSelectedJobId(selectedJob.id);
+                    setSelectedJob(null);
+                    setTimeout(() => {
+                      const formElement = document.getElementById('application-form');
+                      if (formElement) {
+                        formElement.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }, 100);
+                  }
+                }}
+                className="px-6 py-2.5 text-white font-bold hover:opacity-90 transition cursor-pointer shadow-sm"
+                style={{ 
+                  backgroundColor: siteContent.primaryColor,
+                  borderRadius: `${siteContent.borderRadius}px` 
+                }}
               >
-                <Users className="w-4 h-4 mr-2 text-blue-600" />
-                <span>Danh sách ứng viên ({getJobApplicantCount(selectedJob)} hồ sơ)</span>
+                Ứng tuyển ngay
               </button>
-
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => {
-                    if (selectedJob) {
-                      setPosition(selectedJob.title);
-                      setSelectedJobId(selectedJob.id);
-                      setSelectedJob(null);
-                      setTimeout(() => {
-                        const formElement = document.getElementById('application-form');
-                        if (formElement) {
-                          formElement.scrollIntoView({ behavior: 'smooth' });
-                        }
-                      }, 100);
-                    }
-                  }}
-                  className="px-6 py-2.5 text-white font-bold hover:opacity-90 transition cursor-pointer"
-                  style={{ 
-                    backgroundColor: siteContent.primaryColor,
-                    borderRadius: `${siteContent.borderRadius}px` 
-                  }}
-                >
-                  Ứng tuyển ngay
-                </button>
-                <button 
-                  onClick={() => setSelectedJob(null)}
-                  className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition cursor-pointer"
-                  style={{ borderRadius: `${siteContent.borderRadius}px` }}
-                >
-                  Đóng
-                </button>
-              </div>
+              <button 
+                onClick={() => setSelectedJob(null)}
+                className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition cursor-pointer"
+                style={{ borderRadius: `${siteContent.borderRadius}px` }}
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Applications List Modal */}
-      <ApplicationsModal
-        isOpen={applicationsModalOpen}
-        onClose={() => setApplicationsModalOpen(false)}
-        job={selectedJobForApplications}
-        applications={applications}
-        onUpdateStatus={handleUpdateApplicationStatus}
-        onUpdateNotes={handleUpdateApplicationNotes}
-        onDeleteApplication={handleDeleteApplication}
-        onCreateSampleApplication={handleCreateSampleApplication}
-        onCreateApplication={handleCreateApplication}
-      />
     </div>
   );
 }
