@@ -59,8 +59,9 @@ export default function ApplicationsTab({
     let matchesJob = true;
     if (selectedJobIdFilter !== 'all') {
       const targetJob = jobs.find(j => j.id === selectedJobIdFilter);
+      const targetNorm = (targetJob?.title || '').trim().replace(/\s+/g, ' ').toLowerCase();
       matchesJob = (app.jobId === selectedJobIdFilter) || 
-        (targetJob && app.jobTitle?.trim().toLowerCase() === targetJob.title.trim().toLowerCase());
+        (targetNorm !== '' && (app.jobTitle || '').trim().replace(/\s+/g, ' ').toLowerCase() === targetNorm);
     }
 
     // Status filter

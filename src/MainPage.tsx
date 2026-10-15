@@ -145,16 +145,60 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   }, []);
 
   const getJobApplicantCount = (job: Job) => {
-    return applications.filter(app => 
-      (app.jobId && app.jobId === job.id) || 
-      (app.jobTitle && app.jobTitle.trim().toLowerCase() === job.title.trim().toLowerCase())
-    ).length;
+    const jobNorm = (job.title || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    return applications.filter(app => {
+      if (app.jobId && app.jobId === job.id) return true;
+      if (app.jobTitle && (app.jobTitle || '').trim().replace(/\s+/g, ' ').toLowerCase() === jobNorm) return true;
+      return false;
+    }).length;
   };
 
   const handleOpenApplications = (job: Job, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setSelectedJobForApplications(job);
     setApplicationsModalOpen(true);
+  };
+
+  const handleCreateApplication = async (data: Partial<Application>) => {
+    try {
+      const res = await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          setApplications(prev => [json.data, ...prev]);
+        }
+      }
+    } catch (error) {
+      console.error("Error creating application:", error);
+    }
+  };
+
+  const handleCreateSampleApplication = async (targetJob?: Job) => {
+    const currentJob = targetJob || (jobs.length > 0 ? jobs[0] : null);
+    if (!currentJob) return;
+    const sampleNames = ["Nguyễn Thu Hà", "Trần Minh Quân", "Lê Hoàng Long", "Phạm Thị Hương", "Đặng Minh Quân"];
+    const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+    const randomPhone = `09${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const randomEmail = `${randomName.toLowerCase().replace(/[^a-z]/g, '')}@gmail.com`;
+
+    await handleCreateApplication({
+      jobId: currentJob.id,
+      jobTitle: currentJob.title,
+      name: randomName,
+      dob: "15/06/1995",
+      phone: randomPhone,
+      email: randomEmail,
+      cvUrl: "https://drive.google.com",
+      downloadURL: "https://drive.google.com",
+      fileName: `CV_${randomName.replace(/\s+/g, '_')}.pdf`,
+      status: 'new',
+      notes: 'Hồ sơ thử nghiệm do người dùng tạo để kiểm tra số lượng',
+      createdAt: new Date().toISOString()
+    });
   };
 
   const handleUpdateApplicationStatus = async (appId: string, status: string) => {
@@ -1474,6 +1518,8 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
         onUpdateStatus={handleUpdateApplicationStatus}
         onUpdateNotes={handleUpdateApplicationNotes}
         onDeleteApplication={handleDeleteApplication}
+        onCreateSampleApplication={handleCreateSampleApplication}
+        onCreateApplication={handleCreateApplication}
       />
     </div>
   );

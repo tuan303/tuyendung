@@ -125,10 +125,12 @@ export default function ApplicationsModal({
   if (!isOpen || !job) return null;
 
   // Filter applications for this specific job
-  const jobApplications = applications.filter(app => 
-    (app.jobId && app.jobId === job.id) || 
-    (app.jobTitle && app.jobTitle.trim().toLowerCase() === job.title.trim().toLowerCase())
-  );
+  const jobNorm = (job.title || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const jobApplications = applications.filter(app => {
+    if (app.jobId && app.jobId === job.id) return true;
+    if (app.jobTitle && (app.jobTitle || '').trim().replace(/\s+/g, ' ').toLowerCase() === jobNorm) return true;
+    return false;
+  });
 
   // Search and status filtering
   const filteredApps = jobApplications.filter(app => {
