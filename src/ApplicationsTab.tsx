@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Users, Search, Filter, Download, Plus, Clock, Phone, Mail, 
   Calendar, FileText, ExternalLink, Trash2, Check, Copy, MessageSquare, 
-  Briefcase, CheckCircle2, UserCheck, AlertCircle 
+  Briefcase, CheckCircle2, UserCheck, AlertCircle, UserPlus 
 } from 'lucide-react';
 import { Job, Application } from './Admin';
 import { formatTimestamp, exportApplicationsToCSV } from './ApplicationsModal';
@@ -14,6 +14,7 @@ interface ApplicationsTabProps {
   onUpdateNotes: (id: string, notes: string) => Promise<void>;
   onDeleteApplication: (id: string) => Promise<void>;
   onCreateSampleApplication: (job?: Job) => Promise<void>;
+  onCreateApplication?: (data: Partial<Application>) => Promise<void>;
 }
 
 export default function ApplicationsTab({
@@ -22,7 +23,8 @@ export default function ApplicationsTab({
   onUpdateStatus,
   onUpdateNotes,
   onDeleteApplication,
-  onCreateSampleApplication
+  onCreateSampleApplication,
+  onCreateApplication
 }: ApplicationsTabProps) {
   const [selectedJobIdFilter, setSelectedJobIdFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -32,6 +34,18 @@ export default function ApplicationsTab({
   const [notesValue, setNotesValue] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Manual Add Form states
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newJobId, setNewJobId] = useState<string>(jobs.length > 0 ? jobs[0].id : '');
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newDob, setNewDob] = useState('');
+  const [newCvUrl, setNewCvUrl] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [newStatus, setNewStatus] = useState('new');
+  const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
   // Statistics
   const totalCount = applications.length;
@@ -92,6 +106,51 @@ export default function ApplicationsTab({
     }
   };
 
+  const handleAddNewCandidate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newPhone.trim()) {
+      alert("Vui lòng nhập họ tên và số điện thoại.");
+      return;
+    }
+    const matchedJob = jobs.find(j => j.id === newJobId) || jobs[0];
+    if (!matchedJob) {
+      alert("Vui lòng chọn vị trí tuyển dụng.");
+      return;
+    }
+
+    setIsSubmittingNew(true);
+    try {
+      if (onCreateApplication) {
+        await onCreateApplication({
+          jobId: matchedJob.id,
+          jobTitle: matchedJob.title,
+          name: newName.trim(),
+          phone: newPhone.trim(),
+          email: newEmail.trim(),
+          dob: newDob.trim(),
+          cvUrl: newCvUrl.trim(),
+          downloadURL: newCvUrl.trim(),
+          fileName: newCvUrl ? 'CV_DinhKem.pdf' : '',
+          notes: newNotes.trim(),
+          status: newStatus,
+          createdAt: new Date().toISOString()
+        });
+      }
+      setShowAddForm(false);
+      setNewName('');
+      setNewPhone('');
+      setNewEmail('');
+      setNewDob('');
+      setNewCvUrl('');
+      setNewNotes('');
+      setNewStatus('new');
+    } catch (err: any) {
+      alert("Lỗi thêm hồ sơ: " + err.message);
+    } finally {
+      setIsSubmittingNew(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Stat Cards */}
@@ -149,11 +208,23 @@ export default function ApplicationsTab({
               </span>
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Xem và quản lý tất cả thông tin ứng viên đã nộp đơn qua website
+              Xem và quản lý tất cả thông tin ứng viên đã nộp đơn qua website hoặc nhận trực tiếp
             </p>
           </div>
 
           <div className="flex items-center space-x-2">
+            {onCreateApplication && (
+              <button
+                type="button"
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="flex items-center space-x-1.5 px-3.5 py-2 bg-[#c8102e] hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition shadow-xs"
+                title="Nhập thêm hồ sơ ứng viên"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>{showAddForm ? 'Đóng form' : '+ Thêm hồ sơ'}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => exportApplicationsToCSV(filteredApps)}
@@ -171,10 +242,137 @@ export default function ApplicationsTab({
               title="Tạo hồ sơ thử nghiệm để kiểm tra tính năng"
             >
               <Plus className="w-4 h-4" />
-              <span>Tạo mẫu thử</span>
+              <span>Mẫu thử</span>
             </button>
           </div>
         </div>
+
+        {/* Form thêm hồ sơ trực tiếp */}
+        {showAddForm && (
+          <form onSubmit={handleAddNewCandidate} className="bg-red-50/40 p-4 rounded-xl border border-red-200 space-y-3 animate-fadeIn">
+            <div className="flex items-center justify-between pb-2 border-b border-red-100">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#c8102e] flex items-center">
+                <UserPlus className="w-4 h-4 mr-1.5" />
+                Nhập hồ sơ ứng viên nhận qua email hoặc kênh khác
+              </h4>
+              <button 
+                type="button" 
+                onClick={() => setShowAddForm(false)}
+                className="text-gray-400 hover:text-gray-600 text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Vị trí ứng tuyển *</label>
+                <select
+                  value={newJobId}
+                  onChange={(e) => setNewJobId(e.target.value)}
+                  className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                >
+                  {jobs.map(j => (
+                    <option key={j.id} value={j.id}>{j.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Họ và tên *</label>
+                <input
+                  type="text"
+                  required
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="VD: Nguyễn Văn A"
+                  className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Số điện thoại *</label>
+                <input
+                  type="tel"
+                  required
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="VD: 0987123456"
+                  className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="ungvien@gmail.com"
+                  className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ngày sinh</label>
+                <input
+                  type="text"
+                  value={newDob}
+                  onChange={(e) => setNewDob(e.target.value)}
+                  placeholder="15/06/1995"
+                  className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Link CV (URL/Drive)</label>
+                <input
+                  type="url"
+                  value={newCvUrl}
+                  onChange={(e) => setNewCvUrl(e.target.value)}
+                  placeholder="https://drive.google.com/..."
+                  className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Trạng thái</label>
+                <select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                >
+                  <option value="new">Mới nộp</option>
+                  <option value="reviewed">Đã xem hồ sơ</option>
+                  <option value="contacted">Đã liên hệ</option>
+                  <option value="passed">Mời phỏng vấn / Đạt</option>
+                  <option value="rejected">Không phù hợp</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
+                <input
+                  type="text"
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="Ghi chú tuyển dụng..."
+                  className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-lg"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingNew}
+                className="px-4 py-1.5 bg-[#c8102e] hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-xs"
+              >
+                {isSubmittingNew ? 'Đang lưu...' : 'Lưu hồ sơ ứng viên'}
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -239,14 +437,26 @@ export default function ApplicationsTab({
               <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">
                 Khi có ứng viên ứng tuyển từ trang chủ, thông tin và file CV của họ sẽ tự động được lưu và hiển thị tại đây.
               </p>
-              <button
-                type="button"
-                onClick={() => onCreateSampleApplication()}
-                className="inline-flex items-center space-x-2 px-4 py-2.5 bg-[#c8102e] hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-md transition"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tạo hồ sơ thử nghiệm</span>
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {onCreateApplication && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(true)}
+                    className="inline-flex items-center space-x-2 px-4 py-2.5 bg-[#c8102e] hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-md transition"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Nhập hồ sơ ứng viên</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onCreateSampleApplication()}
+                  className="inline-flex items-center space-x-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tạo hồ sơ thử nghiệm</span>
+                </button>
+              </div>
             </div>
           ) : filteredApps.length === 0 ? (
             <div className="text-center py-12 text-gray-500 text-sm bg-gray-50 rounded-xl">
@@ -354,20 +564,22 @@ export default function ApplicationsTab({
                       <div className="flex items-center space-x-2 truncate">
                         <Mail className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                         <a href={`mailto:${app.email}`} className="font-medium text-gray-800 hover:underline truncate">
-                          {app.email}
+                          {app.email || 'Không có email'}
                         </a>
                       </div>
-                      <button
-                        onClick={() => handleCopy(app.email, `email-${app.id}`)}
-                        className="text-gray-400 hover:text-gray-600 p-1 rounded"
-                        title="Sao chép địa chỉ email"
-                      >
-                        {copiedId === `email-${app.id}` ? (
-                          <Check className="w-3.5 h-3.5 text-green-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                      {app.email && (
+                        <button
+                          onClick={() => handleCopy(app.email, `email-${app.id}`)}
+                          className="text-gray-400 hover:text-gray-600 p-1 rounded"
+                          title="Sao chép địa chỉ email"
+                        >
+                          {copiedId === `email-${app.id}` ? (
+                            <Check className="w-3.5 h-3.5 text-green-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
                     </div>
 
                     {/* Date of Birth */}

@@ -34,6 +34,7 @@ export interface Application {
   phone: string;
   email: string;
   cvUrl?: string;
+  downloadURL?: string;
   fileName?: string;
   status?: string;
   notes?: string;
@@ -268,21 +269,25 @@ export default function Admin() {
     return () => unsubscribe();
   }, [user]);
 
+  const fetchApplications = async () => {
+    try {
+      const res = await fetch('/api/applications');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setApplications(json.data);
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching applications from API:", e);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
-
-    const q = query(collection(db, 'applications'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const appsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Application[];
-      setApplications(appsData);
-    }, (error) => {
-      console.error("Error fetching applications:", error);
-    });
-
-    return () => unsubscribe();
+    fetchApplications();
+    const interval = setInterval(fetchApplications, 4000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const getJobApplicantCount = (job: Job) => {
@@ -297,27 +302,60 @@ export default function Admin() {
     setApplicationsModalOpen(true);
   };
 
+  const handleCreateApplication = async (data: Partial<Application>) => {
+    try {
+      const res = await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          setApplications(prev => [json.data, ...prev]);
+        }
+      } else {
+        const err = await res.json();
+        alert("Lỗi thêm hồ sơ: " + (err.error || "Không rõ nguyên nhân"));
+      }
+    } catch (error: any) {
+      console.error("Error creating application:", error);
+      alert("Lỗi kết nối khi thêm hồ sơ: " + error.message);
+    }
+  };
+
   const handleUpdateApplicationStatus = async (appId: string, status: string) => {
     try {
-      await updateDoc(doc(db, 'applications', appId), { status });
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+      await fetch(`/api/applications/${appId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
     } catch (err: any) {
       console.error("Error updating application status:", err);
-      alert("Lỗi cập nhật trạng thái: " + err.message);
     }
   };
 
   const handleUpdateApplicationNotes = async (appId: string, notes: string) => {
     try {
-      await updateDoc(doc(db, 'applications', appId), { notes });
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, notes } : a));
+      await fetch(`/api/applications/${appId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
     } catch (err: any) {
       console.error("Error updating application notes:", err);
-      alert("Lỗi lưu ghi chú: " + err.message);
     }
   };
 
   const handleDeleteApplication = async (appId: string) => {
     try {
-      await deleteDoc(doc(db, 'applications', appId));
+      setApplications(prev => prev.filter(a => a.id !== appId));
+      await fetch(`/api/applications/${appId}`, {
+        method: 'DELETE'
+      });
     } catch (err: any) {
       console.error("Error deleting application:", err);
       alert("Lỗi xóa hồ sơ: " + err.message);
@@ -330,29 +368,24 @@ export default function Admin() {
       alert("Vui lòng tạo ít nhất một vị trí tuyển dụng trước.");
       return;
     }
-    const sampleNames = ["Nguyễn Văn An", "Trần Thị Mai", "Lê Hoàng Long", "Phạm Thị Hương", "Đặng Minh Quân"];
+    const sampleNames = ["Nguyễn Thu Hà", "Trần Minh Quân", "Lê Hoàng Long", "Phạm Thị Hương", "Đặng Minh Quân"];
     const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
     const randomPhone = `09${Math.floor(10000000 + Math.random() * 90000000)}`;
     const randomEmail = `${randomName.toLowerCase().replace(/[^a-z]/g, '')}@gmail.com`;
 
-    try {
-      await addDoc(collection(db, 'applications'), {
-        jobId: currentJob.id,
-        jobTitle: currentJob.title,
-        name: randomName,
-        dob: "15/06/1995",
-        phone: randomPhone,
-        email: randomEmail,
-        cvUrl: "https://drive.google.com",
-        fileName: `CV_${randomName.replace(/\s+/g, '_')}.pdf`,
-        status: 'new',
-        notes: 'Hồ sơ thử nghiệm mẫu do quản trị viên tạo',
-        createdAt: serverTimestamp(),
-      });
-    } catch (error: any) {
-      console.error("Error creating sample application:", error);
-      alert("Lỗi tạo hồ sơ mẫu: " + error.message);
-    }
+    await handleCreateApplication({
+      jobId: currentJob.id,
+      jobTitle: currentJob.title,
+      name: randomName,
+      dob: "15/06/1995",
+      phone: randomPhone,
+      email: randomEmail,
+      cvUrl: "https://drive.google.com",
+      fileName: `CV_${randomName.replace(/\s+/g, '_')}.pdf`,
+      status: 'new',
+      notes: 'Hồ sơ thử nghiệm mẫu do quản trị viên tạo',
+      createdAt: new Date().toISOString()
+    });
   };
 
   const handleLogin = async (e: React.FormEvent) => {

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "app_1792054114742_64our",
+    "jobId": "JGPJh8QV0vLS1gD7x0X5",
+    "jobTitle": "GIÁO VIÊN TOÁN THPT",
+    "name": "Vũ Hải Đăng",
+    "dob": "1992-11-04",
+    "phone": "0934567890",
+    "email": "dang.vu@gmail.com",
+    "cvUrl": "https://example.com/cv-haidang.pdf",
+    "downloadURL": "https://example.com/cv-haidang.pdf",
+    "fileName": "CV_VuHaiDang_ToanTHPT.pdf",
+    "status": "new",
+    "notes": "",
+    "createdAt": "2026-10-15T08:48:34.741Z"
+  },
+  {
+    "id": "app_1792053709042_j5cq3",
+    "jobId": "LFKZeCdvGKbFT59g0bdi",
+    "jobTitle": "CHUYÊN VIÊN C&B",
+    "name": "Hoàng Văn Tuấn",
+    "dob": "1993-08-20",
+    "phone": "0977889900",
+    "email": "tuan.hoang@gmail.com",
+    "cvUrl": "https://example.com/cv-tuan.pdf",
+    "downloadURL": "https://example.com/cv-tuan.pdf",
+    "fileName": "CV_HoangVanTuan.pdf",
+    "status": "new",
+    "notes": "",
+    "createdAt": "2026-10-15T08:41:49.037Z"
+  },
+  {
+    "id": "app_cb_001",
+    "jobId": "LFKZeCdvGKbFT59g0bdi",
+    "jobTitle": "CHUYÊN VIÊN C&B",
+    "name": "Nguyễn Thu Hà",
+    "dob": "18/09/1996",
+    "phone": "0987123456",
+    "email": "nguyenthuha.hr@gmail.com",
+    "downloadURL": "https://drive.google.com",
+    "cvUrl": "https://drive.google.com",
+    "fileName": "CV_NguyenThuHa_CB.pdf",
+    "status": "reviewed",
+    "notes": "Đã xem hồ sơ, kinh nghiệm 4 năm C&B tại trường quốc tế, nghiệp vụ BHXH và tiền lương tốt.",
+    "createdAt": "2026-10-10T08:30:00.000Z"
+  },
+  {
+    "id": "app_cb_002",
+    "jobId": "LFKZeCdvGKbFT59g0bdi",
+    "jobTitle": "CHUYÊN VIÊN C&B",
+    "name": "Trần Minh Quân",
+    "dob": "25/04/1994",
+    "phone": "0912345678",
+    "email": "minhquan.hrm@gmail.com",
+    "downloadURL": "https://drive.google.com",
+    "cvUrl": "https://drive.google.com",
+    "fileName": "CV_TranMinhQuan_ChuyenVienCB.pdf",
+    "status": "contacted",
+    "notes": "Đã gọi điện trao đổi sơ bộ, ứng viên có chứng chỉ kế toán và nghiệp vụ tiền lương.",
+    "createdAt": "2026-10-12T14:15:00.000Z"
+  }
+]

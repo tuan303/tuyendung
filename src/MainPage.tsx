@@ -3,12 +3,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
-  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar, Share2, Check
+  ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar, Share2, Check,
+  Users, Lock
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './firebase';
 import { defaultContent } from './SiteContentAdmin';
+import ApplicationsModal from './ApplicationsModal';
+import { Application } from './Admin';
 
 interface Job {
   id: string;
@@ -115,6 +118,79 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
+
+  // Applications state & counting
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [selectedJobForApplications, setSelectedJobForApplications] = useState<Job | null>(null);
+  const [applicationsModalOpen, setApplicationsModalOpen] = useState(false);
+
+  const fetchApplications = async () => {
+    try {
+      const res = await fetch('/api/applications');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setApplications(json.data);
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching applications:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchApplications();
+    const interval = setInterval(fetchApplications, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getJobApplicantCount = (job: Job) => {
+    return applications.filter(app => 
+      (app.jobId && app.jobId === job.id) || 
+      (app.jobTitle && app.jobTitle.trim().toLowerCase() === job.title.trim().toLowerCase())
+    ).length;
+  };
+
+  const handleOpenApplications = (job: Job, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedJobForApplications(job);
+    setApplicationsModalOpen(true);
+  };
+
+  const handleUpdateApplicationStatus = async (appId: string, status: string) => {
+    try {
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+      await fetch(`/api/applications/${appId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  };
+
+  const handleUpdateApplicationNotes = async (appId: string, notes: string) => {
+    try {
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, notes } : a));
+      await fetch(`/api/applications/${appId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
+    } catch (err) {
+      console.error("Error updating notes:", err);
+    }
+  };
+
+  const handleDeleteApplication = async (appId: string) => {
+    try {
+      setApplications(prev => prev.filter(a => a.id !== appId));
+      await fetch(`/api/applications/${appId}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error("Error deleting application:", err);
+    }
+  };
 
   useEffect(() => {
     // Check URL parameters for jobId when jobs are loaded
@@ -315,6 +391,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
       }
 
       alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công.");
+      fetchApplications();
 
       // 4. Reset form
       setName('');
@@ -431,6 +508,14 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
               <Mail className="w-4 h-4 shrink-0" />
               <span>Email: tuyendung@hoangmaistarschool.edu.vn</span>
             </div>
+            <a 
+              href="/admin" 
+              className="flex items-center space-x-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition text-white shadow-xs cursor-pointer"
+              title="Đăng nhập trang quản trị tuyển dụng"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Quản trị Tuyển dụng</span>
+            </a>
           </div>
         </div>
       </div>
@@ -556,6 +641,25 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                               <div className="flex items-center bg-gray-100 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
                                 <span className="font-bold" style={{ color: siteContent.primaryColor }}>Hạn nộp: {job.deadline}</span>
                               </div>
+                              <button
+                                type="button"
+                                onClick={(e) => handleOpenApplications(job, e)}
+                                className={`flex items-center text-xs font-semibold px-2 py-1 transition cursor-pointer border ${
+                                  getJobApplicantCount(job) > 0 
+                                    ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' 
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200'
+                                }`}
+                                style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}
+                                title="Nhấn để xem danh sách hồ sơ ứng viên đã ứng tuyển"
+                              >
+                                <Users className={`w-3.5 h-3.5 mr-1 ${getJobApplicantCount(job) > 0 ? 'text-blue-600' : 'text-gray-500'}`} />
+                                <span>{getJobApplicantCount(job)} hồ sơ ứng tuyển</span>
+                                {getJobApplicantCount(job) > 0 && (
+                                  <span className="ml-1 px-1.5 py-0.2 bg-blue-600 text-white text-[10px] rounded-full font-bold">
+                                    {getJobApplicantCount(job)}
+                                  </span>
+                                )}
+                              </button>
                               {job.jdUrl && (
                                 <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }} onClick={(e) => e.stopPropagation()}>
                                   <FileText className="w-3 h-3 mr-1" />
@@ -1175,9 +1279,13 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
           
           <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-white/50 text-sm">
             <p>&copy; 2026 Ngôi Sao Hoàng Mai. All rights reserved.</p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
+            <div className="flex items-center space-x-6 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition">Điều khoản</a>
               <a href="#" className="hover:text-white transition">Bảo mật</a>
+              <a href="/admin" className="hover:text-white transition flex items-center gap-1.5 font-medium text-white/70">
+                <Lock className="w-3.5 h-3.5" />
+                <span>Quản trị viên</span>
+              </a>
             </div>
           </div>
         </div>
@@ -1210,6 +1318,25 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                       <div className="flex items-center bg-gray-100 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
                         <span className="font-bold text-[#c8102e]">Hạn nộp: {selectedJob.deadline}</span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenApplications(selectedJob)}
+                        className={`flex items-center text-xs font-semibold px-2.5 py-1 transition cursor-pointer border ${
+                          getJobApplicantCount(selectedJob) > 0 
+                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200'
+                        }`}
+                        style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}
+                        title="Nhấn để xem danh sách hồ sơ ứng viên đã ứng tuyển"
+                      >
+                        <Users className={`w-3.5 h-3.5 mr-1 ${getJobApplicantCount(selectedJob) > 0 ? 'text-blue-600' : 'text-gray-500'}`} />
+                        <span>{getJobApplicantCount(selectedJob)} hồ sơ ứng tuyển</span>
+                        {getJobApplicantCount(selectedJob) > 0 && (
+                          <span className="ml-1 px-1.5 py-0.2 bg-blue-600 text-white text-[10px] rounded-full font-bold">
+                            {getJobApplicantCount(selectedJob)}
+                          </span>
+                        )}
+                      </button>
                       {selectedJob.jdUrl && (
                         <a href={selectedJob.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
                           <FileText className="w-3 h-3 mr-1" />
@@ -1291,40 +1418,63 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
               )}
             </div>
             
-            <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end gap-4">
+            <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50 flex flex-wrap justify-between items-center gap-4">
               <button 
-                onClick={() => {
-                  if (selectedJob) {
-                    setPosition(selectedJob.title);
-                    setSelectedJobId(selectedJob.id);
-                    setSelectedJob(null);
-                    setTimeout(() => {
-                      const formElement = document.getElementById('application-form');
-                      if (formElement) {
-                        formElement.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }, 100);
-                  }
-                }}
-                className="px-6 py-2.5 text-white font-bold hover:opacity-90 transition"
-                style={{ 
-                  backgroundColor: siteContent.primaryColor,
-                  borderRadius: `${siteContent.borderRadius}px` 
-                }}
+                type="button"
+                onClick={() => handleOpenApplications(selectedJob)}
+                className="flex items-center text-xs sm:text-sm font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3.5 py-2.5 rounded-lg border border-blue-200 transition cursor-pointer"
+                title="Xem danh sách hồ sơ ứng viên đã nộp cho vị trí này"
               >
-                Ứng tuyển ngay
+                <Users className="w-4 h-4 mr-2 text-blue-600" />
+                <span>Danh sách ứng viên ({getJobApplicantCount(selectedJob)} hồ sơ)</span>
               </button>
-              <button 
-                onClick={() => setSelectedJob(null)}
-                className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition"
-                style={{ borderRadius: `${siteContent.borderRadius}px` }}
-              >
-                Đóng
-              </button>
+
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    if (selectedJob) {
+                      setPosition(selectedJob.title);
+                      setSelectedJobId(selectedJob.id);
+                      setSelectedJob(null);
+                      setTimeout(() => {
+                        const formElement = document.getElementById('application-form');
+                        if (formElement) {
+                          formElement.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }, 100);
+                    }
+                  }}
+                  className="px-6 py-2.5 text-white font-bold hover:opacity-90 transition cursor-pointer"
+                  style={{ 
+                    backgroundColor: siteContent.primaryColor,
+                    borderRadius: `${siteContent.borderRadius}px` 
+                  }}
+                >
+                  Ứng tuyển ngay
+                </button>
+                <button 
+                  onClick={() => setSelectedJob(null)}
+                  className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition cursor-pointer"
+                  style={{ borderRadius: `${siteContent.borderRadius}px` }}
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Applications List Modal */}
+      <ApplicationsModal
+        isOpen={applicationsModalOpen}
+        onClose={() => setApplicationsModalOpen(false)}
+        job={selectedJobForApplications}
+        applications={applications}
+        onUpdateStatus={handleUpdateApplicationStatus}
+        onUpdateNotes={handleUpdateApplicationNotes}
+        onDeleteApplication={handleDeleteApplication}
+      />
     </div>
   );
 }

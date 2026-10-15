@@ -4,6 +4,7 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { initializeApp as initializeClientApp } from "firebase/app";
 import { getFirestore as getClientFirestore, doc, getDoc } from "firebase/firestore";
+import { getApplications, addApplication, updateApplication, deleteApplication } from "../src/server/applicationsStore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBtsC_4jAhCI7YJd8J-SiTYg9t7WH6Mvm8",
@@ -182,53 +183,140 @@ apiRouter.all("/send-email", async (req, res) => {
     if (!name || !phone || !email || !position) {
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
     }
-    const docRef = doc(clientDb, "settings", "smtp");
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
-      return res.status(500).json({ error: "SMTP settings not configured" });
-    }
-    const smtpSettings = docSnap.data();
-    if (!smtpSettings || !smtpSettings.host || !smtpSettings.port || !smtpSettings.user || !smtpSettings.pass || !smtpSettings.recipient) {
-      return res.status(500).json({ error: "Incomplete SMTP settings" });
-    }
-    const decryptedPass = decrypt(smtpSettings.pass);
-    const transporter = nodemailer.createTransport({
-      host: smtpSettings.host,
-      port: parseInt(smtpSettings.port),
-      secure: parseInt(smtpSettings.port) === 465,
-      auth: {
-        user: smtpSettings.user,
-        pass: decryptedPass,
-      },
-    });
-    const subject = `[Ứng tuyển] ${position} - ${name}`;
-    const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}`.trim();
-    const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
-    
-    const mailOptions: any = {
-      from: `"${name}" <${smtpSettings.user}>`,
-      replyTo: email,
-      to: smtpSettings.recipient,
-      subject: subject,
-      text: textBody,
-      html: htmlBody,
-    };
 
-    if (fileData && fileName) {
-      const base64Data = fileData.split(',')[1];
-      mailOptions.attachments = [
-        {
-          filename: fileName,
-          content: base64Data,
-          encoding: 'base64'
+    // 1. ALWAYS persist application in storage FIRST
+    let savedAppRecord = null;
+    try {
+      savedAppRecord = await addApplication({
+        jobId: jobId || '',
+        jobTitle: position,
+        name,
+        dob: dob || '',
+        phone,
+        email,
+        cvUrl: downloadURL || '',
+        downloadURL: downloadURL || '',
+        fileName: fileName || '',
+        status: 'new',
+        notes: '',
+        createdAt: new Date().toISOString()
+      });
+      console.log(`[Email API Vercel] Application saved: ${savedAppRecord.id} for "${position}" (${name})`);
+    } catch (storeError) {
+      console.error("[Email API Vercel] Error saving application:", storeError);
+    }
+
+    // 2. Forward via SMTP if available
+    try {
+      const docRef = doc(clientDb, "settings", "smtp");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const smtpSettings = docSnap.data();
+        if (smtpSettings && smtpSettings.host && smtpSettings.port && smtpSettings.user && smtpSettings.pass && smtpSettings.recipient) {
+          const decryptedPass = decrypt(smtpSettings.pass);
+          if (decryptedPass && !decryptedPass.startsWith("__")) {
+            const transporter = nodemailer.createTransport({
+              host: smtpSettings.host,
+              port: parseInt(smtpSettings.port),
+              secure: parseInt(smtpSettings.port) === 465,
+              auth: {
+                user: smtpSettings.user,
+                pass: decryptedPass,
+              },
+            });
+            const subject = `[Ứng tuyển] ${position} - ${name}`;
+            const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}`.trim();
+            const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
+            
+            const mailOptions: any = {
+              from: `"${name}" <${smtpSettings.user}>`,
+              replyTo: email,
+              to: smtpSettings.recipient,
+              subject: subject,
+              text: textBody,
+              html: htmlBody,
+            };
+
+            if (fileData && fileName) {
+              const base64Data = fileData.split(',')[1];
+              mailOptions.attachments = [
+                {
+                  filename: fileName,
+                  content: base64Data,
+                  encoding: 'base64'
+                }
+              ];
+            }
+
+            await transporter.sendMail(mailOptions);
+          }
         }
-      ];
+      }
+    } catch (smtpErr) {
+      console.error("[Email API Vercel] SMTP send error:", smtpErr);
     }
 
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ success: true, message: "Email sent successfully" });
+    res.status(200).json({ 
+      success: true, 
+      message: "Hồ sơ của bạn đã được tiếp nhận thành công",
+      applicationId: savedAppRecord?.id 
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to send email", details: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: "Failed to process application", details: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+// GET /api/applications - list all applications
+apiRouter.get("/applications", async (req, res) => {
+  try {
+    const apps = await getApplications();
+    res.status(200).json({ success: true, data: apps });
+  } catch (error: any) {
+    console.error("Error fetching applications:", error);
+    res.status(500).json({ error: "Failed to fetch applications", details: error.message });
+  }
+});
+
+// POST /api/applications - create application
+apiRouter.post("/applications", async (req, res) => {
+  try {
+    const appData = req.body;
+    if (!appData.jobTitle || !appData.name || !appData.phone) {
+      return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
+    }
+    const newApp = await addApplication(appData);
+    res.status(201).json({ success: true, data: newApp });
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to create application", details: error.message });
+  }
+});
+
+// PATCH /api/applications/:id - update application
+apiRouter.patch("/applications/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const updated = await updateApplication(id, updates);
+    if (!updated) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+    res.status(200).json({ success: true, data: updated });
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to update application", details: error.message });
+  }
+});
+
+// DELETE /api/applications/:id - delete application
+apiRouter.delete("/applications/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await deleteApplication(id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+    res.status(200).json({ success: true, message: "Application deleted successfully" });
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to delete application", details: error.message });
   }
 });
 

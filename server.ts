@@ -7,6 +7,7 @@ import cors from "cors";
 import crypto from "crypto";
 import { initializeApp as initializeClientApp } from "firebase/app";
 import { getFirestore as getClientFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getApplications, addApplication, updateApplication, deleteApplication } from "./src/server/applicationsStore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBtsC_4jAhCI7YJd8J-SiTYg9t7WH6Mvm8",
@@ -278,85 +279,169 @@ const SMTP_CACHE_TTL = 60 * 1000; // 1 minute
         return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
       }
 
-      let smtpSettings = null;
-      if (cachedSmtpSettings && Date.now() - lastSmtpCacheTime < SMTP_CACHE_TTL) {
-        smtpSettings = cachedSmtpSettings;
-      } else {
-        const docRef = doc(clientDb, "settings", "smtp");
-        const docSnap = await getDoc(docRef);
-        if (!docSnap.exists()) {
-          return res.status(500).json({ error: "SMTP settings not configured" });
-        }
-        smtpSettings = docSnap.data();
-        cachedSmtpSettings = smtpSettings;
-        lastSmtpCacheTime = Date.now();
-      }
-
-      if (!smtpSettings || !smtpSettings.host || !smtpSettings.port || !smtpSettings.user || !smtpSettings.pass || !smtpSettings.recipient) {
-        return res.status(500).json({ error: "Incomplete SMTP settings" });
-      }
-      const decryptedPass = decrypt(smtpSettings.pass);
-      if (decryptedPass === "__DECRYPTION_FAILED__") {
-        console.error("CRITICAL: SMTP password decryption failed. This usually means the GEMINI_API_KEY has changed.");
-        return res.status(500).json({ 
-          error: "Lỗi giải mã mật khẩu SMTP. Vui lòng vào trang Quản trị > Cài đặt Email và nhập lại mật khẩu SMTP để cập nhật mã hóa mới.",
-          code: "DECRYPTION_FAILED"
+      // 1. ALWAYS persist application in server storage FIRST (Guaranteed capture)
+      let savedAppRecord = null;
+      try {
+        savedAppRecord = await addApplication({
+          jobId: jobId || '',
+          jobTitle: position,
+          name,
+          dob: dob || '',
+          phone,
+          email,
+          cvUrl: downloadURL || '',
+          downloadURL: downloadURL || '',
+          fileName: fileName || '',
+          status: 'new',
+          notes: '',
+          createdAt: new Date().toISOString()
         });
+        console.log(`[Email API] Application saved to persistent storage: ${savedAppRecord.id} for "${position}" (${name})`);
+      } catch (storeError) {
+        console.error("[Email API] Error saving application to storage:", storeError);
       }
 
-      console.log(`Creating transporter for ${smtpSettings.host}:${smtpSettings.port} (User: ${smtpSettings.user})`);
-      
-      const transporter = nodemailer.createTransport({
-        host: smtpSettings.host,
-        port: parseInt(smtpSettings.port),
-        secure: parseInt(smtpSettings.port) === 465,
-        auth: {
-          user: smtpSettings.user,
-          pass: decryptedPass,
-        },
-        connectionTimeout: 20000, // 20s
-        greetingTimeout: 20000,
-        socketTimeout: 30000,
-      });
-
-      const subject = `[Ứng tuyển] ${position} - ${name}`;
-      const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}`.trim();
-      const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
-      
-      const mailOptions: any = {
-        from: `"Hệ thống Tuyển dụng" <${smtpSettings.user}>`, // Consistent with test email
-        replyTo: email,
-        to: smtpSettings.recipient,
-        subject: subject,
-        text: textBody,
-        html: htmlBody,
-      };
-
-      if (fileData && fileName) {
-        console.log(`Attaching file: ${fileName} (${Math.round(fileData.length / 1024)} KB)`);
-        const base64Data = fileData.split(',')[1];
-        mailOptions.attachments = [
-          {
-            filename: fileName,
-            content: base64Data,
-            encoding: 'base64'
+      // 2. Attempt to forward via SMTP email in background (non-blocking for candidate)
+      let emailDispatched = false;
+      try {
+        let smtpSettings = null;
+        if (cachedSmtpSettings && Date.now() - lastSmtpCacheTime < SMTP_CACHE_TTL) {
+          smtpSettings = cachedSmtpSettings;
+        } else {
+          const docRef = doc(clientDb, "settings", "smtp");
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            smtpSettings = docSnap.data();
+            cachedSmtpSettings = smtpSettings;
+            lastSmtpCacheTime = Date.now();
           }
-        ];
+        }
+
+        if (smtpSettings && smtpSettings.host && smtpSettings.port && smtpSettings.user && smtpSettings.pass && smtpSettings.recipient) {
+          const decryptedPass = decrypt(smtpSettings.pass);
+          if (decryptedPass !== "__DECRYPTION_FAILED__") {
+            const transporter = nodemailer.createTransport({
+              host: smtpSettings.host,
+              port: parseInt(smtpSettings.port),
+              secure: parseInt(smtpSettings.port) === 465,
+              auth: {
+                user: smtpSettings.user,
+                pass: decryptedPass,
+              },
+              connectionTimeout: 20000,
+              greetingTimeout: 20000,
+              socketTimeout: 30000,
+            });
+
+            const subject = `[Ứng tuyển] ${position} - ${name}`;
+            const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${downloadURL ? `Link CV đính kèm: ${downloadURL}` : `(File CV được đính kèm trong email này)`}`.trim();
+            const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${downloadURL ? `<strong>Link CV đính kèm:</strong> <a href="${downloadURL}">${downloadURL}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
+            
+            const mailOptions: any = {
+              from: `"Hệ thống Tuyển dụng" <${smtpSettings.user}>`,
+              replyTo: email,
+              to: smtpSettings.recipient,
+              subject: subject,
+              text: textBody,
+              html: htmlBody,
+            };
+
+            if (fileData && fileName) {
+              const base64Data = fileData.split(',')[1];
+              mailOptions.attachments = [
+                {
+                  filename: fileName,
+                  content: base64Data,
+                  encoding: 'base64'
+                }
+              ];
+            }
+
+            transporter.sendMail(mailOptions)
+              .then((info) => {
+                console.log("[Email API] Email forwarded successfully! MessageId:", info.messageId);
+              })
+              .catch((smtpSendErr) => {
+                console.error("[Email API] Warning: Background SMTP send failed:", smtpSendErr.message);
+              });
+
+            emailDispatched = true;
+          } else {
+            console.warn("[Email API] SMTP password decryption failed. Application saved to database, email forwarding skipped.");
+          }
+        } else {
+          console.log("[Email API] SMTP not configured. Application saved to database.");
+        }
+      } catch (smtpErr: any) {
+        console.error("[Email API] Warning: SMTP configuration or forwarding error:", smtpErr.message);
       }
 
-      console.log(`Sending application email to ${smtpSettings.recipient} in background...`);
-      transporter.sendMail(mailOptions)
-        .then((info) => {
-          console.log("Email sent successfully in background! MessageId:", info.messageId);
-        })
-        .catch((error) => {
-          console.error("Error sending email in background:", error);
-        });
-      
-      res.status(200).json({ success: true, message: "Application received and email is being sent" });
+      res.status(200).json({ 
+        success: true, 
+        message: "Hồ sơ của bạn đã được tiếp nhận thành công",
+        applicationId: savedAppRecord?.id,
+        emailDispatched
+      });
     } catch (error) {
-      console.error("Error preparing email:", error);
-      res.status(500).json({ error: "Failed to prepare email", details: error instanceof Error ? error.message : String(error) });
+      console.error("Error processing application:", error);
+      res.status(500).json({ error: "Failed to process application", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // GET /api/applications - list all applications
+  apiRouter.get("/applications", async (req, res) => {
+    try {
+      const apps = await getApplications();
+      res.status(200).json({ success: true, data: apps });
+    } catch (error: any) {
+      console.error("Error fetching applications:", error);
+      res.status(500).json({ error: "Failed to fetch applications", details: error.message });
+    }
+  });
+
+  // POST /api/applications - create application (manual or test)
+  apiRouter.post("/applications", async (req, res) => {
+    try {
+      const appData = req.body;
+      if (!appData.jobTitle || !appData.name || !appData.phone) {
+        return res.status(400).json({ error: "Thiếu thông tin bắt buộc (jobTitle, name, phone)" });
+      }
+      const newApp = await addApplication(appData);
+      res.status(201).json({ success: true, data: newApp });
+    } catch (error: any) {
+      console.error("Error creating application:", error);
+      res.status(500).json({ error: "Failed to create application", details: error.message });
+    }
+  });
+
+  // PATCH /api/applications/:id - update application status/notes
+  apiRouter.patch("/applications/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const updated = await updateApplication(id, updates);
+      if (!updated) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      res.status(200).json({ success: true, data: updated });
+    } catch (error: any) {
+      console.error("Error updating application:", error);
+      res.status(500).json({ error: "Failed to update application", details: error.message });
+    }
+  });
+
+  // DELETE /api/applications/:id - delete application
+  apiRouter.delete("/applications/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await deleteApplication(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      res.status(200).json({ success: true, message: "Application deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting application:", error);
+      res.status(500).json({ error: "Failed to delete application", details: error.message });
     }
   });
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   X, Users, Search, Phone, Mail, Calendar, FileText, ExternalLink, 
-  Trash2, Download, Check, Copy, Clock, MessageSquare, Plus, AlertCircle 
+  Trash2, Download, Check, Copy, Clock, MessageSquare, Plus, AlertCircle, UserPlus 
 } from 'lucide-react';
 import { Job, Application } from './Admin';
 
@@ -14,6 +14,7 @@ interface ApplicationsModalProps {
   onUpdateNotes: (id: string, notes: string) => Promise<void>;
   onDeleteApplication: (id: string) => Promise<void>;
   onCreateSampleApplication?: (job: Job) => Promise<void>;
+  onCreateApplication?: (data: Partial<Application>) => Promise<void>;
 }
 
 export function formatTimestamp(timestamp: any): string {
@@ -98,7 +99,8 @@ export default function ApplicationsModal({
   onUpdateStatus,
   onUpdateNotes,
   onDeleteApplication,
-  onCreateSampleApplication
+  onCreateSampleApplication,
+  onCreateApplication
 }: ApplicationsModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -107,6 +109,18 @@ export default function ApplicationsModal({
   const [notesValue, setNotesValue] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Manual Add Form states
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newDob, setNewDob] = useState('');
+  const [newCvUrl, setNewCvUrl] = useState('');
+  const [newFileName, setNewFileName] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [newStatus, setNewStatus] = useState('new');
+  const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
   if (!isOpen || !job) return null;
 
@@ -167,6 +181,46 @@ export default function ApplicationsModal({
     }
   };
 
+  const handleAddNewCandidate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newPhone.trim()) {
+      alert("Vui lòng nhập họ tên và số điện thoại.");
+      return;
+    }
+    setIsSubmittingNew(true);
+    try {
+      if (onCreateApplication) {
+        await onCreateApplication({
+          jobId: job.id,
+          jobTitle: job.title,
+          name: newName.trim(),
+          phone: newPhone.trim(),
+          email: newEmail.trim(),
+          dob: newDob.trim(),
+          cvUrl: newCvUrl.trim(),
+          downloadURL: newCvUrl.trim(),
+          fileName: newFileName.trim() || (newCvUrl ? 'CV_DinhKem.pdf' : ''),
+          notes: newNotes.trim(),
+          status: newStatus,
+          createdAt: new Date().toISOString()
+        });
+      }
+      setShowAddForm(false);
+      setNewName('');
+      setNewPhone('');
+      setNewEmail('');
+      setNewDob('');
+      setNewCvUrl('');
+      setNewFileName('');
+      setNewNotes('');
+      setNewStatus('new');
+    } catch (err: any) {
+      alert("Lỗi thêm hồ sơ: " + err.message);
+    } finally {
+      setIsSubmittingNew(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 md:p-6 animate-fadeIn">
       <div 
@@ -198,7 +252,7 @@ export default function ApplicationsModal({
           </button>
         </div>
 
-        {/* Toolbar: Search, Filters & Export */}
+        {/* Toolbar: Search, Filters & Action Buttons */}
         <div className="p-4 md:p-5 border-b border-gray-100 bg-gray-50 shrink-0 space-y-3">
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             {/* Search Box */}
@@ -221,8 +275,20 @@ export default function ApplicationsModal({
               )}
             </div>
 
-            {/* Actions: Export & Create Sample */}
+            {/* Actions: Add Candidate, Export & Create Sample */}
             <div className="flex items-center space-x-2 shrink-0">
+              {onCreateApplication && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-[#c8102e] hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition shadow-xs"
+                  title="Nhập thêm hồ sơ ứng viên đã nhận từ email hoặc kênh khác"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>{showAddForm ? 'Đóng form' : '+ Thêm hồ sơ'}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => exportApplicationsToCSV(filteredApps, job.title)}
@@ -242,11 +308,127 @@ export default function ApplicationsModal({
                   title="Tạo nhanh 1 hồ sơ mẫu để thử nghiệm tính năng"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Thêm mẫu</span>
+                  <span className="hidden sm:inline">Mẫu thử</span>
                 </button>
               )}
             </div>
           </div>
+
+          {/* Form thêm hồ sơ trực tiếp */}
+          {showAddForm && (
+            <form onSubmit={handleAddNewCandidate} className="bg-white p-4 rounded-xl border border-red-200 shadow-sm space-y-3 animate-fadeIn">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#c8102e] flex items-center">
+                  <UserPlus className="w-4 h-4 mr-1.5" />
+                  Nhập thông tin ứng viên đã nhận (qua email hoặc kênh tuyển dụng khác)
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddForm(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Họ và tên *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="VD: Nguyễn Văn A"
+                    className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Số điện thoại *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    placeholder="VD: 0987123456"
+                    className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="VD: ungvien@gmail.com"
+                    className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Ngày sinh</label>
+                  <input
+                    type="text"
+                    value={newDob}
+                    onChange={(e) => setNewDob(e.target.value)}
+                    placeholder="VD: 15/06/1995"
+                    className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Link CV (Google Drive/URL)</label>
+                  <input
+                    type="url"
+                    value={newCvUrl}
+                    onChange={(e) => setNewCvUrl(e.target.value)}
+                    placeholder="https://drive.google.com/..."
+                    className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Trạng thái ban đầu</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                  >
+                    <option value="new">Mới nộp</option>
+                    <option value="reviewed">Đã xem hồ sơ</option>
+                    <option value="contacted">Đã liên hệ</option>
+                    <option value="passed">Mời phỏng vấn / Đạt</option>
+                    <option value="rejected">Không phù hợp</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ghi chú về ứng viên</label>
+                <input
+                  type="text"
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="Ghi chú kinh nghiệm, kết quả liên hệ..."
+                  className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#c8102e]"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-lg"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingNew}
+                  className="px-4 py-1.5 bg-[#c8102e] hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-xs"
+                >
+                  {isSubmittingNew ? 'Đang lưu...' : 'Lưu hồ sơ ứng viên'}
+                </button>
+              </div>
+            </form>
+          )}
 
           {/* Status Filter Tabs */}
           <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 text-xs">
@@ -324,16 +506,28 @@ export default function ApplicationsModal({
               <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">
                 Khi có ứng viên nộp hồ sơ cho vị trí <strong>"{job.title}"</strong> trên trang tuyển dụng, thông tin chi tiết và CV sẽ xuất hiện tại đây.
               </p>
-              {onCreateSampleApplication && (
-                <button
-                  type="button"
-                  onClick={() => onCreateSampleApplication(job)}
-                  className="inline-flex items-center space-x-2 px-4 py-2.5 bg-[#c8102e] hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-md transition"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Tạo hồ sơ thử nghiệm ngay</span>
-                </button>
-              )}
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {onCreateApplication && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(true)}
+                    className="inline-flex items-center space-x-2 px-4 py-2.5 bg-[#c8102e] hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-md transition"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Nhập hồ sơ ứng viên đã nhận</span>
+                  </button>
+                )}
+                {onCreateSampleApplication && (
+                  <button
+                    type="button"
+                    onClick={() => onCreateSampleApplication(job)}
+                    className="inline-flex items-center space-x-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tạo hồ sơ thử nghiệm</span>
+                  </button>
+                )}
+              </div>
             </div>
           ) : filteredApps.length === 0 ? (
             <div className="text-center py-12 text-gray-500 text-sm">
@@ -439,20 +633,22 @@ export default function ApplicationsModal({
                       <div className="flex items-center space-x-2 truncate">
                         <Mail className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                         <a href={`mailto:${app.email}`} className="font-medium text-gray-800 hover:underline truncate">
-                          {app.email}
+                          {app.email || 'Không có email'}
                         </a>
                       </div>
-                      <button
-                        onClick={() => handleCopy(app.email, `email-${app.id}`)}
-                        className="text-gray-400 hover:text-gray-600 p-1 rounded"
-                        title="Sao chép địa chỉ email"
-                      >
-                        {copiedId === `email-${app.id}` ? (
-                          <Check className="w-3.5 h-3.5 text-green-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                      {app.email && (
+                        <button
+                          onClick={() => handleCopy(app.email, `email-${app.id}`)}
+                          className="text-gray-400 hover:text-gray-600 p-1 rounded"
+                          title="Sao chép địa chỉ email"
+                        >
+                          {copiedId === `email-${app.id}` ? (
+                            <Check className="w-3.5 h-3.5 text-green-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
                     </div>
 
                     {/* Date of Birth */}

@@ -1,0 +1,6 @@
+{
+  "summary": "Kế hoạch triển khai khắc phục lỗi lưu và đếm hồ sơ ứng tuyển: chuyển cơ chế lưu trữ hồ sơ sang máy chủ backend API và file dữ liệu bền vững, đảm bảo hồ sơ nộp từ form web luôn được lưu trữ thành công và hiển thị chính xác trên từng vị trí tuyển dụng.",
+  "updatedAt": "2026-10-15T08:25:13.261250650Z",
+  "requestFeedback": true,
+  "userFacing": true
+}
