@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Users, Search, Filter, Download, Plus, Clock, Phone, Mail, 
   Calendar, FileText, ExternalLink, Trash2, Check, Copy, MessageSquare, 
   Briefcase, CheckCircle2, UserCheck, AlertCircle, UserPlus 
 } from 'lucide-react';
-import { Job, Application } from './Admin';
+import type { Job, Application } from './Admin';
+import { downloadApplicationCv } from './lib/adminApi';
+import { safeExternalUrl } from './lib/safeHtml';
+import { buildApplicationStatistics, applicationStatus, APPLICATION_STATUSES, STATUS_LABELS, UNMATCHED_JOB } from './shared/applicationMatching';
 import { formatTimestamp, exportApplicationsToCSV } from './ApplicationsModal';
 
 interface ApplicationsTabProps {
@@ -34,6 +37,8 @@ export default function ApplicationsTab({
   const [notesValue, setNotesValue] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
 
   // Manual Add Form states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -47,25 +52,20 @@ export default function ApplicationsTab({
   const [newStatus, setNewStatus] = useState('new');
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
-  // Statistics
-  const totalCount = applications.length;
-  const newCount = applications.filter(a => (a.status || 'new') === 'new').length;
-  const contactedCount = applications.filter(a => a.status === 'contacted').length;
-  const passedCount = applications.filter(a => a.status === 'passed').length;
+  const statistics = useMemo(() => buildApplicationStatistics(jobs, applications), [jobs, applications]);
+  const totalCount = statistics.total;
+  const newCount = statistics.statuses.new;
+  const contactedCount = statistics.statuses.contacted;
+  const passedCount = statistics.statuses.passed;
 
   // Filter applications
   const filteredApps = applications.filter(app => {
-    // Job filter
-    let matchesJob = true;
-    if (selectedJobIdFilter !== 'all') {
-      const targetJob = jobs.find(j => j.id === selectedJobIdFilter);
-      const targetNorm = (targetJob?.title || '').trim().replace(/\s+/g, ' ').toLowerCase();
-      matchesJob = (app.jobId === selectedJobIdFilter) || 
-        (targetNorm !== '' && (app.jobTitle || '').trim().replace(/\s+/g, ' ').toLowerCase() === targetNorm);
-    }
+    const matchedJobId = statistics.match(app).jobId;
+    const matchesJob = selectedJobIdFilter === 'all' ||
+      (selectedJobIdFilter === UNMATCHED_JOB ? matchedJobId === null : matchedJobId === selectedJobIdFilter);
 
     // Status filter
-    const currentStatus = app.status || 'new';
+    const currentStatus = applicationStatus(app.status);
     const matchesStatus = statusFilter === 'all' || currentStatus === statusFilter;
 
     // Search filter
@@ -78,19 +78,31 @@ export default function ApplicationsTab({
     return matchesJob && matchesStatus && matchesSearch;
   });
 
+  const runAction = async (action: () => Promise<void>) => {
+    setActionError('');
+    try { await action(); } catch (error) { setActionError(error instanceof Error ? error.message : 'Thao tác thất bại.'); }
+  };
+
+  const handleDownload = async (app: Application) => {
+    setDownloadingId(app.id);
+    await runAction(() => downloadApplicationCv(app));
+    setDownloadingId(null);
+  };
+
   const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(() => setActionError('Không sao chép được vào bộ nhớ tạm.'));
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleSaveNotes = async (appId: string) => {
+    setActionError('');
     setIsSavingNotes(true);
     try {
       await onUpdateNotes(appId, notesValue);
       setEditingNotesId(null);
     } catch (e) {
-      console.error("Error saving notes:", e);
+      setActionError(e instanceof Error ? e.message : 'Không lưu được ghi chú.');
     } finally {
       setIsSavingNotes(false);
     }
@@ -98,9 +110,12 @@ export default function ApplicationsTab({
 
   const handleDelete = async (appId: string, candidateName: string) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa hồ sơ của ứng viên "${candidateName}" không?`)) {
+      setActionError('');
       setDeletingId(appId);
       try {
         await onDeleteApplication(appId);
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Không xóa được hồ sơ.');
       } finally {
         setDeletingId(null);
       }
@@ -113,13 +128,18 @@ export default function ApplicationsTab({
       alert("Vui lòng nhập họ tên và số điện thoại.");
       return;
     }
-    const matchedJob = jobs.find(j => j.id === newJobId) || jobs[0];
+    const matchedJob = jobs.find(j => j.id === (newJobId || jobs[0]?.id));
     if (!matchedJob) {
       alert("Vui lòng chọn vị trí tuyển dụng.");
       return;
     }
 
+    if (newCvUrl && !safeExternalUrl(newCvUrl.trim())) {
+      setActionError('Link CV phải là địa chỉ HTTP hoặc HTTPS hợp lệ.');
+      return;
+    }
     setIsSubmittingNew(true);
+    setActionError('');
     try {
       if (onCreateApplication) {
         await onCreateApplication({
@@ -133,8 +153,7 @@ export default function ApplicationsTab({
           downloadURL: newCvUrl.trim(),
           fileName: newCvUrl ? 'CV_DinhKem.pdf' : '',
           notes: newNotes.trim(),
-          status: newStatus,
-          createdAt: new Date().toISOString()
+          status: newStatus
         });
       }
       setShowAddForm(false);
@@ -146,7 +165,7 @@ export default function ApplicationsTab({
       setNewNotes('');
       setNewStatus('new');
     } catch (err: any) {
-      alert("Lỗi thêm hồ sơ: " + err.message);
+      setActionError('Lỗi thêm hồ sơ: ' + err.message);
     } finally {
       setIsSubmittingNew(false);
     }
@@ -154,6 +173,7 @@ export default function ApplicationsTab({
 
   return (
     <div className="space-y-6">
+      {actionError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{actionError}</div>}
       {/* Top Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center space-x-4">
@@ -197,6 +217,46 @@ export default function ApplicationsTab({
         </div>
       </div>
 
+      <section aria-labelledby="position-statistics-title" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-5 md:p-6 border-b border-gray-100">
+          <h2 id="position-statistics-title" className="text-xl font-bold text-gray-900">Số hồ sơ theo vị trí tuyển dụng</h2>
+          <p className="text-sm text-gray-500 mt-1">Thống kê tất cả hồ sơ, gồm cả vị trí đã ẩn và chưa có hồ sơ. Nhấn vào vị trí để lọc danh sách bên dưới.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 text-gray-600"><tr>
+              <th scope="col" className="px-5 py-3 min-w-56">Vị trí</th>
+              <th scope="col" className="px-3 py-3 text-center">Tổng hồ sơ</th>
+              {APPLICATION_STATUSES.map(status => <th scope="col" key={status} className="px-3 py-3 text-center whitespace-nowrap">{STATUS_LABELS[status]}</th>)}
+            </tr></thead>
+            <tbody className="divide-y divide-gray-100">
+              {statistics.rows.map(row => <tr key={row.job.id} className={selectedJobIdFilter === row.job.id ? 'bg-red-50' : 'hover:bg-gray-50'} onClick={() => setSelectedJobIdFilter(row.job.id)}>
+                <th scope="row" className="px-5 py-3 font-medium">
+                  <button type="button" onClick={() => setSelectedJobIdFilter(row.job.id)} className="text-left text-blue-700 hover:underline focus-visible:underline">
+                    {row.job.title} {row.job.isHidden && <span className="ml-1 text-xs text-gray-500">(Đã ẩn)</span>}
+                    <span className="block text-xs font-normal text-gray-500">{row.job.department || 'Vị trí tuyển dụng'} · {row.job.id}</span>
+                  </button>
+                </th>
+                <td className="px-3 py-3 text-center font-bold text-gray-900">{row.total}</td>
+                {APPLICATION_STATUSES.map(status => <td key={status} className="px-3 py-3 text-center">{row.statuses[status]}</td>)}
+              </tr>)}
+              <tr className={selectedJobIdFilter === UNMATCHED_JOB ? 'bg-amber-50' : 'hover:bg-amber-50/50'} onClick={() => setSelectedJobIdFilter(UNMATCHED_JOB)}>
+                <th scope="row" className="px-5 py-3 font-medium">
+                  <button type="button" onClick={() => setSelectedJobIdFilter(UNMATCHED_JOB)} className="text-left text-amber-800 hover:underline">Chưa xác định vị trí<span className="block text-xs font-normal text-gray-500">Vị trí đã xóa, không khớp hoặc trùng tên ({statistics.ambiguousCount} hồ sơ trùng tên)</span></button>
+                </th>
+                <td className="px-3 py-3 text-center font-bold">{statistics.unmatched.length}</td>
+                {APPLICATION_STATUSES.map(status => <td key={status} className="px-3 py-3 text-center">{statistics.unmatchedStatuses[status]}</td>)}
+              </tr>
+            </tbody>
+            <tfoot className="border-t bg-gray-50 font-bold"><tr>
+              <th scope="row" className="px-5 py-3"><button type="button" onClick={() => setSelectedJobIdFilter('all')} className="hover:underline">Tất cả vị trí</button></th>
+              <td className="px-3 py-3 text-center">{statistics.total}</td>
+              {APPLICATION_STATUSES.map(status => <td key={status} className="px-3 py-3 text-center">{statistics.statuses[status]}</td>)}
+            </tr></tfoot>
+          </table>
+        </div>
+      </section>
+
       {/* Main Filter & List Box */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 md:p-6 space-y-5">
         {/* Header & Controls */}
@@ -213,7 +273,7 @@ export default function ApplicationsTab({
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             {onCreateApplication && (
               <button
                 type="button"
@@ -228,7 +288,7 @@ export default function ApplicationsTab({
 
             <button
               type="button"
-              onClick={() => exportApplicationsToCSV(filteredApps)}
+              onClick={() => exportApplicationsToCSV(filteredApps, jobs)}
               disabled={applications.length === 0}
               className="flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl transition shadow-xs"
             >
@@ -238,7 +298,7 @@ export default function ApplicationsTab({
 
             <button
               type="button"
-              onClick={() => onCreateSampleApplication()}
+              onClick={() => void runAction(() => onCreateSampleApplication())}
               className="flex items-center space-x-1.5 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition"
               title="Tạo hồ sơ thử nghiệm để kiểm tra tính năng"
             >
@@ -392,27 +452,23 @@ export default function ApplicationsTab({
           {/* Job Filter */}
           <div className="relative">
             <select
+              aria-label="Lọc theo vị trí tuyển dụng"
               value={selectedJobIdFilter}
               onChange={(e) => setSelectedJobIdFilter(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs md:text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#c8102e] focus:bg-white transition cursor-pointer"
             >
               <option value="all">Tất cả vị trí tuyển dụng ({applications.length})</option>
-              {jobs.map((job) => {
-                const count = applications.filter(a => 
-                  (a.jobId === job.id) || (a.jobTitle?.trim().toLowerCase() === job.title.trim().toLowerCase())
-                ).length;
-                return (
-                  <option key={job.id} value={job.id}>
-                    {job.title} ({count})
-                  </option>
-                );
-              })}
+              {statistics.rows.map(({ job, total }) => (
+                <option key={job.id} value={job.id}>{job.title}{job.isHidden ? ' (Đã ẩn)' : ''} ({total})</option>
+              ))}
+              <option value={UNMATCHED_JOB}>Chưa xác định vị trí ({statistics.unmatched.length})</option>
             </select>
           </div>
 
           {/* Status Filter */}
           <div className="relative">
             <select
+              aria-label="Lọc theo trạng thái"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs md:text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#c8102e] focus:bg-white transition cursor-pointer"
@@ -422,7 +478,8 @@ export default function ApplicationsTab({
               <option value="reviewed">Đã xem ({applications.filter(a => a.status === 'reviewed').length})</option>
               <option value="contacted">Đã liên hệ ({applications.filter(a => a.status === 'contacted').length})</option>
               <option value="passed">Mời PV / Đạt ({applications.filter(a => a.status === 'passed').length})</option>
-              <option value="rejected">Không phù hợp ({applications.filter(a => a.status === 'rejected').length})</option>
+              <option value="rejected">Không phù hợp ({statistics.statuses.rejected})</option>
+              {statistics.statuses.other > 0 && <option value="other">Khác ({statistics.statuses.other})</option>}
             </select>
           </div>
         </div>
@@ -451,7 +508,7 @@ export default function ApplicationsTab({
                 )}
                 <button
                   type="button"
-                  onClick={() => onCreateSampleApplication()}
+                  onClick={() => void runAction(() => onCreateSampleApplication())}
                   className="inline-flex items-center space-x-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition"
                 >
                   <Plus className="w-4 h-4" />
@@ -465,7 +522,7 @@ export default function ApplicationsTab({
             </div>
           ) : (
             filteredApps.map((app, index) => {
-              const status = app.status || 'new';
+              const status = applicationStatus(app.status);
               const initials = (app.name || 'UV')
                 .split(' ')
                 .filter(Boolean)
@@ -474,6 +531,7 @@ export default function ApplicationsTab({
                 .join('');
 
               const isEditingNotes = editingNotesId === app.id;
+              const externalCvUrl = safeExternalUrl(app.cvUrl || app.downloadURL);
 
               return (
                 <div 
@@ -504,8 +562,9 @@ export default function ApplicationsTab({
                     <div className="flex items-center space-x-2 self-end sm:self-center">
                       {/* Status Dropdown */}
                       <select
+                        aria-label={`Trạng thái hồ sơ ${app.name}`}
                         value={status}
-                        onChange={(e) => onUpdateStatus(app.id, e.target.value)}
+                        onChange={(e) => void runAction(() => onUpdateStatus(app.id, e.target.value))}
                         className={`text-xs font-semibold px-3 py-1.5 rounded-lg border focus:outline-none transition cursor-pointer ${
                           status === 'new'
                             ? 'bg-blue-50 text-blue-700 border-blue-200 focus:ring-blue-500'
@@ -518,6 +577,7 @@ export default function ApplicationsTab({
                             : 'bg-rose-50 text-rose-700 border-rose-200 focus:ring-rose-500'
                         }`}
                       >
+                        {status === 'other' && <option value="other">Trạng thái khác</option>}
                         <option value="new">Mới nộp</option>
                         <option value="reviewed">Đã xem hồ sơ</option>
                         <option value="contacted">Đã liên hệ</option>
@@ -595,16 +655,20 @@ export default function ApplicationsTab({
                     <div className="flex items-center space-x-2">
                       <FileText className="w-4 h-4 text-gray-500" />
                       <span className="text-xs text-gray-600">File CV:</span>
-                      {app.cvUrl ? (
-                        <a
-                          href={app.cvUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                      {externalCvUrl ? (
+                        <a href={externalCvUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center space-x-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200">
+                          <ExternalLink className="w-3.5 h-3.5" /><span>{app.fileName || 'Mở liên kết CV'}</span>
+                        </a>
+                      ) : (app.cvUrl || app.downloadURL || app.fileName) ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleDownload(app)}
+                          disabled={downloadingId === app.id}
                           className="inline-flex items-center space-x-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition border border-blue-200"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>{app.fileName || 'Xem & Tải CV đính kèm'}</span>
-                        </a>
+                          <span>{downloadingId === app.id ? 'Đang tải...' : app.fileName || 'Tải CV đính kèm'}</span>
+                        </button>
                       ) : (
                         <span className="text-xs text-gray-500 italic bg-gray-100 px-2 py-1 rounded">
                           {app.fileName ? `${app.fileName} (Gửi qua email)` : 'Không có link CV'}
@@ -637,6 +701,7 @@ export default function ApplicationsTab({
                         Ghi chú nội bộ cho ứng viên này:
                       </label>
                       <textarea
+                        aria-label={`Ghi chú cho ${app.name}`}
                         value={notesValue}
                         onChange={(e) => setNotesValue(e.target.value)}
                         placeholder="Nhập ghi chú ứng viên..."

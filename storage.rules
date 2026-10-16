@@ -1,0 +1,8 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Upload, download and deletion go through the authenticated server.
+    // Public Firebase download tokens must be revoked during legacy migration.
+    match /{object=**} { allow read, write: if false; }
+  }
+}

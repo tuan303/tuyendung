@@ -1,149 +1,112 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: jobs
-    // Document ID: auto-generated
-    // Fields:
-    //   - title: string (required, length < 100) - Vị trí tuyển dụng
-    //   - description: string (required, length < 5000) - Mô tả công việc
-    //   - requirements: string (required, length < 5000) - Yêu cầu ứng viên
-    //   - deadline: string (required, length < 20) - Hạn nộp hồ sơ (dd/mm/yy)
-    //   - jdUrl: string (optional, length < 500) - Đính kèm JD (URL)
-    //   - createdAt: timestamp (required) - Thời gian tạo
-    //   - authorUid: string (required) - ID của người tạo (admin)
-    //   - isHidden: boolean (optional) - Trạng thái ẩn/hiện
-    //
-    // ===============================================================
-
-    // ===============================================================
-    // Helper Functions
-    // ===============================================================
-    
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email == "tuan303@gmail.com" ||
-        request.auth.token.email == "admin_nshm@nshm.edu.vn" ||
-        request.auth.token.email == "tuyendung@hoangmaistarschool.edu.vn"
+    function isAdminToken(token) {
+      return token.get('admin', false) == true || (
+        token.get('email_verified', false) == true &&
+        token.get('email', '') in [
+          'tuan303@gmail.com',
+          'admin_nshm@nshm.edu.vn',
+          'tuyendung@hoangmaistarschool.edu.vn'
+        ]
       );
     }
-
-    function isDocOwner() {
-      return isAuthenticated() && request.auth.uid == resource.data.authorUid;
+    function isAdmin() {
+      return request.auth != null && isAdminToken(request.auth.token);
     }
 
-    function uidUnchanged() {
-      return !('authorUid' in request.resource.data) || request.resource.data.authorUid == request.auth.uid;
+    function validText(data, field, minLength, maxLength) {
+      return data[field] is string && data[field].size() >= minLength && data[field].size() <= maxLength;
+    }
+    // A separator round-trip requires strings; each repeated 1000-char chunk
+    // keeps the regex below RE2's repetition limit while capping fields at 10000.
+    function contentTexts(values) {
+      let text = values.join('\u001f');
+      return text.split('\u001f') == values && text.matches('([^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}\u001f)*[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}[^\u001f]{0,1000}');
+    }
+    function optionalText(data, field, maxLength) {
+      return !(field in data) || validText(data, field, 0, maxLength);
+    }
+    function validUrl(value) {
+      return value is string && value.size() <= 2000 && (value == '' || value.matches('https?://[^\\s]+'));
+    }
+    function validNumber(value, min, max) {
+      return value is number && value >= min && value <= max;
+    }
+    function validColors(values) {
+      let text = values.join('|');
+      return text.split('\\|') == values && text.matches('#[0-9a-fA-F]{6}(\\|#[0-9a-fA-F]{6}){8}');
+    }
+    function validTextList(items, maxLength, urls) {
+      let count = items.size();
+      let text = items.join('\n');
+      // Round-trip requires string items without embedded line separators.
+      // One bounded regex validates item lengths without an expensive per-index loop.
+      return items is list && count <= 20 && (count == 0 || text.split('\n') == items) &&
+        (maxLength == 1000
+          ? text.matches('([^\n]{0,1000}\n)*[^\n]{0,1000}')
+          : text.matches('([^\n]{0,1000}[^\n]{0,1000}\n)*[^\n]{0,1000}[^\n]{0,1000}')) &&
+        (!urls || text.matches('(https?://[^\\s]+\n)*(https?://[^\\s]+)?'));
+    }
+    function validSiteContent(data) {
+      return validColors([data.primaryColor, data.secondaryColor, data.accentColor, data.textColor, data.backgroundColor, data.policySectionBgColor, data.policyTabTextColor, data.recruitmentStepBgColor, data.recruitmentStepTextColor]) &&
+        data.keys().hasOnly(['primaryColor', 'secondaryColor', 'accentColor', 'textColor', 'backgroundColor', 'fontFamily', 'fontScale', 'containerWidth', 'borderRadius', 'sectionSpacing', 'logoSize', 'logoUrl', 'jobIconUrl', 'heroHeight', 'heroOverlayOpacity', 'facebookUrl', 'youtubeUrl', 'websiteUrl', 'contactFacebookUrl', 'sectionOrder', 'showHero', 'showNav', 'showJobs', 'showPolicies', 'showForm', 'heroBgImage', 'heroTitle', 'heroSubtitle', 'hotline', 'jobsTitle', 'policy1Title', 'policy1Desc', 'trainingImages', 'policy2Title', 'policy2Desc', 'workspaceImages', 'policy3Title', 'policy3Desc1', 'policy3Desc2', 'philosophyImages', 'policy4Title', 'policy4Vision', 'policy4Mission', 'policy4CoreValues', 'coreValuesImage', 'policyTab0Label', 'policyTab1Label', 'policyTab2Label', 'policyTab3Label', 'policyTab4Label', 'policy5Title', 'policy5Benefits', 'benefitsImage', 'benefitsImages', 'footerDescription', 'policySectionBgColor', 'policyTabTextColor', 'recruitmentTitle', 'recruitmentStepBgColor', 'recruitmentStepTextColor', 'recruitmentStep1Title', 'recruitmentStep2Title', 'recruitmentStep3Title', 'recruitmentStep4Title', 'recruitmentStep5Title', 'recruitmentStep6Title']) &&
+        data.fontFamily in ['Inter', 'Roboto', 'Montserrat', 'Playfair Display'] &&
+        validNumber(data.fontScale, 0.8, 1.5) &&
+        validNumber(data.containerWidth, 1000, 1600) &&
+        validNumber(data.borderRadius, 0, 32) &&
+        validNumber(data.sectionSpacing, 20, 150) &&
+        validNumber(data.logoSize, 5, 100) &&
+        validUrl(data.logoUrl) &&
+        validUrl(data.jobIconUrl) &&
+        validNumber(data.heroHeight, 300, 800) &&
+        validNumber(data.heroOverlayOpacity, 0, 1) &&
+        validUrl(data.facebookUrl) &&
+        validUrl(data.youtubeUrl) &&
+        validUrl(data.websiteUrl) &&
+        validUrl(data.contactFacebookUrl) &&
+        data.sectionOrder is list && data.sectionOrder.size() == 5 && data.sectionOrder.toSet().size() == 5 && data.sectionOrder.hasOnly(['hero', 'nav', 'jobs', 'policies', 'form']) &&
+        [data.showHero, data.showNav, data.showJobs, data.showPolicies, data.showForm].hasOnly([true, false]) &&
+        validUrl(data.heroBgImage) &&
+        validTextList(data.trainingImages, 2000, true) &&
+        validTextList(data.workspaceImages, 2000, true) &&
+        validTextList(data.philosophyImages, 2000, true) &&
+        validUrl(data.coreValuesImage) &&
+        validTextList(data.policy5Benefits, 1000, false) &&
+        validUrl(data.benefitsImage) &&
+        validTextList(data.benefitsImages, 2000, true) &&
+        contentTexts([data.heroTitle, data.heroSubtitle, data.hotline, data.jobsTitle, data.policy1Title, data.policy1Desc, data.policy2Title, data.policy2Desc, data.policy3Title, data.policy3Desc1, data.policy3Desc2, data.policy4Title, data.policy4Vision, data.policy4Mission, data.policy4CoreValues, data.policyTab0Label, data.policyTab1Label, data.policyTab2Label, data.policyTab3Label, data.policyTab4Label, data.policy5Title, data.footerDescription, data.recruitmentTitle, data.recruitmentStep1Title, data.recruitmentStep2Title, data.recruitmentStep3Title, data.recruitmentStep4Title, data.recruitmentStep5Title, data.recruitmentStep6Title]);
+    }
+    function validJob(data) {
+      return data.keys().hasAll(['title', 'description', 'requirements', 'deadline', 'createdAt', 'authorUid']) &&
+        data.keys().hasOnly(['title', 'department', 'description', 'requirements', 'benefits', 'workingHours', 'deadline', 'jdUrl', 'createdAt', 'authorUid', 'isHidden']) &&
+        validText(data, 'title', 1, 100) && optionalText(data, 'department', 100) &&
+        validText(data, 'description', 1, 10000) && validText(data, 'requirements', 1, 10000) &&
+        optionalText(data, 'benefits', 10000) && optionalText(data, 'workingHours', 10000) &&
+        validText(data, 'deadline', 1, 50) &&
+        (!('jdUrl' in data) || data.jdUrl == null || validUrl(data.jdUrl)) &&
+        data.createdAt is timestamp && data.authorUid is string &&
+        (!('isHidden' in data) || data.isHidden is bool);
     }
 
-    function uidNotModified() {
-      return !('authorUid' in request.resource.data) || request.resource.data.authorUid == resource.data.authorUid;
-    }
-
-    function hasRequiredFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
-    }
-
-    function validStringLength(field, minLen, maxLen) {
-      return request.resource.data[field] is string &&
-        request.resource.data[field].size() >= minLen &&
-        request.resource.data[field].size() <= maxLen;
-    }
-
-    function isValidOptionalString(field, minLen, maxLen) {
-      return !(field in request.resource.data) ||
-             (request.resource.data[field] is string &&
-              request.resource.data[field].size() >= minLen &&
-              request.resource.data[field].size() <= maxLen);
-    }
-
-    function isValidOptionalBoolean(field) {
-      return !(field in request.resource.data) || request.resource.data[field] is bool;
-    }
-
-    function isValidJob(data) {
-      return data.keys().hasOnly(['title', 'department', 'description', 'requirements', 'benefits', 'workingHours', 'deadline', 'jdUrl', 'createdAt', 'authorUid', 'isHidden']) &&
-             validStringLength('title', 1, 100) &&
-             isValidOptionalString('department', 0, 100) &&
-             validStringLength('description', 1, 10000) &&
-             validStringLength('requirements', 1, 10000) &&
-             isValidOptionalString('benefits', 0, 10000) &&
-             isValidOptionalString('workingHours', 0, 10000) &&
-             validStringLength('deadline', 1, 50) &&
-             isValidOptionalString('jdUrl', 0, 1000) &&
-             data.createdAt is timestamp &&
-             data.authorUid is string &&
-             isValidOptionalBoolean('isHidden');
-    }
-
-    function isValidApplication(data) {
-      return data.keys().hasOnly(['jobId', 'jobTitle', 'name', 'dob', 'phone', 'email', 'cvUrl', 'fileName', 'status', 'notes', 'createdAt']) &&
-             validStringLength('jobTitle', 1, 200) &&
-             validStringLength('name', 1, 200) &&
-             validStringLength('phone', 1, 50) &&
-             validStringLength('email', 1, 200) &&
-             isValidOptionalString('jobId', 0, 128) &&
-             isValidOptionalString('dob', 0, 50) &&
-             isValidOptionalString('cvUrl', 0, 2000) &&
-             isValidOptionalString('fileName', 0, 500) &&
-             isValidOptionalString('status', 0, 50) &&
-             isValidOptionalString('notes', 0, 2000) &&
-             data.createdAt is timestamp;
-    }
-
-    function isValidSiteContent(data) {
-      return data.keys().hasOnly(['heroBgImage', 'heroTitle', 'heroSubtitle', 'policy1Title', 'policy1Desc', 'policy1Image', 'policy2Title', 'policy2Quote', 'policy2Desc', 'policy2Image', 'policy3Title', 'policy3Benefits']) &&
-             validStringLength('heroBgImage', 1, 1000) &&
-             validStringLength('heroTitle', 1, 200) &&
-             validStringLength('heroSubtitle', 1, 200) &&
-             validStringLength('policy1Title', 1, 200) &&
-             validStringLength('policy1Desc', 1, 5000) &&
-             validStringLength('policy1Image', 1, 1000) &&
-             validStringLength('policy2Title', 1, 200) &&
-             validStringLength('policy2Quote', 1, 1000) &&
-             validStringLength('policy2Desc', 1, 5000) &&
-             validStringLength('policy2Image', 1, 1000) &&
-             validStringLength('policy3Title', 1, 200) &&
-             data.policy3Benefits is list;
-    }
-
-    // ===============================================================
-    // Rules
-    // ===============================================================
-
-    match /siteContent/{docId} {
+    match /siteContent/main {
       allow read: if true;
-      allow write: if isAdmin() && isValidSiteContent(request.resource.data);
+      allow create, update: if isAdmin() && validSiteContent(request.resource.data);
+      allow delete: if false;
     }
-
     match /jobs/{jobId} {
       allow read: if true;
-      allow create: if isAdmin() && hasRequiredFields(['title', 'description', 'requirements', 'deadline', 'createdAt', 'authorUid']) && isValidJob(request.resource.data) && uidUnchanged();
-      allow update: if isAdmin() && isValidJob(request.resource.data) && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt;
+      allow create: if isAdmin() && validJob(request.resource.data) && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAdmin() && validJob(request.resource.data) &&
+        request.resource.data.authorUid == resource.data.authorUid && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAdmin();
     }
 
-    match /applications/{applicationId} {
-      allow read: if isAdmin();
-      allow create: if hasRequiredFields(['jobTitle', 'name', 'phone', 'email', 'createdAt']) && isValidApplication(request.resource.data);
-      allow update: if isAdmin() && isValidApplication(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if isAdmin();
-    }
-
-    match /settings/smtp {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /settings/{docId} {
-      allow read, write: if isAdmin();
-    }
+    // Candidate files, applications and mail credentials are accessed by the
+    // authenticated server only. Admin SDK requests bypass client rules.
+    match /applications/{applicationId} { allow read, write: if false; }
+    match /settings/{docId} { allow read, write: if false; }
+    match /settings_private/{docId} { allow read, write: if false; }
+    match /{document=**} { allow read, write: if false; }
   }
 }

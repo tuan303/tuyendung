@@ -22,113 +22,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Save, Image as ImageIcon, Type, Palette, Layout, ArrowUp, ArrowDown, Eye, EyeOff, GripVertical, Maximize2, Monitor, Smartphone, Tablet, Facebook, Youtube, X, Briefcase, MousePointerClick, Globe } from 'lucide-react';
 import MainPage from './MainPage';
 
-export const defaultContent = {
-  // Styling
-  primaryColor: '#c8102e',
-  secondaryColor: '#23328c',
-  accentColor: '#fdb913',
-  textColor: '#1f2937',
-  backgroundColor: '#f9fafb',
-  fontFamily: 'Inter',
-  fontScale: 1,
-  containerWidth: 1280,
-  borderRadius: 12,
-  sectionSpacing: 80,
-  
-  // Sizing
-  logoSize: 10, // 10% as requested previously
-  logoUrl: 'https://hoangmaistarschool.edu.vn/storage/general/logo.svg',
-  jobIconUrl: 'https://hoangmaistarschool.edu.vn/storage/general/logo.svg',
-  heroHeight: 450,
-  heroOverlayOpacity: 0.4,
-  
-  // Social Links
-  facebookUrl: 'https://www.facebook.com/tuyendungnshm',
-  youtubeUrl: 'https://www.youtube.com/@NgoiSaoHoangMai',
-  websiteUrl: 'https://hoangmaistarschool.edu.vn/',
-  contactFacebookUrl: 'https://www.facebook.com/tuyendungnshm',
-  
-  // Section Order & Visibility
-  sectionOrder: ['hero', 'nav', 'jobs', 'policies', 'form'],
-  showHero: true,
-  showNav: true,
-  showJobs: true,
-  showPolicies: true,
-  showForm: true,
+import { defaultContent, normalizeSiteContent, validateSiteContent } from './lib/siteContent';
 
-  heroBgImage: 'https://hoangmaistarschool.edu.vn/thongtin/nen.jpg',
-  heroTitle: 'Tuyển dụng',
-  heroSubtitle: 'Trường Ngôi Sao Hoàng Mai',
-  hotline: '0398 130 108',
-  
-  jobsTitle: 'CƠ HỘI VIỆC LÀM',
-  
-  policy1Title: 'Đào tạo và phát triển',
-  policy1Desc: 'Bên cạnh việc tuyển dụng nhân sự chất lượng cao, Ngôi Sao Hoàng Mai đặc biệt chú trọng vào việc đào tạo và phát triển chuyên môn cho Giáo viên thông qua các chương trình đào tạo bài bản. Giáo viên có cơ hội học hỏi, phát triển và thăng tiến trong công việc, được chứng tỏ bản thân và tạo điều kiện phát huy tối đa năng lực, tiềm năng của mình.',
-  trainingImages: [
-    "https://hoangmaistarschool.edu.vn/thongtin/dtpt1.jpg",
-    "https://hoangmaistarschool.edu.vn/thongtin/dtpt2.jpg"
-  ].join('\n'),
-  
-  policy2Title: 'Không gian làm việc',
-  policy2Desc: 'Tại Trường Ngôi Sao Hoàng Mai, chúng tôi chú trọng đầu tư cơ sở vật chất đồng bộ, hiện đại và thân thiện với môi trường, nhằm kiến tạo một không gian làm việc sáng tạo, nơi mỗi cán bộ, giáo viên có thể phát huy tối đa năng lực của mình. Bên cạnh đó, hệ thống trang thiết bị tiên tiến cùng nền tảng công nghệ được ứng dụng linh hoạt trong giảng dạy và vận hành không chỉ nâng cao hiệu quả công việc mà còn góp phần tối ưu chất lượng dạy và học, mang đến trải nghiệm giáo dục toàn diện cho cả giáo viên và học sinh.',
-  workspaceImages: [
-    "https://hoangmaistarschool.edu.vn/thongtin/kg1.jpg",
-    "https://hoangmaistarschool.edu.vn/thongtin/kg2.jpg",
-    "https://hoangmaistarschool.edu.vn/thongtin/kg3.jpg",
-    "https://hoangmaistarschool.edu.vn/thongtin/kg4.jpg"
-  ].join('\n'),
-
-  policy3Title: 'Hệ thống triết lý',
-  policy3Desc1: 'Giáo dục hướng đến phát triển toàn diện, tinh hoa và hội nhập, đặt nền trên đạo đức vững vàng, trí tuệ khai mở, thể chất dẻo dai, nhân cách trưởng thành và tinh thần hòa hợp sâu sắc.',
-  policy3Desc2: 'Trên tinh thần đó, Trường Ngôi Sao Hoàng Mai xác lập và kiên định với 5 trụ cột giáo dục cốt lõi:\nĐạo đức, Trí tuệ, Thể chất, Nhân cách, Hoà hợp.',
-  philosophyImages: [
-    "https://hoangmaistarschool.edu.vn/thongtin/httl1.png",
-    "https://hoangmaistarschool.edu.vn/thongtin/httl1.png"
-  ].join('\n'),
-
-  policy4Title: 'Tầm nhìn - Sứ mệnh - Giá trị cốt lõi',
-  policy4Vision: '"Trở thành Trường học tinh hoa, mang bản sắc Việt và vươn tầm quốc tế"',
-  policy4Mission: '"Kiến tạo nền tảng giáo dục tiên tiến, mang bản sắc Việt, chất lượng quốc tế"',
-  policy4CoreValues: 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.',
-  coreValuesImage: 'https://hoangmaistarschool.edu.vn/thongtin/gtcl.png',
-  
-  policyTab0Label: 'ĐÀO TẠO VÀ PHÁT TRIỂN',
-  policyTab1Label: 'KHÔNG GIAN LÀM VIỆC',
-  policyTab2Label: 'HỆ THỐNG TRIẾT LÝ',
-  policyTab3Label: 'TẦM NHÌN - SỨ MỆNH - GIÁ TRỊ CỐT LÕI',
-  policyTab4Label: 'CHÍNH SÁCH PHÚC LỢI',
-  
-  policy5Title: 'Chính sách phúc lợi',
-  policy5Benefits: [
-    'Thưởng các ngày Lễ, Tết, Kỷ niệm thành lập trường, ngày Nhà giáo Việt Nam 20/11...',
-    'Chế độ nghỉ mát, du xuân, teambuilding hàng năm.',
-    'Khám sức khỏe định kỳ hàng năm.',
-    'Chế độ ưu đãi học phí cho con em CBNV.'
-  ].join('\n'),
-  benefitsImage: 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop',
-  benefitsImages: [
-    'https://hoangmaistarschool.edu.vn/thongtin/cs2.jpg',
-    'https://hoangmaistarschool.edu.vn/thongtin/cs3.jpg',
-    'https://hoangmaistarschool.edu.vn/thongtin/cs4.jpg'
-  ].join('\n'),
-  
-  // Footer
-  footerDescription: 'Trường Ngôi Sao Hoàng Mai chú trọng vào việc xây dựng môi trường làm việc văn minh, chuyên nghiệp, hiệu quả; đồng thời đề cao 5 giá trị cốt lõi: Chân Thành - Chính Trực - Chăm Sóc - Chuyên Nghiệp - Chất Lượng.',
-  
-  // New Layout Styling
-  policySectionBgColor: '#ffebd6',
-  policyTabTextColor: '#ffebd6',
-  recruitmentTitle: 'Quy trình tuyển dụng',
-  recruitmentStepBgColor: '#ffecec',
-  recruitmentStepTextColor: '#1f2937', // text-gray-800
-  recruitmentStep1Title: 'Ứng tuyển',
-  recruitmentStep2Title: 'Sàng lọc hồ sơ',
-  recruitmentStep3Title: 'Làm bài test/Phỏng vấn vòng 1',
-  recruitmentStep4Title: 'Dự giờ, giảng thử (Đối với vị trí GV)',
-  recruitmentStep5Title: 'Phỏng vấn vòng cuối',
-  recruitmentStep6Title: 'Hoàn thiện hồ sơ cần thiết'
-};
+export { defaultContent } from './lib/siteContent';
 
 function SortableItem({ id, section, isVisible, toggleVisibility, idx }: any) {
   const {
@@ -195,25 +91,7 @@ export default function SiteContentAdmin() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setContent({
-            ...defaultContent,
-            ...data,
-            policy5Benefits: Array.isArray(data.policy5Benefits) 
-              ? data.policy5Benefits.join('\n') 
-              : (data.policy5Benefits || defaultContent.policy5Benefits),
-            trainingImages: Array.isArray(data.trainingImages)
-              ? data.trainingImages.join('\n')
-              : (data.trainingImages || defaultContent.trainingImages),
-            workspaceImages: Array.isArray(data.workspaceImages)
-              ? data.workspaceImages.join('\n')
-              : (data.workspaceImages || defaultContent.workspaceImages),
-            philosophyImages: Array.isArray(data.philosophyImages)
-              ? data.philosophyImages.join('\n')
-              : (data.philosophyImages || defaultContent.philosophyImages),
-            benefitsImages: Array.isArray(data.benefitsImages)
-              ? data.benefitsImages.join('\n')
-              : (data.benefitsImages || defaultContent.benefitsImages)
-          });
+          setContent(normalizeSiteContent(data));
         }
       } catch (error) {
         console.error("Error fetching site content:", error);
@@ -235,9 +113,10 @@ export default function SiteContentAdmin() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      validateSiteContent(content);
       const docRef = doc(db, 'siteContent', 'main');
       const dataToSave = {
-        ...content,
+        ...normalizeSiteContent(content),
         policy5Benefits: content.policy5Benefits ? content.policy5Benefits.split('\n').filter((b: string) => b.trim() !== '') : [],
         trainingImages: content.trainingImages ? content.trainingImages.split('\n').filter((b: string) => b.trim() !== '') : [],
         workspaceImages: content.workspaceImages ? content.workspaceImages.split('\n').filter((b: string) => b.trim() !== '') : [],

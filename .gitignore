@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+dist-server/
+data/
+app/applet/data/
+smtp-config.json
+*-debug.log
+.firebase/
+service-account*.json
+firebase-service-account*.json

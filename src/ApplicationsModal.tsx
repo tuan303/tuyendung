@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, Users, Search, Phone, Mail, Calendar, FileText, ExternalLink, 
   Trash2, Download, Check, Copy, Clock, MessageSquare, Plus, AlertCircle, UserPlus 
 } from 'lucide-react';
-import { Job, Application } from './Admin';
+import type { Job, Application } from './Admin';
+import { downloadApplicationCv } from './lib/adminApi';
+import { safeExternalUrl } from './lib/safeHtml';
+import { buildApplicationStatistics, countApplicationStatuses, applicationStatus, applicationsCsv } from './shared/applicationMatching';
 
 interface ApplicationsModalProps {
   isOpen: boolean;
   onClose: () => void;
   job: Job | null;
+  jobs: Job[];
   applications: Application[];
   onUpdateStatus: (id: string, status: string) => Promise<void>;
   onUpdateNotes: (id: string, notes: string) => Promise<void>;
@@ -54,40 +58,16 @@ export function formatTimestamp(timestamp: any): string {
   return String(timestamp);
 }
 
-export const exportApplicationsToCSV = (apps: Application[], jobTitle?: string) => {
-  const headers = ['STT', 'Họ và tên', 'Ngày sinh', 'Số điện thoại', 'Email', 'Vị trí ứng tuyển', 'File CV', 'Link CV', 'Trạng thái', 'Ghi chú', 'Thời gian nộp'];
-  const statusLabels: Record<string, string> = {
-    new: 'Mới nộp',
-    reviewed: 'Đã xem',
-    contacted: 'Đã liên hệ',
-    passed: 'Mời phỏng vấn / Đạt',
-    rejected: 'Không phù hợp'
-  };
-
-  const rows = apps.map((app, index) => [
-    index + 1,
-    `"${(app.name || '').replace(/"/g, '""')}"`,
-    `"${(app.dob || '').replace(/"/g, '""')}"`,
-    `"${(app.phone || '').replace(/"/g, '""')}"`,
-    `"${(app.email || '').replace(/"/g, '""')}"`,
-    `"${(app.jobTitle || '').replace(/"/g, '""')}"`,
-    `"${(app.fileName || '').replace(/"/g, '""')}"`,
-    `"${(app.cvUrl || '').replace(/"/g, '""')}"`,
-    `"${statusLabels[app.status || 'new'] || app.status || 'Mới nộp'}"`,
-    `"${(app.notes || '').replace(/"/g, '""')}"`,
-    `"${formatTimestamp(app.createdAt)}"`
-  ]);
-
-  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+export const exportApplicationsToCSV = (apps: Application[], jobs: Job[], jobTitle?: string) => {
+  const blob = new Blob([applicationsCsv(apps, jobs, formatTimestamp)], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.setAttribute('href', url);
+  link.href = url;
   const safeTitle = (jobTitle || 'tat_ca').replace(/[^a-zA-Z0-9]/g, '_');
-  link.setAttribute('download', `Ho_so_ung_vien_${safeTitle}_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.download = `Ho_so_ung_vien_${safeTitle}_${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
+  link.remove();
   URL.revokeObjectURL(url);
 };
 
@@ -95,6 +75,7 @@ export default function ApplicationsModal({
   isOpen,
   onClose,
   job,
+  jobs,
   applications,
   onUpdateStatus,
   onUpdateNotes,
@@ -109,6 +90,8 @@ export default function ApplicationsModal({
   const [notesValue, setNotesValue] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
 
   // Manual Add Form states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -122,51 +105,56 @@ export default function ApplicationsModal({
   const [newStatus, setNewStatus] = useState('new');
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
+  useEffect(() => {
+    setSearchTerm(''); setStatusFilter('all'); setEditingNotesId(null);
+    setShowAddForm(false); setActionError('');
+  }, [job?.id, isOpen]);
+
+  const statistics = useMemo(() => buildApplicationStatistics(jobs, applications), [jobs, applications]);
   if (!isOpen || !job) return null;
 
-  // Filter applications for this specific job
-  const jobNorm = (job.title || '').trim().replace(/\s+/g, ' ').toLowerCase();
-  const jobApplications = applications.filter(app => {
-    if (app.jobId && app.jobId === job.id) return true;
-    if (app.jobTitle && (app.jobTitle || '').trim().replace(/\s+/g, ' ').toLowerCase() === jobNorm) return true;
-    return false;
-  });
+  const jobApplications = statistics.byJobId.get(job.id)?.applications || [];
 
   // Search and status filtering
   const filteredApps = jobApplications.filter(app => {
-    const matchesSearch = 
+    const matchesSearch = !searchTerm ||
       (app.name && app.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (app.phone && app.phone.includes(searchTerm)) ||
       (app.email && app.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const currentStatus = app.status || 'new';
+    const currentStatus = applicationStatus(app.status);
     const matchesStatus = statusFilter === 'all' || currentStatus === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
 
-  const countByStatus = {
-    all: jobApplications.length,
-    new: jobApplications.filter(a => (a.status || 'new') === 'new').length,
-    reviewed: jobApplications.filter(a => a.status === 'reviewed').length,
-    contacted: jobApplications.filter(a => a.status === 'contacted').length,
-    passed: jobApplications.filter(a => a.status === 'passed').length,
-    rejected: jobApplications.filter(a => a.status === 'rejected').length,
+  const countByStatus = { all: jobApplications.length, ...countApplicationStatuses(jobApplications) };
+
+  const runAction = async (action: () => Promise<void>) => {
+    setActionError('');
+    try { await action(); } catch (error) { setActionError(error instanceof Error ? error.message : 'Thao tác thất bại.'); }
+  };
+
+  const handleDownload = async (app: Application) => {
+    setDownloadingId(app.id);
+    await runAction(() => downloadApplicationCv(app));
+    setDownloadingId(null);
   };
 
   const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(() => setActionError('Không sao chép được vào bộ nhớ tạm.'));
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleSaveNotes = async (appId: string) => {
+    setActionError('');
     setIsSavingNotes(true);
     try {
       await onUpdateNotes(appId, notesValue);
       setEditingNotesId(null);
     } catch (e) {
-      console.error("Error saving notes:", e);
+      setActionError(e instanceof Error ? e.message : 'Không lưu được ghi chú.');
     } finally {
       setIsSavingNotes(false);
     }
@@ -174,9 +162,12 @@ export default function ApplicationsModal({
 
   const handleDelete = async (appId: string, candidateName: string) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa hồ sơ của ứng viên "${candidateName}" không?`)) {
+      setActionError('');
       setDeletingId(appId);
       try {
         await onDeleteApplication(appId);
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Không xóa được hồ sơ.');
       } finally {
         setDeletingId(null);
       }
@@ -189,7 +180,12 @@ export default function ApplicationsModal({
       alert("Vui lòng nhập họ tên và số điện thoại.");
       return;
     }
+    if (newCvUrl && !safeExternalUrl(newCvUrl.trim())) {
+      setActionError('Link CV phải là địa chỉ HTTP hoặc HTTPS hợp lệ.');
+      return;
+    }
     setIsSubmittingNew(true);
+    setActionError('');
     try {
       if (onCreateApplication) {
         await onCreateApplication({
@@ -203,8 +199,7 @@ export default function ApplicationsModal({
           downloadURL: newCvUrl.trim(),
           fileName: newFileName.trim() || (newCvUrl ? 'CV_DinhKem.pdf' : ''),
           notes: newNotes.trim(),
-          status: newStatus,
-          createdAt: new Date().toISOString()
+          status: newStatus
         });
       }
       setShowAddForm(false);
@@ -217,7 +212,7 @@ export default function ApplicationsModal({
       setNewNotes('');
       setNewStatus('new');
     } catch (err: any) {
-      alert("Lỗi thêm hồ sơ: " + err.message);
+      setActionError('Lỗi thêm hồ sơ: ' + err.message);
     } finally {
       setIsSubmittingNew(false);
     }
@@ -225,7 +220,8 @@ export default function ApplicationsModal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 md:p-6 animate-fadeIn">
-      <div 
+      <div
+        role="dialog" aria-modal="true" aria-labelledby="applications-dialog-title"
         className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-100"
         onClick={(e) => e.stopPropagation()}
       >
@@ -236,7 +232,7 @@ export default function ApplicationsModal({
               <Users className="w-4 h-4" />
               <span>Danh sách hồ sơ ứng tuyển</span>
             </div>
-            <h2 className="text-xl md:text-2xl font-bold leading-tight">{job.title}</h2>
+            <h2 id="applications-dialog-title" className="text-xl md:text-2xl font-bold leading-tight">{job.title}</h2>
             <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-white/80">
               <span className="bg-white/20 px-2.5 py-1 rounded-full font-medium">
                 Tổng cộng: <strong className="text-white">{jobApplications.length}</strong> hồ sơ
@@ -262,6 +258,7 @@ export default function ApplicationsModal({
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
+                aria-label="Tìm hồ sơ ứng tuyển"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm ứng viên theo tên, SĐT, email..."
@@ -293,7 +290,7 @@ export default function ApplicationsModal({
 
               <button
                 type="button"
-                onClick={() => exportApplicationsToCSV(filteredApps, job.title)}
+                onClick={() => exportApplicationsToCSV(filteredApps, jobs, job.title)}
                 disabled={jobApplications.length === 0}
                 className="flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl transition shadow-xs"
                 title="Tải danh sách ứng viên dạng file Excel CSV"
@@ -305,7 +302,7 @@ export default function ApplicationsModal({
               {onCreateSampleApplication && (
                 <button
                   type="button"
-                  onClick={() => onCreateSampleApplication(job)}
+                  onClick={() => void runAction(() => onCreateSampleApplication!(job))}
                   className="flex items-center space-x-1.5 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded-xl transition"
                   title="Tạo nhanh 1 hồ sơ mẫu để thử nghiệm tính năng"
                 >
@@ -494,9 +491,11 @@ export default function ApplicationsModal({
             >
               Không phù hợp ({countByStatus.rejected})
             </button>
+            {countByStatus.other > 0 && <button onClick={() => setStatusFilter('other')} className="px-3 py-1.5 rounded-lg border border-gray-200">Khác ({countByStatus.other})</button>}
           </div>
         </div>
 
+        {actionError && <div role="alert" className="mx-4 mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</div>}
         {/* Candidate List Body */}
         <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-4">
           {jobApplications.length === 0 ? (
@@ -522,7 +521,7 @@ export default function ApplicationsModal({
                 {onCreateSampleApplication && (
                   <button
                     type="button"
-                    onClick={() => onCreateSampleApplication(job)}
+                    onClick={() => void runAction(() => onCreateSampleApplication!(job))}
                     className="inline-flex items-center space-x-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition"
                   >
                     <Plus className="w-4 h-4" />
@@ -537,7 +536,7 @@ export default function ApplicationsModal({
             </div>
           ) : (
             filteredApps.map((app, index) => {
-              const status = app.status || 'new';
+              const status = applicationStatus(app.status);
               const initials = (app.name || 'UV')
                 .split(' ')
                 .filter(Boolean)
@@ -546,6 +545,7 @@ export default function ApplicationsModal({
                 .join('');
 
               const isEditingNotes = editingNotesId === app.id;
+              const externalCvUrl = safeExternalUrl(app.cvUrl || app.downloadURL);
 
               return (
                 <div 
@@ -573,8 +573,9 @@ export default function ApplicationsModal({
                     <div className="flex items-center space-x-2 self-end sm:self-center">
                       {/* Status Dropdown */}
                       <select
+                        aria-label={`Trạng thái hồ sơ ${app.name}`}
                         value={status}
-                        onChange={(e) => onUpdateStatus(app.id, e.target.value)}
+                        onChange={(e) => void runAction(() => onUpdateStatus(app.id, e.target.value))}
                         className={`text-xs font-semibold px-3 py-1.5 rounded-lg border focus:outline-none transition cursor-pointer ${
                           status === 'new'
                             ? 'bg-blue-50 text-blue-700 border-blue-200 focus:ring-blue-500'
@@ -587,6 +588,7 @@ export default function ApplicationsModal({
                             : 'bg-rose-50 text-rose-700 border-rose-200 focus:ring-rose-500'
                         }`}
                       >
+                        {status === 'other' && <option value="other">Trạng thái khác</option>}
                         <option value="new">Mới nộp</option>
                         <option value="reviewed">Đã xem hồ sơ</option>
                         <option value="contacted">Đã liên hệ</option>
@@ -665,16 +667,20 @@ export default function ApplicationsModal({
                     <div className="flex items-center space-x-2">
                       <FileText className="w-4 h-4 text-gray-500" />
                       <span className="text-xs text-gray-600">File CV:</span>
-                      {app.cvUrl ? (
-                        <a
-                          href={app.cvUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                      {externalCvUrl ? (
+                        <a href={externalCvUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center space-x-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200">
+                          <ExternalLink className="w-3.5 h-3.5" /><span>{app.fileName || 'Mở liên kết CV'}</span>
+                        </a>
+                      ) : (app.cvUrl || app.downloadURL || app.fileName) ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleDownload(app)}
+                          disabled={downloadingId === app.id}
                           className="inline-flex items-center space-x-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition border border-blue-200"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>{app.fileName || 'Xem & Tải CV đính kèm'}</span>
-                        </a>
+                          <span>{downloadingId === app.id ? 'Đang tải...' : app.fileName || 'Tải CV đính kèm'}</span>
+                        </button>
                       ) : (
                         <span className="text-xs text-gray-500 italic bg-gray-100 px-2 py-1 rounded">
                           {app.fileName ? `${app.fileName} (Gửi qua email)` : 'Không có đính kèm trực tiếp'}
@@ -707,6 +713,7 @@ export default function ApplicationsModal({
                         Ghi chú của HR / Quản trị viên cho ứng viên này:
                       </label>
                       <textarea
+                        aria-label={`Ghi chú cho ${app.name}`}
                         value={notesValue}
                         onChange={(e) => setNotesValue(e.target.value)}
                         placeholder="Nhập ghi chú (VD: Đã hẹn phỏng vấn thứ Sáu lúc 9h30, đánh giá chuyên môn tốt...)"
