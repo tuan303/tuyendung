@@ -6,10 +6,11 @@ import {
   ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar, Share2, Check,
   Users, Lock
 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, doc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from './firebase';
-import { defaultContent } from './SiteContentAdmin';
+import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import { db } from './firebase';
+import { defaultContent, normalizeSiteContent } from './lib/siteContent';
+import { safeExternalUrl, sanitizeRichHtml } from './lib/safeHtml';
+import { MAX_CV_BYTES } from './shared/uploadLimits';
 
 interface Job {
   id: string;
@@ -32,76 +33,50 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [activeDepartmentTab, setActiveDepartmentTab] = useState<'Khối Nhà Trường' | 'Khối Vận Hành'>('Khối Nhà Trường');
   const [activePolicyTab, setActivePolicyTab] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [siteContent, setSiteContent] = useState(previewContent || defaultContent);
+  const [siteContent, setSiteContent] = useState(normalizeSiteContent(previewContent || defaultContent));
   const [philosophySlide, setPhilosophySlide] = useState(0);
   const [workspaceSlide, setWorkspaceSlide] = useState(0);
   const [trainingSlide, setTrainingSlide] = useState(0);
   const [benefitsSlide, setBenefitsSlide] = useState(0);
 
-  const philosophyImages = siteContent.philosophyImages 
-    ? siteContent.philosophyImages.split('\n').filter(url => url.trim() !== '')
-    : [
-        "https://hoangmaistarschool.edu.vn/thongtin/httl1.png",
-        "https://hoangmaistarschool.edu.vn/thongtin/httl1.png"
-      ];
-
-  const workspaceImages = siteContent.workspaceImages
-    ? siteContent.workspaceImages.split('\n').filter(url => url.trim() !== '')
-    : [
-        "https://hoangmaistarschool.edu.vn/thongtin/kg1.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/kg2.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/kg3.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/kg4.jpg"
-      ];
-
-  const trainingImages = siteContent.trainingImages
-    ? siteContent.trainingImages.split('\n').filter(url => url.trim() !== '')
-    : [
-        "https://hoangmaistarschool.edu.vn/thongtin/dtpt1.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/dtpt2.jpg"
-      ];
-
-  const benefitsImages = siteContent.benefitsImages
-    ? siteContent.benefitsImages.split('\n').filter(url => url.trim() !== '')
-    : [
-        "https://hoangmaistarschool.edu.vn/thongtin/cs2.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/cs3.jpg",
-        "https://hoangmaistarschool.edu.vn/thongtin/cs4.jpg"
-      ];
+  const imageUrls = (value: string) => value.split('\n').map(safeExternalUrl).filter((url): url is string => Boolean(url));
+  const philosophyImages = imageUrls(siteContent.philosophyImages);
+  const workspaceImages = imageUrls(siteContent.workspaceImages);
+  const trainingImages = imageUrls(siteContent.trainingImages);
+  const benefitsImages = imageUrls(siteContent.benefitsImages);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setPhilosophySlide((prev) => (prev + 1) % philosophyImages.length);
-    }, 3000);
+    setPhilosophySlide(0);
+    if (philosophyImages.length <= 1) return;
+    const timer = setInterval(() => setPhilosophySlide((prev) => (prev + 1) % philosophyImages.length), 3000);
     return () => clearInterval(timer);
-  }, []);
+  }, [siteContent.philosophyImages, philosophyImages.length]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setWorkspaceSlide((prev) => (prev + 1) % workspaceImages.length);
-    }, 3000);
+    setWorkspaceSlide(0);
+    if (workspaceImages.length <= 1) return;
+    const timer = setInterval(() => setWorkspaceSlide((prev) => (prev + 1) % workspaceImages.length), 3000);
     return () => clearInterval(timer);
-  }, []);
+  }, [siteContent.workspaceImages, workspaceImages.length]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTrainingSlide((prev) => (prev + 1) % trainingImages.length);
-    }, 3000);
+    setTrainingSlide(0);
+    if (trainingImages.length <= 1) return;
+    const timer = setInterval(() => setTrainingSlide((prev) => (prev + 1) % trainingImages.length), 3000);
     return () => clearInterval(timer);
-  }, []);
+  }, [siteContent.trainingImages, trainingImages.length]);
 
   useEffect(() => {
+    setBenefitsSlide(0);
     if (benefitsImages.length <= 1) return;
-    const timer = setInterval(() => {
-      setBenefitsSlide((prev) => (prev + 1) % benefitsImages.length);
-    }, 3000);
+    const timer = setInterval(() => setBenefitsSlide((prev) => (prev + 1) % benefitsImages.length), 3000);
     return () => clearInterval(timer);
-  }, [benefitsImages.length]);
+  }, [siteContent.benefitsImages, benefitsImages.length]);
 
   // Update siteContent if previewContent changes
   useEffect(() => {
     if (previewContent) {
-      setSiteContent(previewContent);
+      setSiteContent(normalizeSiteContent(previewContent));
     }
   }, [previewContent]);
 
@@ -110,7 +85,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [dob, setDob] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [position, setPosition] = useState('');
   const [selectedJobId, setSelectedJobId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -149,7 +123,11 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   
   // Filter jobs based on selected department tab (default is 'Khối Nhà Trường')
   const filteredJobs = jobs.filter(job => job.department === activeDepartmentTab || (!job.department && activeDepartmentTab === 'Khối Nhà Trường'));
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / itemsPerPage));
+
+  useEffect(() => {
+    setCurrentSlide((previous) => Math.min(previous, totalPages - 1));
+  }, [totalPages]);
 
   useEffect(() => {
     if (filteredJobs.length <= itemsPerPage) return;
@@ -171,9 +149,15 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (validTypes.includes(selectedFile.type)) {
+      if (selectedFile.size > MAX_CV_BYTES) {
+        setFile(null);
+        e.target.value = '';
+        alert("File CV vượt quá giới hạn 3 MiB.");
+      } else if (validTypes.includes(selectedFile.type)) {
         setFile(selectedFile);
       } else {
+        setFile(null);
+        e.target.value = '';
         alert("Vui lòng chọn file PDF hoặc DOCX.");
       }
     }
@@ -181,14 +165,13 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !dob || !phone || !email || !position || !file) {
+    if (!name || !dob || !phone || !email || !selectedJobId || !file) {
       alert("Vui lòng điền đầy đủ thông tin và đính kèm CV.");
       return;
     }
 
-    // Check file size (5MB limit)
-    if (file && file.size > 5 * 1024 * 1024) {
-      alert("File CV của bạn quá lớn (trên 5MB). Vui lòng nén file hoặc sử dụng file PDF có dung lượng nhỏ hơn.");
+    if (file.size > MAX_CV_BYTES) {
+      alert("File CV của bạn quá lớn (tối đa 3 MiB). Vui lòng nén file hoặc sử dụng file PDF có dung lượng nhỏ hơn.");
       return;
     }
 
@@ -199,7 +182,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
 
       if (file) {
         fileName = file.name;
-        console.log(`[Form] Processing file: ${fileName} (${Math.round(file.size / 1024)} KB)`);
         
         // Read file as base64 for upload and storage
         const reader = new FileReader();
@@ -210,21 +192,19 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
         });
       }
 
-      const matchedJob = jobs.find(j => j.id === selectedJobId) || jobs.find(j => j.title.trim().toLowerCase() === position.trim().toLowerCase());
-      const targetJobId = matchedJob ? matchedJob.id : (selectedJobId || '');
+      const matchedJob = jobs.find(j => j.id === selectedJobId);
+      if (!matchedJob) throw new Error('Vị trí tuyển dụng không còn khả dụng. Vui lòng chọn lại.');
 
       const requestBody = {
         name: name.trim(),
         dob: dob.trim(),
         phone: phone.trim(),
         email: email.trim(),
-        position: position.trim(),
-        jobId: targetJobId,
+        position: matchedJob.title,
+        jobId: matchedJob.id,
         fileData,
         fileName
       };
-
-      console.log(`[Form] Submitting application for "${position.trim()}" (${name.trim()})...`);
 
       // Submit via backend API
       const response = await fetch('/api/send-email', {
@@ -235,30 +215,23 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
-        let errorMessage = "Không thể gửi hồ sơ";
-        try {
-          const contentType = response.headers.get("content-type");
-          if (contentType && contentType.includes("application/json")) {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
-          } else {
-            errorMessage = `Lỗi máy chủ (${response.status})`;
-          }
-        } catch (e) {
-          console.error("Error parsing error response:", e);
-        }
+      const result = await response.json().catch(() => null);
+      if (!response.ok || result?.success !== true || typeof result?.applicationId !== 'string' || !result.applicationId) {
+        const errorMessage = response.status === 413
+          ? 'File CV quá lớn. Vui lòng chọn file tối đa 3 MiB.'
+          : (response.status === 429
+            ? 'Bạn gửi hồ sơ quá nhanh. Vui lòng đợi ít phút rồi thử lại.'
+            : (result?.error || 'Chưa xác nhận được việc lưu hồ sơ. Vui lòng thử lại sau.'));
         throw new Error(errorMessage);
       }
 
-      alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công đến bộ phận Tuyển dụng.");
+      alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ đã được tiếp nhận thành công. Bộ phận Tuyển dụng sẽ liên hệ sau khi xem xét.");
 
       // Reset form
       setName('');
       setDob('');
       setPhone('');
       setEmail('');
-      setPosition('');
       setSelectedJobId('');
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -294,32 +267,14 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setSiteContent({
-          ...defaultContent,
-          ...data,
-          policy5Benefits: Array.isArray(data.policy5Benefits) 
-            ? data.policy5Benefits.join('\n') 
-            : (data.policy5Benefits || defaultContent.policy5Benefits),
-          trainingImages: Array.isArray(data.trainingImages)
-            ? data.trainingImages.join('\n')
-            : (data.trainingImages || defaultContent.trainingImages),
-          workspaceImages: Array.isArray(data.workspaceImages)
-            ? data.workspaceImages.join('\n')
-            : (data.workspaceImages || defaultContent.workspaceImages),
-          philosophyImages: Array.isArray(data.philosophyImages)
-            ? data.philosophyImages.join('\n')
-            : (data.philosophyImages || defaultContent.philosophyImages),
-          benefitsImages: Array.isArray(data.benefitsImages)
-            ? data.benefitsImages.join('\n')
-            : (data.benefitsImages || defaultContent.benefitsImages)
-        });
+        setSiteContent(normalizeSiteContent(data));
       }
     }, (error) => {
       console.error("Error fetching site content:", error);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [previewContent]);
 
   const getFontClass = (font: string) => {
     switch (font) {
@@ -347,7 +302,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
         <div className="mx-auto flex flex-col md:flex-row justify-between items-center text-base" style={{ maxWidth: `${siteContent.containerWidth}px` }}>
           <a href="https://hoangmaistarschool.edu.vn/" target="_blank" rel="noreferrer" className="flex items-center mb-3 md:mb-0 hover:opacity-80 transition-opacity">
             <img 
-              src={siteContent.logoUrl} 
+              src={safeExternalUrl(siteContent.logoUrl)}
               alt="Ngôi Sao Hoàng Mai" 
               style={{ height: `${siteContent.logoSize * 4}px`, maxHeight: '120px', minHeight: '30px' }}
               className="object-contain transition-all duration-500" 
@@ -389,7 +344,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                 key="hero"
                 className="relative bg-cover bg-center transition-all duration-500" 
                 style={{ 
-                  backgroundImage: `url(${siteContent.heroBgImage})`,
+                  backgroundImage: safeExternalUrl(siteContent.heroBgImage) ? `url(${JSON.stringify(safeExternalUrl(siteContent.heroBgImage))})` : undefined,
                   height: `${siteContent.heroHeight}px`
                 }}
               >
@@ -481,14 +436,14 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                     {visibleJobs.length > 0 ? visibleJobs.map((job) => (
                       <div key={job.id} onClick={() => setSelectedJob(job)} className="bg-white p-6 shadow-sm border border-gray-100 flex items-start space-x-5 hover:shadow-lg hover:border-gray-200 transition duration-300 cursor-pointer group overflow-hidden" style={{ borderRadius: `${siteContent.borderRadius}px` }}>
                         <div className="w-12 h-12 bg-white flex items-center justify-center shrink-0 border border-gray-100 group-hover:border-[#c8102e] transition duration-300 overflow-hidden p-1" style={{ borderRadius: `${siteContent.borderRadius / 1.5}px` }}>
-                          <img src={siteContent.jobIconUrl || siteContent.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                          <img src={safeExternalUrl(siteContent.jobIconUrl || siteContent.logoUrl)} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-lg text-gray-900 mb-1.5 group-hover:text-[#c8102e] transition truncate" style={{ '--hover-color': siteContent.primaryColor } as any}>{job.title}</h3>
                           <p className="text-[10px] sm:text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-1.5 sm:px-2 py-0.5 rounded truncate max-w-full">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
                           <div 
                             className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: job.description.replace(/&nbsp;|\u00A0/g, ' ') }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(job.description) }}
                           />
                           <div className="flex flex-col gap-2">
                             <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
@@ -502,7 +457,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                                 <span className="font-bold" style={{ color: siteContent.primaryColor }}>Hạn nộp: {job.deadline}</span>
                               </div>
                               {job.jdUrl && (
-                                <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }} onClick={(e) => e.stopPropagation()}>
+                                <a href={safeExternalUrl(job.jdUrl)} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }} onClick={(e) => e.stopPropagation()}>
                                   <FileText className="w-3 h-3 mr-1" />
                                   <span>Xem JD</span>
                                 </a>
@@ -691,7 +646,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[500px]">
                         <div className="order-1 md:order-1 h-full">
                           <img 
-                            src={siteContent.coreValuesImage || "https://hoangmaistarschool.edu.vn/thongtin/gtcl.png"} 
+                            src={safeExternalUrl(siteContent.coreValuesImage) || "https://hoangmaistarschool.edu.vn/thongtin/gtcl.png"}
                             alt="Tầm nhìn" 
                             className="w-full h-full object-cover" 
                           />
@@ -741,7 +696,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                             </AnimatePresence>
                           ) : (
                             <img 
-                              src={siteContent.benefitsImage || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"} 
+                              src={safeExternalUrl(siteContent.benefitsImage) || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=1932&auto=format&fit=crop"}
                               alt="Phúc lợi" 
                               className="w-full h-full object-cover" 
                               referrerPolicy="no-referrer"
@@ -921,11 +876,9 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                       </div>
                       <div className="relative">
                         <select 
-                          value={position} 
+                          value={selectedJobId}
                           onChange={(e) => {
-                            setPosition(e.target.value);
-                            const matched = jobs.find(j => j.title === e.target.value);
-                            setSelectedJobId(matched ? matched.id : '');
+                            setSelectedJobId(e.target.value);
                           }} 
                           className="w-full bg-white/10 border-b border-white/30 px-4 py-3 text-white/60 focus:outline-none focus:border-white focus:bg-white/20 transition appearance-none cursor-pointer text-[16px] md:text-base" 
                           style={{ borderTopLeftRadius: `${siteContent.borderRadius}px`, borderTopRightRadius: `${siteContent.borderRadius}px` }} 
@@ -933,14 +886,14 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                         >
                           <option value="" disabled>Vị trí ứng tuyển *</option>
                           {jobs.map((job) => (
-                            <option key={job.id} value={job.title} className="text-gray-800">{job.title}</option>
+                            <option key={job.id} value={job.id} className="text-gray-800">{job.title}{job.department ? ` — ${job.department}` : ''}</option>
                           ))}
                         </select>
                         <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60 pointer-events-none" />
                       </div>
                       
                       <div className="pt-4 relative">
-                        <label className="block text-white/90 text-sm font-medium mb-3">Đính kèm CV (PDF, DOCX) *</label>
+                        <label className="block text-white/90 text-sm font-medium mb-3">Đính kèm CV (PDF, DOCX, tối đa 3 MiB) *</label>
                         <div className="border-2 border-dashed border-white/30 p-6 text-center hover:bg-white/5 transition cursor-pointer group relative overflow-hidden" style={{ borderRadius: `${siteContent.borderRadius}px` }}>
                           <input 
                             type="file" 
@@ -1037,7 +990,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
             <div className="col-span-1 lg:col-span-2">
               <div className="mb-8">
                 <img 
-                  src={siteContent.logoUrl} 
+                  src={safeExternalUrl(siteContent.logoUrl)}
                   alt="Ngôi Sao Hoàng Mai" 
                   style={{ height: `${siteContent.logoSize * 6}px`, maxHeight: '180px', minHeight: '50px' }}
                   className="object-contain transition-all duration-500" 
@@ -1049,14 +1002,14 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
               </p>
               <div className="flex space-x-4">
                 <a 
-                  href={siteContent.facebookUrl} target="_blank" rel="noreferrer" 
+                  href={safeExternalUrl(siteContent.facebookUrl)} target="_blank" rel="noreferrer"
                   className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center transition"
                   style={{ '--hover-bg': siteContent.primaryColor } as any}
                 >
                   <Facebook className="w-5 h-5" />
                 </a>
                 <a 
-                  href={siteContent.youtubeUrl} target="_blank" rel="noreferrer" 
+                  href={safeExternalUrl(siteContent.youtubeUrl)} target="_blank" rel="noreferrer"
                   className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center transition"
                   style={{ '--hover-bg': siteContent.primaryColor } as any}
                 >
@@ -1064,7 +1017,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                 </a>
                 {siteContent.websiteUrl && (
                   <a 
-                    href={siteContent.websiteUrl} target="_blank" rel="noreferrer" 
+                    href={safeExternalUrl(siteContent.websiteUrl)} target="_blank" rel="noreferrer"
                     className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center transition"
                     style={{ '--hover-bg': siteContent.primaryColor } as any}
                   >
@@ -1110,7 +1063,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                 </li>
                 <li className="flex items-center space-x-3">
                   <Facebook className="w-5 h-5 shrink-0" style={{ color: siteContent.primaryColor }} />
-                  <a href={siteContent.contactFacebookUrl || "https://www.facebook.com/tuyendungnshm"} target="_blank" rel="noreferrer" className="hover:text-white transition">
+                  <a href={safeExternalUrl(siteContent.contactFacebookUrl || "https://www.facebook.com/tuyendungnshm")} target="_blank" rel="noreferrer" className="hover:text-white transition">
                     {siteContent.contactFacebookUrl ? siteContent.contactFacebookUrl.replace('https://www.', '').replace('https://', '') : 'facebook.com/tuyendungnshm'}
                   </a>
                 </li>
@@ -1143,7 +1096,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
             <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-start sticky top-0 bg-white z-10">
               <div className="flex items-start space-x-4 min-w-0">
                 <div className="w-12 h-12 bg-white flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden p-1" style={{ borderRadius: `${siteContent.borderRadius}px` }}>
-                  <img src={siteContent.jobIconUrl || siteContent.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                  <img src={safeExternalUrl(siteContent.jobIconUrl || siteContent.logoUrl)} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">{selectedJob.title}</h2>
@@ -1160,7 +1113,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                         <span className="font-bold text-[#c8102e]">Hạn nộp: {selectedJob.deadline}</span>
                       </div>
                       {selectedJob.jdUrl && (
-                        <a href={selectedJob.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
+                        <a href={safeExternalUrl(selectedJob.jdUrl)} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline bg-blue-50 px-2 py-1" style={{ borderRadius: `${siteContent.borderRadius / 2}px` }}>
                           <FileText className="w-3 h-3 mr-1" />
                           <span>Xem JD</span>
                         </a>
@@ -1198,7 +1151,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                 </h3>
                 <div 
                   className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: selectedJob.description.replace(/&nbsp;|\u00A0/g, ' ') }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(selectedJob.description) }}
                 />
               </div>
               
@@ -1209,7 +1162,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                 </h3>
                 <div 
                   className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: selectedJob.requirements.replace(/&nbsp;|\u00A0/g, ' ') }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(selectedJob.requirements) }}
                 />
               </div>
 
@@ -1221,7 +1174,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                   </h3>
                   <div 
                     className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: selectedJob.benefits.replace(/&nbsp;|\u00A0/g, ' ') }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(selectedJob.benefits) }}
                   />
                 </div>
               )}
@@ -1234,7 +1187,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                   </h3>
                   <div 
                     className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: selectedJob.workingHours.replace(/&nbsp;|\u00A0/g, ' ') }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(selectedJob.workingHours) }}
                   />
                 </div>
               )}
@@ -1244,7 +1197,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
               <button 
                 onClick={() => {
                   if (selectedJob) {
-                    setPosition(selectedJob.title);
                     setSelectedJobId(selectedJob.id);
                     setSelectedJob(null);
                     setTimeout(() => {

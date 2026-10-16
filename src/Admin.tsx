@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential, createUserWithEmailAndPassword } from 'firebase/auth';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { signInWithEmailAndPassword, signOut, onIdTokenChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { LogOut, Plus, Trash2, FileText, MapPin, Briefcase, LayoutTemplate, Eye, EyeOff, Edit2, X, ChevronDown, ChevronUp, Mail, Lock, ShieldCheck, AlertCircle, Users } from 'lucide-react';
@@ -7,8 +7,11 @@ import SiteContentAdmin from './SiteContentAdmin';
 import SmtpAdmin from './SmtpAdmin';
 import ApplicationsModal from './ApplicationsModal';
 import ApplicationsTab from './ApplicationsTab';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import RichTextEditor from './RichTextEditor';
+import { sanitizeRichHtml, safeExternalUrl } from './lib/safeHtml';
+import { adminJson, AdminApiError, hasAdminClaim } from './lib/adminApi';
+import { buildApplicationStatistics } from './shared/applicationMatching';
+import type { User } from 'firebase/auth';
 
 export interface Job {
   id: string;
@@ -95,14 +98,14 @@ const JobCard = ({
           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Mô tả công việc</h4>
           <div 
             className={`text-sm text-gray-700 prose prose-sm max-w-none ${expanded ? '' : 'line-clamp-3'}`}
-            dangerouslySetInnerHTML={{ __html: job.description }}
+            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(job.description) }}
           />
         </div>
         <div>
           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Yêu cầu</h4>
           <div 
             className={`text-sm text-gray-700 prose prose-sm max-w-none ${expanded ? '' : 'line-clamp-3'}`}
-            dangerouslySetInnerHTML={{ __html: job.requirements }}
+            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(job.requirements) }}
           />
         </div>
         {expanded && job.benefits && (
@@ -110,7 +113,7 @@ const JobCard = ({
             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Chế độ</h4>
             <div 
               className="text-sm text-gray-700 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: job.benefits }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(job.benefits) }}
             />
           </div>
         )}
@@ -119,7 +122,7 @@ const JobCard = ({
             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Thời gian làm việc</h4>
             <div 
               className="text-sm text-gray-700 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: job.workingHours }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(job.workingHours) }}
             />
           </div>
         )}
@@ -151,7 +154,7 @@ const JobCard = ({
           Hạn nộp: {job.deadline}
         </div>
         {job.jdUrl && (
-          <a href={job.jdUrl} target="_blank" rel="noreferrer" className="flex items-center text-xs font-medium bg-blue-50 text-blue-600 hover:underline px-2.5 py-1.5 rounded-md">
+          <a href={safeExternalUrl(job.jdUrl)} target="_blank" rel="noreferrer" className="flex items-center text-xs font-medium bg-blue-50 text-blue-600 hover:underline px-2.5 py-1.5 rounded-md">
             <FileText className="w-3.5 h-3.5 mr-1.5" />
             Xem JD
           </a>
@@ -180,7 +183,14 @@ const JobCard = ({
 };
 
 export default function Admin() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [applicationsError, setApplicationsError] = useState('');
+  const [jobsError, setJobsError] = useState('');
+  const [applicationsLoaded, setApplicationsLoaded] = useState(false);
+  const applicationsRevision = useRef(0);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -245,122 +255,122 @@ export default function Admin() {
   }, [user]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    let version = 0;
+    const unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
+      const currentVersion = ++version;
+      setLoading(Boolean(currentUser));
       setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const jobsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Job[];
-      setJobs(jobsData);
-    }, (error) => {
-      console.error("Error fetching jobs:", error);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  const fetchApplications = async () => {
-    try {
-      const res = await fetch('/api/applications');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          setApplications(json.data);
-        }
+      setIsAdmin(false);
+      setApplications([]);
+      setJobs([]);
+      setApplicationsLoaded(false);
+      setApplicationsError('');
+      setJobsError('');
+      if (!currentUser) { setLoading(false); return; }
+      try {
+        const token = await currentUser.getIdTokenResult();
+        if (currentVersion !== version) return;
+        const allowed = hasAdminClaim(token.claims);
+        setIsAdmin(allowed);
+        setAuthError(allowed ? '' : 'Tài khoản chưa được cấp quyền quản trị hoặc email chưa được xác minh.');
+      } catch {
+        if (currentVersion === version) setAuthError('Không thể xác minh phiên đăng nhập. Vui lòng đăng nhập lại.');
+      } finally {
+        if (currentVersion === version) setLoading(false);
       }
-    } catch (e) {
-      console.error("Error fetching applications from API:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchApplications();
-    const interval = setInterval(fetchApplications, 4000);
-    return () => clearInterval(interval);
+    });
+    return () => { version++; unsubscribe(); };
   }, []);
 
-  const getJobApplicantCount = (job: Job) => {
-    const jobNorm = (job.title || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    return applications.filter(app => {
-      if (app.jobId && app.jobId === job.id) return true;
-      if (app.jobTitle && (app.jobTitle || '').trim().replace(/\s+/g, ' ').toLowerCase() === jobNorm) return true;
-      return false;
-    }).length;
-  };
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      setJobs(snapshot.docs.map(job => ({ ...job.data(), id: job.id })) as Job[]);
+      setJobsError('');
+    }, () => setJobsError('Không tải được vị trí tuyển dụng. Vui lòng kiểm tra kết nối và quyền quản trị.'));
+  }, [user, isAdmin]);
+
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    const controller = new AbortController();
+    let inFlight = false;
+    const fetchApplications = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      const revision = applicationsRevision.current;
+      try {
+        const result = await adminJson<{ success: boolean; data: Application[] }>('/api/applications', { signal: controller.signal });
+        if (!Array.isArray(result.data)) throw new Error('Dữ liệu hồ sơ không hợp lệ.');
+        if (!controller.signal.aborted && revision === applicationsRevision.current) {
+          setApplications(result.data);
+          setApplicationsLoaded(true);
+          setApplicationsError('');
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        if (error instanceof AdminApiError && [401, 403].includes(error.status)) {
+          setApplications([]);
+          setIsAdmin(false);
+          setAuthError(error.message);
+        } else setApplicationsError(error instanceof Error ? error.message : 'Không tải được hồ sơ.');
+      } finally { inFlight = false; }
+    };
+    void fetchApplications();
+    const interval = setInterval(() => void fetchApplications(), 4000);
+    return () => { controller.abort(); clearInterval(interval); };
+  }, [user, isAdmin]);
+
+  const applicationStatistics = useMemo(() => buildApplicationStatistics(jobs, applications), [jobs, applications]);
+  const getJobApplicantCount = (job: Job) => applicationStatistics.byJobId.get(job.id)?.total || 0;
 
   const handleOpenApplications = (job: Job) => {
     setSelectedJobForApplications(job);
     setApplicationsModalOpen(true);
   };
 
-  const handleCreateApplication = async (data: Partial<Application>) => {
+  const mutateApplication = async (path: string, init: RequestInit) => {
     try {
-      const res = await fetch('/api/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          setApplications(prev => [json.data, ...prev]);
-        }
-      } else {
-        const err = await res.json();
-        alert("Lỗi thêm hồ sơ: " + (err.error || "Không rõ nguyên nhân"));
+      const sessionUid = auth.currentUser?.uid;
+      const result = await adminJson<{ success: boolean; data?: Application }>(path, init);
+      if (!sessionUid || auth.currentUser?.uid !== sessionUid) throw new Error('Phiên đăng nhập đã thay đổi. Vui lòng tải lại trang.');
+      applicationsRevision.current++;
+      setApplicationsError('');
+      return result;
+    } catch (error) {
+      if (error instanceof AdminApiError && [401, 403].includes(error.status)) {
+        setApplications([]); setIsAdmin(false); setAuthError(error.message);
       }
-    } catch (error: any) {
-      console.error("Error creating application:", error);
-      alert("Lỗi kết nối khi thêm hồ sơ: " + error.message);
+      setApplicationsError(error instanceof Error ? error.message : 'Không thể lưu thay đổi hồ sơ.');
+      throw error;
     }
+  };
+
+  const handleCreateApplication = async (data: Partial<Application>) => {
+    const result = await mutateApplication('/api/applications', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    if (!result.data?.id) throw new Error('Máy chủ chưa xác nhận hồ sơ mới. Vui lòng tải lại danh sách.');
+    setApplications(previous => [result.data!, ...previous.filter(item => item.id !== result.data!.id)]);
   };
 
   const handleUpdateApplicationStatus = async (appId: string, status: string) => {
-    try {
-      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
-      await fetch(`/api/applications/${appId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-    } catch (err: any) {
-      console.error("Error updating application status:", err);
-    }
+    const result = await mutateApplication(`/api/applications/${encodeURIComponent(appId)}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+    });
+    setApplications(previous => previous.map(item => item.id === appId ? result.data || { ...item, status } : item));
   };
 
   const handleUpdateApplicationNotes = async (appId: string, notes: string) => {
-    try {
-      setApplications(prev => prev.map(a => a.id === appId ? { ...a, notes } : a));
-      await fetch(`/api/applications/${appId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes })
-      });
-    } catch (err: any) {
-      console.error("Error updating application notes:", err);
-    }
+    const result = await mutateApplication(`/api/applications/${encodeURIComponent(appId)}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes }),
+    });
+    setApplications(previous => previous.map(item => item.id === appId ? result.data || { ...item, notes } : item));
   };
 
   const handleDeleteApplication = async (appId: string) => {
-    try {
-      setApplications(prev => prev.filter(a => a.id !== appId));
-      await fetch(`/api/applications/${appId}`, {
-        method: 'DELETE'
-      });
-    } catch (err: any) {
-      console.error("Error deleting application:", err);
-      alert("Lỗi xóa hồ sơ: " + err.message);
-    }
+    await mutateApplication(`/api/applications/${encodeURIComponent(appId)}`, { method: 'DELETE' });
+    setApplications(previous => previous.filter(item => item.id !== appId));
   };
 
   const handleCreateSampleApplication = async (targetJob?: Job) => {
@@ -372,7 +382,7 @@ export default function Admin() {
     const sampleNames = ["Nguyễn Thu Hà", "Trần Minh Quân", "Lê Hoàng Long", "Phạm Thị Hương", "Đặng Minh Quân"];
     const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
     const randomPhone = `09${Math.floor(10000000 + Math.random() * 90000000)}`;
-    const randomEmail = `${randomName.toLowerCase().replace(/[^a-z]/g, '')}@gmail.com`;
+    const randomEmail = `sample-${Date.now()}@example.invalid`;
 
     await handleCreateApplication({
       jobId: currentJob.id,
@@ -384,34 +394,30 @@ export default function Admin() {
       cvUrl: "https://drive.google.com",
       fileName: `CV_${randomName.replace(/\s+/g, '_')}.pdf`,
       status: 'new',
-      notes: 'Hồ sơ thử nghiệm mẫu do quản trị viên tạo',
-      createdAt: new Date().toISOString()
+      notes: 'Hồ sơ thử nghiệm mẫu do quản trị viên tạo'
     });
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Chuyển đổi username thành email giả lập để dùng với Firebase
-    const email = username === 'admin_nshm' ? 'admin_nshm@nshm.edu.vn' : username;
+    setIsLoggingIn(true);
+    setAuthError('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
-      console.error("Login error:", error);
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-        try {
-          await createUserWithEmailAndPassword(auth, email, password);
-        } catch (createError) {
-          console.error("Create user error:", createError);
-          alert("Sai tài khoản hoặc mật khẩu!");
-        }
-      } else {
-        alert("Sai tài khoản hoặc mật khẩu!");
-      }
-    }
+      await signInWithEmailAndPassword(auth, username.trim(), password);
+      setPassword('');
+    } catch {
+      setAuthError('Đăng nhập không thành công. Vui lòng kiểm tra email và mật khẩu.');
+    } finally { setIsLoggingIn(false); }
   };
 
   const handleLogout = async () => {
     try {
+      setApplications([]);
+      setJobs([]);
+      setIsAdmin(false);
+      setApplicationsModalOpen(false);
+      setSelectedJobForApplications(null);
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       await signOut(auth);
     } catch (error) {
       console.error("Logout error:", error);
@@ -425,6 +431,7 @@ export default function Admin() {
       return;
     }
 
+    if (jdUrl && !safeExternalUrl(jdUrl)) { alert('Link JD phải là địa chỉ HTTP hoặc HTTPS hợp lệ.'); return; }
     setIsSubmitting(true);
     try {
       const formattedDeadline = deadline.includes('-') 
@@ -435,10 +442,10 @@ export default function Admin() {
         await updateDoc(doc(db, 'jobs', editingJobId), {
           title,
           department,
-          description,
-          requirements,
-          benefits,
-          workingHours,
+          description: sanitizeRichHtml(description),
+          requirements: sanitizeRichHtml(requirements),
+          benefits: sanitizeRichHtml(benefits),
+          workingHours: sanitizeRichHtml(workingHours),
           deadline: formattedDeadline,
           jdUrl: jdUrl || null,
         });
@@ -447,10 +454,10 @@ export default function Admin() {
         await addDoc(collection(db, 'jobs'), {
           title,
           department,
-          description,
-          requirements,
-          benefits,
-          workingHours,
+          description: sanitizeRichHtml(description),
+          requirements: sanitizeRichHtml(requirements),
+          benefits: sanitizeRichHtml(benefits),
+          workingHours: sanitizeRichHtml(workingHours),
           deadline: formattedDeadline,
           jdUrl: jdUrl || null,
           createdAt: serverTimestamp(),
@@ -594,10 +601,13 @@ export default function Admin() {
           <h1 className="text-2xl font-bold text-[#23328c] mb-2">Quản trị Tuyển dụng</h1>
           <p className="text-gray-500 mb-8">Đăng nhập để quản lý các vị trí tuyển dụng</p>
           <form onSubmit={handleLogin} className="space-y-4">
+            {authError && <p role="alert" className="text-sm text-red-700 bg-red-50 rounded-lg p-3">{authError}</p>}
             <div>
               <input
-                type="text"
-                placeholder="Tài khoản"
+                type="email"
+                aria-label="Email quản trị"
+                autoComplete="username"
+                placeholder="Email quản trị"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition text-left"
@@ -607,7 +617,9 @@ export default function Admin() {
             <div>
               <input
                 type="password"
+                aria-label="Mật khẩu"
                 placeholder="Mật khẩu"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#c8102e] focus:border-transparent outline-none transition text-left"
@@ -616,24 +628,10 @@ export default function Admin() {
             </div>
             <button 
               type="submit"
+              disabled={isLoggingIn}
               className="w-full bg-[#c8102e] text-white font-bold py-3 rounded-xl hover:bg-red-700 transition shadow-md mb-3"
             >
-              Đăng nhập
-            </button>
-            <button 
-              type="button"
-              onClick={async () => {
-                try {
-                  await signInWithEmailAndPassword(auth, 'tuan303@gmail.com', '123456');
-                } catch (error: any) {
-                  if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-                    await createUserWithEmailAndPassword(auth, 'tuan303@gmail.com', '123456');
-                  }
-                }
-              }}
-              className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition shadow-md"
-            >
-              Đăng nhập nhanh (Auto)
+              {isLoggingIn ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
         </div>
@@ -641,9 +639,7 @@ export default function Admin() {
     );
   }
 
-  // Check if user is admin
-  const allowedEmails = ['tuan303@gmail.com', 'admin_nshm@nshm.edu.vn', 'tuyendung@hoangmaistarschool.edu.vn'];
-  if (!allowedEmails.includes(user.email)) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-gray-100">
@@ -653,7 +649,7 @@ export default function Admin() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Không có quyền truy cập</h1>
-          <p className="text-gray-500 mb-8">Tài khoản {user.email} không có quyền quản trị.</p>
+          <p className="text-gray-500 mb-8">{authError || `Tài khoản ${user.email} không có quyền quản trị.`}</p>
           <button 
             onClick={handleLogout}
             className="bg-[#c8102e] text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition"
@@ -693,6 +689,9 @@ export default function Admin() {
       </header>
 
       <main className="max-w-7xl mx-auto py-8 px-4">
+        {jobsError && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{jobsError}</div>}
+        {applicationsError && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{applicationsError} Dữ liệu đang hiển thị có thể chưa được cập nhật.</div>}
+        {!applicationsLoaded && !applicationsError && <p role="status" className="mb-5 text-sm text-gray-500">Đang tải hồ sơ ứng tuyển...</p>}
         {/* Tabs */}
         <div className="flex space-x-2 md:space-x-4 mb-8 border-b border-gray-200 pb-2 overflow-x-auto">
           <button
@@ -800,7 +799,7 @@ export default function Admin() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả công việc *</label>
                 <div className="quill-container">
-                  <ReactQuill 
+                  <RichTextEditor
                     theme="snow"
                     value={description}
                     onChange={setDescription}
@@ -813,7 +812,7 @@ export default function Admin() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Yêu cầu ứng viên *</label>
                 <div className="quill-container">
-                  <ReactQuill 
+                  <RichTextEditor
                     theme="snow"
                     value={requirements}
                     onChange={setRequirements}
@@ -826,7 +825,7 @@ export default function Admin() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Chế độ *</label>
                 <div className="quill-container">
-                  <ReactQuill 
+                  <RichTextEditor
                     theme="snow"
                     value={benefits}
                     onChange={setBenefits}
@@ -839,7 +838,7 @@ export default function Admin() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian làm việc *</label>
                 <div className="quill-container">
-                  <ReactQuill 
+                  <RichTextEditor
                     theme="snow"
                     value={workingHours}
                     onChange={setWorkingHours}
@@ -1010,6 +1009,7 @@ export default function Admin() {
             setSelectedJobForApplications(null);
           }}
           job={selectedJobForApplications}
+          jobs={jobs}
           applications={applications}
           onUpdateStatus={handleUpdateApplicationStatus}
           onUpdateNotes={handleUpdateApplicationNotes}
