@@ -10,6 +10,18 @@ import type { ApplicationRecord } from './applicationsStore';
 export interface SmtpSettings { host: string; port: number; user: string; recipient: string; password: string; source: 'environment' | 'database'; }
 const emailPattern = /^[^\s<>@,;"\r\n]+@[^\s<>@,;"\r\n]+\.[^\s<>@,;"\r\n]+$/;
 
+/** Preview must explicitly pin one test inbox before any SMTP connection. */
+export function assertStagingMailRecipient(recipient: string, env: Record<string, string | undefined> = process.env) {
+  if (env.VERCEL_ENV !== 'preview' && env.APP_ENV !== 'staging') return;
+  const testRecipient = env.SMTP_TEST_RECIPIENT?.trim() || '';
+  if (testRecipient.length > 254 || !emailPattern.test(testRecipient)) {
+    throw new HttpError(503, 'Môi trường thử cần cấu hình một SMTP_TEST_RECIPIENT riêng trên máy chủ.');
+  }
+  if (recipient.toLowerCase() !== testRecipient.toLowerCase()) {
+    throw new HttpError(400, 'Môi trường thử chỉ được gửi đến hộp thư SMTP_TEST_RECIPIENT đã cấu hình.');
+  }
+}
+
 function encryptionKey() {
   const raw = process.env.SMTP_ENCRYPTION_KEY || '';
   const key = /^[\da-f]{64}$/i.test(raw) ? Buffer.from(raw, 'hex') : Buffer.from(raw, 'base64');
@@ -49,6 +61,7 @@ function validate(input: Record<string, unknown>) {
   const user = validText(input.user, 'Tài khoản SMTP', 254);
   const recipient = validText(input.recipient, 'Email nhận', 254);
   if (!emailPattern.test(user) || !emailPattern.test(recipient)) throw new HttpError(400, 'Email SMTP không hợp lệ.');
+  assertStagingMailRecipient(recipient);
   return { host, port, user, recipient };
 }
 export async function getSmtpSettings(): Promise<SmtpSettings | null> {
@@ -94,6 +107,7 @@ export async function resolvePublicSmtpAddress(host: string) {
   return addresses[0].address;
 }
 async function transporter(settings: SmtpSettings) {
+  assertStagingMailRecipient(settings.recipient);
   const address = await resolvePublicSmtpAddress(settings.host);
   return nodemailer.createTransport({
     host: address, port: settings.port, secure: settings.port === 465, requireTLS: settings.port === 587,

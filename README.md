@@ -82,3 +82,26 @@ npm run test:rules
 Kiểm thử thường dùng dữ liệu giả, không gọi dịch vụ thật; emulator kiểm tra admin/verified email, schema đầy đủ và các giới hạn, private documents và private Storage. Trước phát hành, xác nhận thêm trên staging bằng tài khoản quản trị thật: đăng nhập, nộp CV, xem thống kê, cập nhật trạng thái/ghi chú, tải CV, gửi thử mail. Cấu hình SMTP đúng không thay thế việc kiểm tra hộp thư và theo dõi thông báo gửi thất bại.
 
 Nguồn giới hạn/triển khai: [Firebase ID tokens](https://firebase.google.com/docs/auth/admin/verify-id-tokens), [custom claims](https://firebase.google.com/docs/auth/admin/custom-claims), [Vercel Functions limits](https://vercel.com/docs/functions/limitations).
+
+## Kiểm thử riêng trước go-live trên Vercel
+
+Giữ PR ở nhánh `fix/security-applicant-statistics` trong thời gian thử. Chưa merge `main`, promote deployment, đổi domain hoặc triển khai rules/migration vào Firebase đang vận hành. Một Preview URL **không tự tách Firebase hoặc SMTP**: dữ liệu phụ thuộc cấu hình của cả trình duyệt và server.
+
+1. Tạo Firebase project/web app/bucket **riêng cho staging**. Chỉ dùng vị trí, hồ sơ và CV giả. Không sao chép dữ liệu ứng viên hoặc tài khoản/mật khẩu quản trị thật.
+2. Trong đúng project Vercel, đặt các biến ở phạm vi **Preview**, có thể giới hạn cho nhánh sửa này. Bộ `VITE_FIREBASE_*` gồm API key web, auth domain, project ID, storage bucket, messaging sender ID và app ID phải được lấy cùng một web app staging. `VITE_*` là cấu hình công khai; private key và mật khẩu luôn là biến server không có tiền tố này.
+3. Server Preview cần `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, credential Firebase Admin **cùng project staging**, `APP_URL` đúng origin Preview, `RATE_LIMIT_SALT` và `SMTP_ENCRYPTION_KEY` riêng. Không dùng bản sao credential/khóa production. Khai báo đầy đủ trước khi redeploy.
+4. Dùng tài khoản SMTP thử và hộp thư nhận thử. Đặt `SMTP_TEST_RECIPIENT` trên server; email nhận trong cấu hình SMTP phải là chính địa chỉ đó. Preview/staging sẽ từ chối kết nối SMTP nếu thiếu địa chỉ test hoặc địa chỉ nhận không khớp.
+5. Triển khai `firestore.rules` và `storage.rules` vào **project staging**. Bật Firebase Auth email/password, thêm hostname Preview vào authorized domains và tạo tài khoản thử. Dùng script `admin:access` với UID của tài khoản staging để cấp claim quản trị, rồi đăng nhập lại. Không thao tác tài khoản production.
+6. Vercel Preview tự bật kiểm tra tách môi trường. Nếu chạy staging ngoài Vercel, đặt **cả** `VITE_APP_ENV=staging` lúc build và `APP_ENV=staging` trên server. Thiếu cấu hình riêng hoặc dùng các định danh Firebase production đã biết sẽ làm build/API từ chối chạy; không bỏ kiểm tra để thử tiếp.
+
+| Kiểm tra trên staging | Điều kiện đạt |
+| --- | --- |
+| Xem vị trí và nộp CV mẫu | Chỉ vị trí đang tuyển được chọn; PDF/DOCX hợp lệ được lưu; reload vẫn có hồ sơ |
+| Xác thực và CV riêng | Khách/tài khoản thường không đọc, sửa hoặc tải CV; quản trị thử có quyền hợp lệ |
+| Thống kê | Nộp một hồ sơ làm tổng và đúng vị trí tăng một; đổi trạng thái cập nhật đúng cột; vị trí ẩn, 0 hồ sơ và nhóm không khớp đúng số |
+| Quản lý | Ghi chú/trạng thái còn sau reload; lọc, tải CV và xuất danh sách hoạt động |
+| Email | Lưu cấu hình không lộ mật khẩu; mail thử và thông báo chỉ đến hộp test, link quản trị trỏ staging |
+| Lỗi mạng/lưu/email | Chưa lưu thì không báo thành công; form giữ dữ liệu khi lỗi; mail lỗi không làm mất hồ sơ đã lưu |
+| Nội dung/vị trí | Chỉnh nội dung hoặc vị trí trong staging không thay đổi website hay Firestore production |
+
+Bản thử cục bộ dùng fixture Firebase/Auth/SMTP chỉ kiểm tra giao diện và nghiệp vụ với dữ liệu giả; không thay thế nghiệm thu đăng nhập, Firestore/Storage, SMTP và giới hạn runtime thật trên Vercel. Chỉ lên kế hoạch go-live sau khi các kiểm tra staging đạt, có bản sao lưu/đường quay lại và chủ dự án yêu cầu phát hành.
