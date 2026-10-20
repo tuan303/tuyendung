@@ -41,11 +41,30 @@ export function checkEmail(value: string): string {
   return value;
 }
 
+export const MAX_FILE_NAME_LENGTH = 300;
+
+/** Cuts `value` to at most `max` UTF-16 code units without splitting a surrogate pair. */
+export function truncateText(value: string, max: number): string {
+  if (value.length <= max) return value;
+  const cut = value.slice(0, Math.max(0, max));
+  return /[\ud800-\udbff]$/.test(cut) ? cut.slice(0, -1) : cut;
+}
+
 /** Makes a safe file name (no path separators / control chars), max 300 chars. */
 export function sanitizeFileName(value: string): string {
   // eslint-disable-next-line no-control-regex
   const cleaned = value.replace(/[\u0000-\u001f\u007f/\\:*?"<>|]+/g, "_").replace(/^\.+/, "").trim();
-  return cleaned.slice(0, 300);
+  return truncateText(cleaned, MAX_FILE_NAME_LENGTH);
+}
+
+/**
+ * The file name with `extension` (e.g. ".pdf") at the end, still at most 300 chars: the name is cut
+ * BEFORE the extension is appended, so the extension always matches the real file type.
+ */
+export function withFileExtension(fileName: string, extension: string): string {
+  if (fileName.toLowerCase().endsWith(extension)) return fileName;
+  const base = truncateText(fileName, MAX_FILE_NAME_LENGTH - extension.length).replace(/[.\s]+$/, "");
+  return `${base || "CV"}${extension}`;
 }
 
 export function parseUrl(value: string): URL | null {

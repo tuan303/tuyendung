@@ -8,11 +8,12 @@ rules_version = '2';
 //  - Trình duyệt (Firebase client SDK trong src/*.tsx) chỉ được:
 //      + Đọc công khai: "jobs" (tin tuyển dụng) và "siteContent" (nội dung trang).
 //      + Ghi (thêm/sửa/xóa) "jobs" và "siteContent": chỉ quản trị viên.
-//  - "applications" (hồ sơ ứng viên — dữ liệu cá nhân) và "settings" (cấu hình
-//    SMTP, mật khẩu đã mã hóa) CHỈ máy chủ (server.ts / api/index.ts) truy cập
-//    qua Firebase Admin SDK. Admin SDK không bị các quy tắc này giới hạn, còn
-//    trình duyệt thì bị chặn hoàn toàn (kể cả quản trị viên — quản trị viên xem
-//    hồ sơ thông qua API /api/applications có kiểm tra đăng nhập).
+//  - "applications" (hồ sơ ứng viên — dữ liệu cá nhân), "applicationFiles"
+//    (file CV ứng viên nộp trực tiếp) và "settings" (cấu hình SMTP, mật khẩu đã
+//    mã hóa) CHỈ máy chủ (server.ts / api/index.ts) truy cập qua Firebase Admin
+//    SDK. Admin SDK không bị các quy tắc này giới hạn, còn trình duyệt thì bị
+//    chặn hoàn toàn (kể cả quản trị viên — quản trị viên xem hồ sơ và file CV
+//    thông qua API /api/applications có kiểm tra đăng nhập).
 //  - Mọi đường dẫn khác: chặn mặc định.
 //
 //  Cách áp dụng:
@@ -145,6 +146,20 @@ service cloud.firestore {
     // qua /api/applications (máy chủ kiểm tra Firebase ID token).
     match /applications/{applicationId} {
       allow read, write: if false;
+    }
+
+    // File CV ứng viên nộp trực tiếp trên form (PDF/DOCX tối đa 3 MB) — CHỈ máy
+    // chủ (Admin SDK, src/server/cvFiles.ts). Trình duyệt bị chặn hoàn toàn.
+    //   applicationFiles/{appId}                 = thông tin file (tên, loại, kích thước, số mảnh)
+    //   applicationFiles/{appId}/chunks/{index}  = nội dung file, chia mảnh 768 KiB
+    // Quản trị viên xem file qua GET /api/applications/{id}/cv (máy chủ kiểm tra
+    // Firebase ID token). Quy tắc lồng bên dưới chặn cả các subcollection.
+    match /applicationFiles/{appId} {
+      allow read, write: if false;
+
+      match /{subPath=**} {
+        allow read, write: if false;
+      }
     }
 
     // Cấu hình hệ thống (settings/smtp: máy chủ gửi mail, mật khẩu đã mã hóa)

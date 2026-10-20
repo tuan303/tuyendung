@@ -97,7 +97,7 @@
         },
         "cvUrl": {
           "type": "string",
-          "description": "Đường dẫn CV: link Google Drive (cvStorage = \"drive\"), link nhập tay (cvStorage = \"link\") hoặc rỗng. Hồ sơ cũ có thể dùng trường downloadURL thay cho cvUrl"
+          "description": "Đường dẫn CV: link Google Drive (cvStorage = \"drive\"), link nhập tay (cvStorage = \"link\") hoặc rỗng (file CV lưu trên hệ thống — cvStorage = \"stored\" — không có link). Hồ sơ cũ có thể dùng trường downloadURL thay cho cvUrl"
         },
         "fileName": {
           "type": "string",
@@ -107,12 +107,13 @@
           "type": "string",
           "enum": [
             "drive",
+            "stored",
             "email",
             "email_failed",
             "link",
             "none"
           ],
-          "description": "Nơi lưu CV: \"drive\" = Google Drive (qua Apps Script), \"email\" = chỉ đính kèm trong email thông báo, \"email_failed\" = CV gửi kèm nhưng email thông báo không gửi được (file CV bị mất, cần liên hệ ứng viên), \"link\" = link do quản trị viên nhập tay, \"none\" = không có CV. Hồ sơ cũ có thể không có trường này"
+          "description": "Nơi lưu CV: \"drive\" = Google Drive (qua Apps Script), \"stored\" = file CV ứng viên nộp trực tiếp được lưu trên hệ thống (applicationFiles/{id}), quản trị viên bấm \"Xem CV\" để mở qua GET /api/applications/{id}/cv (file vẫn được đính kèm trong email thông báo), \"email\" = chỉ đính kèm trong email thông báo (không lưu được trên hệ thống), \"email_failed\" = CV gửi kèm nhưng không lưu được trên hệ thống và email thông báo cũng không gửi được (file CV bị mất, cần liên hệ ứng viên), \"link\" = link do quản trị viên nhập tay, \"none\" = không có CV. Hồ sơ cũ có thể không có trường này"
         },
         "status": {
           "type": "string",
@@ -138,6 +139,69 @@
         "email",
         "status",
         "createdAt"
+      ]
+    },
+    "ApplicationFile": {
+      "title": "Application CV File",
+      "description": "Thông tin file CV ứng viên nộp trực tiếp trên form (PDF/DOCX, tối đa 3 MB) — document applicationFiles/{applicationId}, Document ID = id của hồ sơ (applications/{applicationId}). Nội dung file nằm trong subcollection chunks. CHỈ máy chủ đọc/ghi qua Firebase Admin SDK (src/server/cvFiles.ts); thông tin file và các mảnh được ghi cùng một batch và bị xóa khi xóa hồ sơ.",
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "description": "Tên file CV (tối đa 300 ký tự), dùng khi xem/tải xuống"
+        },
+        "mimeType": {
+          "type": "string",
+          "enum": [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          ],
+          "description": "Loại file (đã kiểm tra chữ ký file khi nộp)"
+        },
+        "size": {
+          "type": "integer",
+          "description": "Kích thước file (byte), tối đa 3.145.728; dùng để kiểm tra file ghép từ các mảnh đầy đủ"
+        },
+        "chunkCount": {
+          "type": "integer",
+          "description": "Số mảnh trong subcollection chunks (= ceil(size / chunkSize))"
+        },
+        "chunkSize": {
+          "type": "integer",
+          "description": "Kích thước mỗi mảnh (byte), hiện là 786432 (768 KiB) — dưới giới hạn 1 MiB của một document Firestore"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời gian lưu file, chuỗi ISO 8601"
+        }
+      },
+      "required": [
+        "fileName",
+        "mimeType",
+        "size",
+        "chunkCount",
+        "chunkSize",
+        "createdAt"
+      ]
+    },
+    "ApplicationFileChunk": {
+      "title": "Application CV File Chunk",
+      "description": "Một mảnh nội dung file CV — document applicationFiles/{applicationId}/chunks/{index}, Document ID = index dạng chuỗi (\"0\", \"1\", ...). Ghép các mảnh theo thứ tự index để được file gốc. CHỈ máy chủ đọc/ghi.",
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "description": "Thứ tự mảnh, bắt đầu từ 0"
+        },
+        "data": {
+          "type": "bytes",
+          "description": "Nội dung mảnh (Firestore Bytes, tối đa 786432 byte)"
+        }
+      },
+      "required": [
+        "index",
+        "data"
       ]
     },
     "SiteContent": {
@@ -240,6 +304,20 @@
       },
       "access": "server-only",
       "description": "Hồ sơ ứng viên (dữ liệu cá nhân). CHỈ máy chủ truy cập qua Firebase Admin SDK; firestore.rules chặn mọi truy cập từ trình duyệt. Quản trị viên dùng API /api/applications."
+    },
+    "applicationFiles/{applicationId}": {
+      "schema": {
+        "$ref": "#/entities/ApplicationFile"
+      },
+      "access": "server-only",
+      "description": "Thông tin file CV của hồ sơ có cvStorage = \"stored\". CHỈ máy chủ truy cập qua Firebase Admin SDK; firestore.rules chặn mọi truy cập từ trình duyệt (kể cả subcollection). Quản trị viên xem file qua API GET /api/applications/{id}/cv."
+    },
+    "applicationFiles/{applicationId}/chunks/{index}": {
+      "schema": {
+        "$ref": "#/entities/ApplicationFileChunk"
+      },
+      "access": "server-only",
+      "description": "Các mảnh nội dung file CV (768 KiB mỗi mảnh). CHỈ máy chủ truy cập qua Firebase Admin SDK."
     },
     "settings/smtp": {
       "schema": {
