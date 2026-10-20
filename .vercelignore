@@ -1,0 +1,7 @@
+# Vercel CLI ("vercel", "vercel --prod") KHÔNG đọc .gitignore — chỉ đọc file này.
+# Không bao giờ tải lên Vercel: biến môi trường bí mật trên máy và dữ liệu thử
+# nghiệm cục bộ (hồ sơ ứng viên, cấu hình SMTP) trong thư mục data/.
+.env
+.env.*
+!.env.example
+data/

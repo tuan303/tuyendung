@@ -6,10 +6,104 @@ import {
   ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar, Share2, Check,
   Users, Lock
 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, doc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from './firebase';
+import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import { db } from './firebase';
+import { parseJsonResponse, ApiError } from './api';
+import { sanitizeHtml } from './sanitize';
 import { defaultContent } from './SiteContentAdmin';
+
+// ===== Cấu hình nộp CV =====
+const HR_EMAIL = 'tuyendung@hoangmaistarschool.edu.vn';
+const CV_UPLOAD_URL = (import.meta.env.VITE_CV_UPLOAD_URL || '').trim();
+const MB = 1024 * 1024;
+const MAX_DRIVE_CV_BYTES = 5 * MB; // Giới hạn của Google Apps Script (Drive)
+const MAX_INLINE_CV_BYTES = 3 * MB; // Gửi trực tiếp lên máy chủ (giới hạn request của Vercel là 4.5MB)
+const MAX_CV_BYTES = CV_UPLOAD_URL ? MAX_DRIVE_CV_BYTES : MAX_INLINE_CV_BYTES;
+const MAX_CV_MB = Math.round(MAX_CV_BYTES / MB);
+const CV_UPLOAD_TIMEOUT_MS = 60 * 1000;
+const SUBMIT_TIMEOUT_MS = 60 * 1000;
+const PDF_MIME = 'application/pdf';
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+/** Trả về MIME chuẩn của CV (PDF/DOCX) theo MIME hoặc phần mở rộng; null nếu không hợp lệ. */
+function detectCvMimeType(file: File): string | null {
+  if (file.type === PDF_MIME || file.type === DOCX_MIME) return file.type;
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith('.pdf')) return PDF_MIME;
+  if (lowerName.endsWith('.docx')) return DOCX_MIME;
+  return null;
+}
+
+/** Đọc file thành chuỗi base64 (không có tiền tố data:). */
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      const commaIndex = result.indexOf(',');
+      resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+    };
+    reader.onerror = () => reject(new Error('Không đọc được file CV. Vui lòng chọn lại file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Link file trên Drive đúng dạng Apps Script trả về (máy chủ chỉ chấp nhận đúng dạng này).
+const DRIVE_FILE_URL_RE = /^https:\/\/drive\.google\.com\/file\/d\/[A-Za-z0-9_-]{20,200}\/view(?:\?usp=(?:drivesdk|sharing))?$/;
+const DRIVE_FILE_ID_RE = /^[A-Za-z0-9_-]{20,200}$/;
+
+function isGoogleDriveHttpsUrl(value: unknown): value is string {
+  return typeof value === 'string' && DRIVE_FILE_URL_RE.test(value);
+}
+
+/** Lỗi do chính file CV (sai định dạng, quá lớn...) — thử lại hay gửi theo cách khác cũng không được. */
+class InvalidCvFileError extends Error {}
+
+/** Tải CV lên Google Drive qua Google Apps Script; trả về link file trên Drive. */
+async function uploadCvToDrive(params: {
+  fileName: string;
+  mimeType: string;
+  base64: string;
+  candidateName: string;
+  position: string;
+}): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CV_UPLOAD_TIMEOUT_MS);
+  try {
+    const response = await fetch(CV_UPLOAD_URL, {
+      method: 'POST',
+      // text/plain để trình duyệt không gửi preflight CORS (Apps Script không hỗ trợ OPTIONS)
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        fileName: params.fileName,
+        mimeType: params.mimeType,
+        fileData: params.base64,
+        candidateName: params.candidateName,
+        position: params.position
+      }),
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw new Error(`Máy chủ lưu CV trả về lỗi ${response.status}`);
+    }
+    const result = await response.json();
+    if (!result || result.status !== 'success') {
+      const message = (result && typeof result.message === 'string' && result.message) || 'Máy chủ lưu CV không xác nhận đã nhận file';
+      if (result && result.code === 'invalid_file') throw new InvalidCvFileError(message);
+      throw new Error(message);
+    }
+    // Dựng link từ ID file (ổn định hơn), dự phòng dùng link Apps Script trả về.
+    if (typeof result.fileId === 'string' && DRIVE_FILE_ID_RE.test(result.fileId)) {
+      return `https://drive.google.com/file/d/${result.fileId}/view?usp=drivesdk`;
+    }
+    if (!isGoogleDriveHttpsUrl(result.fileUrl)) {
+      throw new Error('Máy chủ lưu CV trả về đường dẫn không hợp lệ');
+    }
+    return result.fileUrl;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 interface Job {
   id: string;
@@ -114,6 +208,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
   const [selectedJobId, setSelectedJobId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
 
@@ -167,15 +262,31 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
     setCurrentSlide((prev) => (prev - 1 + totalPages) % totalPages);
   };
 
+  const tooLargeMessage = `File CV của bạn quá lớn (trên ${MAX_CV_MB}MB). Vui lòng nén file hoặc sử dụng file PDF có dung lượng nhỏ hơn.`;
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (validTypes.includes(selectedFile.type)) {
-        setFile(selectedFile);
-      } else {
+      const resetInput = () => {
+        setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+      if (!detectCvMimeType(selectedFile)) {
         alert("Vui lòng chọn file PDF hoặc DOCX.");
+        resetInput();
+        return;
       }
+      if (selectedFile.size > MAX_CV_BYTES) {
+        alert(tooLargeMessage);
+        resetInput();
+        return;
+      }
+      if (selectedFile.size === 0) {
+        alert("File CV bị rỗng. Vui lòng chọn lại file.");
+        resetInput();
+        return;
+      }
+      setFile(selectedFile);
     }
   };
 
@@ -186,69 +297,107 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
       return;
     }
 
-    // Check file size (5MB limit)
-    if (file && file.size > 5 * 1024 * 1024) {
-      alert("File CV của bạn quá lớn (trên 5MB). Vui lòng nén file hoặc sử dụng file PDF có dung lượng nhỏ hơn.");
+    const mimeType = detectCvMimeType(file);
+    if (!mimeType) {
+      alert("Vui lòng chọn file PDF hoặc DOCX.");
+      return;
+    }
+
+    if (file.size > MAX_CV_BYTES) {
+      alert(tooLargeMessage);
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitStatus('Đang đọc file CV...');
     try {
-      let fileData: string | null = null;
-      let fileName: string | null = null;
+      const fileName = file.name;
+      const trimmedName = name.trim();
+      const trimmedPosition = position.trim();
+      console.log(`[Form] Processing file: ${fileName} (${Math.round(file.size / 1024)} KB)`);
 
-      if (file) {
-        fileName = file.name;
-        console.log(`[Form] Processing file: ${fileName} (${Math.round(file.size / 1024)} KB)`);
-        
-        // Read file as base64 for upload and storage
-        const reader = new FileReader();
-        fileData = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
+      const base64 = await readFileAsBase64(file);
+
+      let cvUrl: string | undefined;
+      let fileData: string | undefined;
+
+      if (CV_UPLOAD_URL) {
+        // 1) Ưu tiên lưu CV vào Google Drive (qua Apps Script)
+        setSubmitStatus('Đang tải CV lên...');
+        try {
+          cvUrl = await uploadCvToDrive({
+            fileName,
+            mimeType,
+            base64,
+            candidateName: trimmedName,
+            position: trimmedPosition
+          });
+        } catch (uploadError) {
+          console.warn("[Form] Upload CV to Google Drive failed:", uploadError);
+          if (uploadError instanceof InvalidCvFileError) {
+            // Lỗi do file (định dạng/nội dung): báo đúng nguyên nhân, không thử cách khác.
+            throw uploadError;
+          }
+          if (file.size <= MAX_INLINE_CV_BYTES) {
+            // 2) Dự phòng: gửi file kèm hồ sơ để máy chủ đính kèm vào email tuyển dụng
+            fileData = `data:${mimeType};base64,${base64}`;
+          } else {
+            throw new Error(`Không tải được file CV lên hệ thống. Vui lòng thử lại sau ít phút, hoặc gửi CV trực tiếp qua email ${HR_EMAIL}.`);
+          }
+        }
+      } else {
+        fileData = `data:${mimeType};base64,${base64}`;
       }
 
       const matchedJob = jobs.find(j => j.id === selectedJobId) || jobs.find(j => j.title.trim().toLowerCase() === position.trim().toLowerCase());
       const targetJobId = matchedJob ? matchedJob.id : (selectedJobId || '');
 
       const requestBody = {
-        name: name.trim(),
+        name: trimmedName,
         dob: dob.trim(),
         phone: phone.trim(),
         email: email.trim(),
-        position: position.trim(),
+        position: trimmedPosition,
         jobId: targetJobId,
-        fileData,
-        fileName
+        fileName,
+        cvUrl,
+        fileData
       };
 
-      console.log(`[Form] Submitting application for "${position.trim()}" (${name.trim()})...`);
+      console.log(`[Form] Submitting application for "${trimmedPosition}" (${cvUrl ? 'CV on Drive' : 'CV attached'})...`);
+      setSubmitStatus('Đang gửi hồ sơ...');
 
       // Submit via backend API
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        let errorMessage = "Không thể gửi hồ sơ";
-        try {
-          const contentType = response.headers.get("content-type");
-          if (contentType && contentType.includes("application/json")) {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
-          } else {
-            errorMessage = `Lỗi máy chủ (${response.status})`;
-          }
-        } catch (e) {
-          console.error("Error parsing error response:", e);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
+      let result: { success?: boolean; applicationId?: string; saved?: boolean; emailSent?: boolean };
+      try {
+        const response = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        });
+        result = await parseJsonResponse(response);
+      } catch (requestError: any) {
+        if (requestError?.name === 'AbortError') {
+          throw new Error(`Máy chủ phản hồi quá chậm. Vui lòng thử lại sau ít phút hoặc gửi CV qua email ${HR_EMAIL}.`);
         }
-        throw new Error(errorMessage);
+        if (requestError instanceof TypeError) {
+          throw new Error("Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.");
+        }
+        if (requestError instanceof ApiError && requestError.status === 413) {
+          throw new Error(`File CV quá lớn để gửi. Vui lòng nén file (dưới ${Math.round(MAX_INLINE_CV_BYTES / MB)}MB) hoặc gửi CV qua email ${HR_EMAIL}.`);
+        }
+        throw requestError;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      if (!result || result.success !== true) {
+        throw new Error(`Hệ thống tạm thời không lưu được hồ sơ. Vui lòng thử lại sau hoặc gửi CV qua email ${HR_EMAIL}`);
       }
 
       alert("Cảm ơn bạn đã ứng tuyển! Hồ sơ của bạn đã được gửi thành công đến bộ phận Tuyển dụng.");
@@ -264,9 +413,10 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error: any) {
       console.error("Error submitting application:", error);
-      alert(`Có lỗi xảy ra khi gửi hồ sơ: ${error.message || "Vui lòng thử lại sau."}`);
+      alert(`Có lỗi xảy ra khi gửi hồ sơ: ${error?.message || "Vui lòng thử lại sau."}`);
     } finally {
       setIsSubmitting(false);
+      setSubmitStatus('');
     }
   };
 
@@ -488,7 +638,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                           <p className="text-[10px] sm:text-[11px] text-gray-500 mb-3 uppercase tracking-wider font-medium bg-gray-200 inline-block px-1.5 sm:px-2 py-0.5 rounded truncate max-w-full">TRƯỜNG NGÔI SAO HOÀNG MAI</p>
                           <div 
                             className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: job.description.replace(/&nbsp;|\u00A0/g, ' ') }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.description).replace(/&nbsp;|\u00A0/g, ' ') }}
                           />
                           <div className="flex flex-col gap-2">
                             <div className="flex flex-wrap items-center text-gray-500 text-xs gap-3">
@@ -940,7 +1090,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                       </div>
                       
                       <div className="pt-4 relative">
-                        <label className="block text-white/90 text-sm font-medium mb-3">Đính kèm CV (PDF, DOCX) *</label>
+                        <label className="block text-white/90 text-sm font-medium mb-3">Đính kèm CV (PDF, DOCX, tối đa {MAX_CV_MB}MB) *</label>
                         <div className="border-2 border-dashed border-white/30 p-6 text-center hover:bg-white/5 transition cursor-pointer group relative overflow-hidden" style={{ borderRadius: `${siteContent.borderRadius}px` }}>
                           <input 
                             type="file" 
@@ -963,7 +1113,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                         className="w-full bg-white font-bold uppercase tracking-widest py-4 mt-8 transition shadow-lg transition-colors duration-500"
                         style={{ color: siteContent.primaryColor, borderRadius: `${siteContent.borderRadius}px` }}
                       >
-                        {isSubmitting ? 'Đang xử lý...' : 'Nộp hồ sơ'}
+                        {isSubmitting ? (submitStatus || 'Đang xử lý...') : 'Nộp hồ sơ'}
                       </button>
                     </form>
                   </div>
@@ -1198,7 +1348,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                 </h3>
                 <div 
                   className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: selectedJob.description.replace(/&nbsp;|\u00A0/g, ' ') }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedJob.description).replace(/&nbsp;|\u00A0/g, ' ') }}
                 />
               </div>
               
@@ -1209,7 +1359,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                 </h3>
                 <div 
                   className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: selectedJob.requirements.replace(/&nbsp;|\u00A0/g, ' ') }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedJob.requirements).replace(/&nbsp;|\u00A0/g, ' ') }}
                 />
               </div>
 
@@ -1221,7 +1371,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                   </h3>
                   <div 
                     className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: selectedJob.benefits.replace(/&nbsp;|\u00A0/g, ' ') }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedJob.benefits).replace(/&nbsp;|\u00A0/g, ' ') }}
                   />
                 </div>
               )}
@@ -1234,7 +1384,7 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
                   </h3>
                   <div 
                     className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: selectedJob.workingHours.replace(/&nbsp;|\u00A0/g, ' ') }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedJob.workingHours).replace(/&nbsp;|\u00A0/g, ' ') }}
                   />
                 </div>
               )}

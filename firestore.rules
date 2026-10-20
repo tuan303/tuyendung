@@ -1,149 +1,161 @@
 rules_version = '2';
+
+// =====================================================================
+//  QUY TẮC BẢO MẬT FIRESTORE — Website Tuyển dụng Trường Ngôi Sao Hoàng Mai
+// =====================================================================
+//
+//  Nguyên tắc chung:
+//  - Trình duyệt (Firebase client SDK trong src/*.tsx) chỉ được:
+//      + Đọc công khai: "jobs" (tin tuyển dụng) và "siteContent" (nội dung trang).
+//      + Ghi (thêm/sửa/xóa) "jobs" và "siteContent": chỉ quản trị viên.
+//  - "applications" (hồ sơ ứng viên — dữ liệu cá nhân) và "settings" (cấu hình
+//    SMTP, mật khẩu đã mã hóa) CHỈ máy chủ (server.ts / api/index.ts) truy cập
+//    qua Firebase Admin SDK. Admin SDK không bị các quy tắc này giới hạn, còn
+//    trình duyệt thì bị chặn hoàn toàn (kể cả quản trị viên — quản trị viên xem
+//    hồ sơ thông qua API /api/applications có kiểm tra đăng nhập).
+//  - Mọi đường dẫn khác: chặn mặc định.
+//
+//  Cách áp dụng:
+//    Firebase Console > Firestore Database > tab "Quy tắc" (Rules) > dán toàn
+//    bộ nội dung file này > "Xuất bản" (Publish).
+//    Hoặc dùng Firebase CLI:  firebase deploy --only firestore:rules
+//
+//  THỨ TỰ TRIỂN KHAI (xem chi tiết trong .env.example, mục "THỨ TỰ TRIỂN KHAI"):
+//    CHỈ xuất bản file này SAU KHI phiên bản mã nguồn mới đã chạy trên Vercel
+//    (/api/health trả về storage "firestore"), đã cấp quyền quản trị bằng
+//    "npm run admin-users -- grant <email>" và đã lưu lại mật khẩu SMTP mới.
+//    Xuất bản sớm hơn sẽ làm phiên bản cũ ngừng gửi email và trang quản trị
+//    mất quyền sửa tin tuyển dụng.
+// =====================================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: jobs
-    // Document ID: auto-generated
-    // Fields:
-    //   - title: string (required, length < 100) - Vị trí tuyển dụng
-    //   - description: string (required, length < 5000) - Mô tả công việc
-    //   - requirements: string (required, length < 5000) - Yêu cầu ứng viên
-    //   - deadline: string (required, length < 20) - Hạn nộp hồ sơ (dd/mm/yy)
-    //   - jdUrl: string (optional, length < 500) - Đính kèm JD (URL)
-    //   - createdAt: timestamp (required) - Thời gian tạo
-    //   - authorUid: string (required) - ID của người tạo (admin)
-    //   - isHidden: boolean (optional) - Trạng thái ẩn/hiện
-    //
-    // ===============================================================
 
     // ===============================================================
-    // Helper Functions
+    //  Hàm hỗ trợ
     // ===============================================================
-    
-    function isAuthenticated() {
-      return request.auth != null;
-    }
 
+    // Quản trị viên = đã đăng nhập VÀ tài khoản có custom claim admin = true.
+    // Claim này chỉ gán được bằng Firebase Admin SDK (khóa service account):
+    //   npm run admin-users -- grant <email>     (xem scripts/admin-users.ts)
+    // KHÔNG dựa vào email trong token: ai cũng có thể tự tạo tài khoản Firebase
+    // với một email chưa xác minh. Máy chủ (src/server/auth.ts) kiểm tra cùng claim này.
     function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email == "tuan303@gmail.com" ||
-        request.auth.token.email == "admin_nshm@nshm.edu.vn" ||
-        request.auth.token.email == "tuyendung@hoangmaistarschool.edu.vn"
-      );
+      return request.auth != null &&
+        request.auth.token.get('admin', false) == true;
     }
 
-    function isDocOwner() {
-      return isAuthenticated() && request.auth.uid == resource.data.authorUid;
+    // Trường bắt buộc kiểu chuỗi, độ dài trong khoảng [minLen, maxLen].
+    function isStr(data, field, minLen, maxLen) {
+      return field in data &&
+        data[field] is string &&
+        data[field].size() >= minLen &&
+        data[field].size() <= maxLen;
     }
 
-    function uidUnchanged() {
-      return !('authorUid' in request.resource.data) || request.resource.data.authorUid == request.auth.uid;
+    // Trường tùy chọn kiểu chuỗi: không có trường này, hoặc là chuỗi dài tối đa maxLen.
+    function isOptStr(data, field, maxLen) {
+      return !(field in data) || isStr(data, field, 0, maxLen);
     }
 
-    function uidNotModified() {
-      return !('authorUid' in request.resource.data) || request.resource.data.authorUid == resource.data.authorUid;
+    // Trường tùy chọn kiểu chuỗi hoặc null
+    // (trang Quản trị ghi jdUrl: jdUrl || null khi không có link JD).
+    function isOptStrOrNull(data, field, maxLen) {
+      return !(field in data) || data[field] == null || isStr(data, field, 0, maxLen);
     }
 
-    function hasRequiredFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
+    // Trường tùy chọn kiểu true/false.
+    function isOptBool(data, field) {
+      return !(field in data) || data[field] is bool;
     }
 
-    function validStringLength(field, minLen, maxLen) {
-      return request.resource.data[field] is string &&
-        request.resource.data[field].size() >= minLen &&
-        request.resource.data[field].size() <= maxLen;
+    // ---------------------------------------------------------------
+    //  Tin tuyển dụng (jobs) — khớp với dữ liệu mà src/Admin.tsx ghi:
+    //    title, department, description, requirements, benefits,
+    //    workingHours, deadline, jdUrl (chuỗi hoặc null), createdAt
+    //    (serverTimestamp), authorUid, isHidden (true/false).
+    //  Các trường nội dung (mô tả, yêu cầu, chế độ, thời gian làm việc) là
+    //  văn bản định dạng (HTML từ trình soạn thảo) nên cho phép tới 20.000 ký tự.
+    // ---------------------------------------------------------------
+
+    // Tạo tin mới (handleSubmit — nhánh addDoc).
+    function isValidNewJob(data) {
+      return data.keys().hasAll(['title', 'description', 'requirements', 'deadline', 'createdAt', 'authorUid']) &&
+        data.keys().hasOnly(['title', 'department', 'description', 'requirements', 'benefits',
+                             'workingHours', 'deadline', 'jdUrl', 'createdAt', 'authorUid', 'isHidden']) &&
+        isStr(data, 'title', 1, 500) &&
+        isOptStr(data, 'department', 100) &&
+        isStr(data, 'description', 1, 20000) &&
+        isStr(data, 'requirements', 1, 20000) &&
+        isOptStr(data, 'benefits', 20000) &&
+        isOptStr(data, 'workingHours', 20000) &&
+        isStr(data, 'deadline', 1, 50) &&
+        isOptStrOrNull(data, 'jdUrl', 2000) &&
+        isOptBool(data, 'isHidden') &&
+        data.createdAt is timestamp &&
+        data.authorUid == request.auth.uid;
     }
 
-    function isValidOptionalString(field, minLen, maxLen) {
-      return !(field in request.resource.data) ||
-             (request.resource.data[field] is string &&
-              request.resource.data[field].size() >= minLen &&
-              request.resource.data[field].size() <= maxLen);
-    }
-
-    function isValidOptionalBoolean(field) {
-      return !(field in request.resource.data) || request.resource.data[field] is bool;
-    }
-
-    function isValidJob(data) {
-      return data.keys().hasOnly(['title', 'department', 'description', 'requirements', 'benefits', 'workingHours', 'deadline', 'jdUrl', 'createdAt', 'authorUid', 'isHidden']) &&
-             validStringLength('title', 1, 100) &&
-             isValidOptionalString('department', 0, 100) &&
-             validStringLength('description', 1, 10000) &&
-             validStringLength('requirements', 1, 10000) &&
-             isValidOptionalString('benefits', 0, 10000) &&
-             isValidOptionalString('workingHours', 0, 10000) &&
-             validStringLength('deadline', 1, 50) &&
-             isValidOptionalString('jdUrl', 0, 1000) &&
-             data.createdAt is timestamp &&
-             data.authorUid is string &&
-             isValidOptionalBoolean('isHidden');
-    }
-
-    function isValidApplication(data) {
-      return data.keys().hasOnly(['jobId', 'jobTitle', 'name', 'dob', 'phone', 'email', 'cvUrl', 'fileName', 'status', 'notes', 'createdAt']) &&
-             validStringLength('jobTitle', 1, 200) &&
-             validStringLength('name', 1, 200) &&
-             validStringLength('phone', 1, 50) &&
-             validStringLength('email', 1, 200) &&
-             isValidOptionalString('jobId', 0, 128) &&
-             isValidOptionalString('dob', 0, 50) &&
-             isValidOptionalString('cvUrl', 0, 2000) &&
-             isValidOptionalString('fileName', 0, 500) &&
-             isValidOptionalString('status', 0, 50) &&
-             isValidOptionalString('notes', 0, 2000) &&
-             data.createdAt is timestamp;
-    }
-
-    function isValidSiteContent(data) {
-      return data.keys().hasOnly(['heroBgImage', 'heroTitle', 'heroSubtitle', 'policy1Title', 'policy1Desc', 'policy1Image', 'policy2Title', 'policy2Quote', 'policy2Desc', 'policy2Image', 'policy3Title', 'policy3Benefits']) &&
-             validStringLength('heroBgImage', 1, 1000) &&
-             validStringLength('heroTitle', 1, 200) &&
-             validStringLength('heroSubtitle', 1, 200) &&
-             validStringLength('policy1Title', 1, 200) &&
-             validStringLength('policy1Desc', 1, 5000) &&
-             validStringLength('policy1Image', 1, 1000) &&
-             validStringLength('policy2Title', 1, 200) &&
-             validStringLength('policy2Quote', 1, 1000) &&
-             validStringLength('policy2Desc', 1, 5000) &&
-             validStringLength('policy2Image', 1, 1000) &&
-             validStringLength('policy3Title', 1, 200) &&
-             data.policy3Benefits is list;
+    // Sửa tin (handleSubmit — nhánh updateDoc) hoặc Ẩn/Hiện (handleToggleHide).
+    // Chỉ kiểm tra những trường THỰC SỰ thay đổi, nên tin cũ thiếu
+    // benefits / workingHours / department vẫn sửa và ẩn/hiện được bình thường.
+    // Không được đổi createdAt, authorUid hay thêm trường lạ.
+    function isValidJobUpdate() {
+      let d = request.resource.data;
+      let changed = d.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['title', 'department', 'description', 'requirements', 'benefits',
+                              'workingHours', 'deadline', 'jdUrl', 'isHidden']) &&
+        (!changed.hasAny(['title']) || isStr(d, 'title', 1, 500)) &&
+        (!changed.hasAny(['department']) || isOptStr(d, 'department', 100)) &&
+        (!changed.hasAny(['description']) || isStr(d, 'description', 1, 20000)) &&
+        (!changed.hasAny(['requirements']) || isStr(d, 'requirements', 1, 20000)) &&
+        (!changed.hasAny(['benefits']) || isOptStr(d, 'benefits', 20000)) &&
+        (!changed.hasAny(['workingHours']) || isOptStr(d, 'workingHours', 20000)) &&
+        (!changed.hasAny(['deadline']) || isStr(d, 'deadline', 1, 50)) &&
+        (!changed.hasAny(['jdUrl']) || isOptStrOrNull(d, 'jdUrl', 2000)) &&
+        (!changed.hasAny(['isHidden']) || isOptBool(d, 'isHidden'));
     }
 
     // ===============================================================
-    // Rules
+    //  Quy tắc theo từng collection
     // ===============================================================
 
+    // Nội dung trang chủ (siteContent/main) — ai cũng đọc được; chỉ quản trị
+    // viên được lưu. Trang "Giao diện" (src/SiteContentAdmin.tsx) lưu RẤT NHIỀU
+    // trường (màu sắc, kích thước, danh sách ảnh, thứ tự mục, ...) và có thể
+    // thêm trường mới theo thời gian, nên KHÔNG giới hạn tên trường; chỉ giới
+    // hạn số lượng trường để tránh tài liệu phình to bất thường.
     match /siteContent/{docId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidSiteContent(request.resource.data);
+      allow create, update: if isAdmin() && request.resource.data.keys().size() <= 300;
+      allow delete: if isAdmin();
     }
 
+    // Tin tuyển dụng — ai cũng đọc được (trang chủ hiển thị danh sách);
+    // chỉ quản trị viên được thêm/sửa/xóa, kèm kiểm tra dữ liệu hợp lệ.
     match /jobs/{jobId} {
       allow read: if true;
-      allow create: if isAdmin() && hasRequiredFields(['title', 'description', 'requirements', 'deadline', 'createdAt', 'authorUid']) && isValidJob(request.resource.data) && uidUnchanged();
-      allow update: if isAdmin() && isValidJob(request.resource.data) && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt;
+      allow create: if isAdmin() && isValidNewJob(request.resource.data);
+      allow update: if isAdmin() && isValidJobUpdate();
       allow delete: if isAdmin();
     }
 
+    // Hồ sơ ứng viên — CHỈ máy chủ (Admin SDK). Trình duyệt bị chặn hoàn toàn.
+    // Ứng viên nộp hồ sơ qua POST /api/send-email; quản trị viên xem/sửa/xóa
+    // qua /api/applications (máy chủ kiểm tra Firebase ID token).
     match /applications/{applicationId} {
-      allow read: if isAdmin();
-      allow create: if hasRequiredFields(['jobTitle', 'name', 'phone', 'email', 'createdAt']) && isValidApplication(request.resource.data);
-      allow update: if isAdmin() && isValidApplication(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if isAdmin();
+      allow read, write: if false;
     }
 
-    match /settings/smtp {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
+    // Cấu hình hệ thống (settings/smtp: máy chủ gửi mail, mật khẩu đã mã hóa)
+    // — CHỈ máy chủ (Admin SDK). Quản trị viên chỉnh qua /api/smtp-settings.
     match /settings/{docId} {
-      allow read, write: if isAdmin();
+      allow read, write: if false;
+    }
+
+    // Mặc định: chặn mọi đường dẫn khác.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -7,90 +7,218 @@
       "properties": {
         "title": {
           "type": "string",
-          "description": "Vị trí tuyển dụng"
+          "description": "Vị trí tuyển dụng (1–500 ký tự)"
         },
         "department": {
           "type": "string",
-          "description": "Khối bộ phận"
+          "description": "Khối bộ phận, ví dụ \"Khối Nhà Trường\" | \"Khối Vận Hành\" (tin cũ có thể không có)"
         },
         "description": {
           "type": "string",
-          "description": "Mô tả công việc"
+          "description": "Mô tả công việc (HTML từ trình soạn thảo, tối đa 20.000 ký tự)"
         },
         "requirements": {
           "type": "string",
-          "description": "Yêu cầu ứng viên"
+          "description": "Yêu cầu ứng viên (HTML, tối đa 20.000 ký tự)"
         },
         "benefits": {
           "type": "string",
-          "description": "Chế độ"
+          "description": "Chế độ (HTML, tối đa 20.000 ký tự; tin cũ có thể không có)"
         },
         "workingHours": {
           "type": "string",
-          "description": "Thời gian làm việc"
+          "description": "Thời gian làm việc (HTML, tối đa 20.000 ký tự; tin cũ có thể không có)"
         },
         "deadline": {
           "type": "string",
           "description": "Hạn nộp hồ sơ (dd/mm/yy)"
         },
         "jdUrl": {
-          "type": "string",
-          "description": "Đính kèm JD (URL)"
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Đính kèm JD (URL) hoặc null nếu không có"
         },
         "createdAt": {
           "type": "timestamp",
-          "description": "Thời gian tạo để sắp xếp mới nhất lên đầu"
+          "description": "Thời gian tạo (serverTimestamp), không đổi khi sửa — dùng để sắp xếp mới nhất lên đầu"
         },
         "authorUid": {
           "type": "string",
-          "description": "ID của người tạo (admin)"
+          "description": "UID của quản trị viên tạo tin, không đổi khi sửa"
         },
         "isHidden": {
           "type": "boolean",
           "description": "Trạng thái ẩn/hiện"
         }
       },
-      "required": ["title", "description", "requirements", "deadline", "createdAt", "authorUid"]
+      "required": [
+        "title",
+        "description",
+        "requirements",
+        "deadline",
+        "createdAt",
+        "authorUid"
+      ]
     },
     "Application": {
       "title": "Application",
-      "description": "Candidate application for a job",
+      "description": "Hồ sơ ứng tuyển của ứng viên (ApplicationRecord). CHỈ máy chủ đọc/ghi qua Firebase Admin SDK; trình duyệt bị chặn bởi firestore.rules. Document ID = id.",
       "type": "object",
       "properties": {
-        "jobId": { "type": "string", "description": "ID của vị trí ứng tuyển" },
-        "jobTitle": { "type": "string", "description": "Tên vị trí ứng tuyển" },
-        "name": { "type": "string", "description": "Họ và tên ứng viên" },
-        "dob": { "type": "string", "description": "Ngày sinh" },
-        "phone": { "type": "string", "description": "Số điện thoại" },
-        "email": { "type": "string", "description": "Email" },
-        "cvUrl": { "type": "string", "description": "Đường dẫn tải file CV" },
-        "fileName": { "type": "string", "description": "Tên file CV" },
-        "status": { "type": "string", "description": "Trạng thái hồ sơ" },
-        "notes": { "type": "string", "description": "Ghi chú của ban tuyển dụng" },
-        "createdAt": { "type": "timestamp", "description": "Thời gian nộp hồ sơ" }
+        "id": {
+          "type": "string",
+          "description": "Mã hồ sơ, trùng với Document ID"
+        },
+        "jobId": {
+          "type": "string",
+          "description": "ID của tin tuyển dụng (jobs/{jobId}); rỗng nếu nhập tay hoặc không rõ"
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "Tên vị trí ứng tuyển (tối đa 200 ký tự)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Họ và tên ứng viên (tối đa 200 ký tự)"
+        },
+        "dob": {
+          "type": "string",
+          "description": "Ngày sinh (tối đa 50 ký tự, định dạng tự do)"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Số điện thoại (tối đa 50 ký tự)"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email ứng viên (tối đa 200 ký tự)"
+        },
+        "cvUrl": {
+          "type": "string",
+          "description": "Đường dẫn CV: link Google Drive (cvStorage = \"drive\"), link nhập tay (cvStorage = \"link\") hoặc rỗng. Hồ sơ cũ có thể dùng trường downloadURL thay cho cvUrl"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Tên file CV gốc (tối đa 300 ký tự)"
+        },
+        "cvStorage": {
+          "type": "string",
+          "enum": [
+            "drive",
+            "email",
+            "email_failed",
+            "link",
+            "none"
+          ],
+          "description": "Nơi lưu CV: \"drive\" = Google Drive (qua Apps Script), \"email\" = chỉ đính kèm trong email thông báo, \"email_failed\" = CV gửi kèm nhưng email thông báo không gửi được (file CV bị mất, cần liên hệ ứng viên), \"link\" = link do quản trị viên nhập tay, \"none\" = không có CV. Hồ sơ cũ có thể không có trường này"
+        },
+        "status": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Trạng thái hồ sơ, giao diện dùng: \"new\" | \"reviewed\" | \"contacted\" | \"interview\" | \"passed\" | \"rejected\" (mặc định \"new\")"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Ghi chú của ban tuyển dụng (tối đa 5.000 ký tự)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời gian nộp hồ sơ, chuỗi ISO 8601 (ví dụ \"2026-10-20T08:30:00.000Z\"). Hồ sơ cũ có thể là Firestore Timestamp"
+        }
       },
-      "required": ["jobTitle", "name", "phone", "email", "createdAt"]
+      "required": [
+        "id",
+        "jobTitle",
+        "name",
+        "phone",
+        "email",
+        "status",
+        "createdAt"
+      ]
     },
     "SiteContent": {
       "title": "Site Content",
-      "description": "Content for the main page modules",
+      "description": "Nội dung và giao diện trang chủ (siteContent/main). Trang Quản trị lưu thêm rất nhiều trường khác (màu sắc, kích thước, thứ tự mục, danh sách ảnh...), nên không giới hạn tên trường; firestore.rules chỉ giới hạn tối đa 300 trường.",
       "type": "object",
       "properties": {
-        "heroBgImage": { "type": "string" },
-        "heroTitle": { "type": "string" },
-        "heroSubtitle": { "type": "string" },
-        "policy1Title": { "type": "string" },
-        "policy1Desc": { "type": "string" },
-        "policy1Image": { "type": "string" },
-        "policy2Title": { "type": "string" },
-        "policy2Quote": { "type": "string" },
-        "policy2Desc": { "type": "string" },
-        "policy2Image": { "type": "string" },
-        "policy3Title": { "type": "string" },
-        "policy3Benefits": { "type": "array", "items": { "type": "string" } },
-        "policy3Image": { "type": "string" }
+        "heroBgImage": {
+          "type": "string"
+        },
+        "heroTitle": {
+          "type": "string"
+        },
+        "heroSubtitle": {
+          "type": "string"
+        },
+        "policy1Title": {
+          "type": "string"
+        },
+        "policy1Desc": {
+          "type": "string"
+        },
+        "policy1Image": {
+          "type": "string"
+        },
+        "policy2Title": {
+          "type": "string"
+        },
+        "policy2Quote": {
+          "type": "string"
+        },
+        "policy2Desc": {
+          "type": "string"
+        },
+        "policy2Image": {
+          "type": "string"
+        },
+        "policy3Title": {
+          "type": "string"
+        },
+        "policy3Benefits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "policy3Image": {
+          "type": "string"
+        }
       },
-      "required": ["heroBgImage", "heroTitle", "heroSubtitle", "policy1Title", "policy1Desc", "policy1Image", "policy2Title", "policy2Quote", "policy2Desc", "policy2Image", "policy3Title", "policy3Benefits", "policy3Image"]
+      "additionalProperties": true
+    },
+    "SmtpSettings": {
+      "title": "SMTP Settings",
+      "description": "Cấu hình máy chủ gửi email thông báo hồ sơ (document settings/smtp). CHỈ máy chủ đọc/ghi qua Firebase Admin SDK; mật khẩu không bao giờ trả về trình duyệt.",
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "Máy chủ SMTP, ví dụ smtp.gmail.com"
+        },
+        "port": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Cổng SMTP, ví dụ 465 hoặc 587"
+        },
+        "user": {
+          "type": "string",
+          "description": "Tài khoản đăng nhập SMTP"
+        },
+        "pass": {
+          "type": "string",
+          "description": "Mật khẩu SMTP ĐÃ MÃ HÓA AES-256-CBC, dạng \"ivhex:cipherhex\" (khóa = sha256(SMTP_ENCRYPTION_KEY))"
+        },
+        "recipient": {
+          "type": "string",
+          "description": "Email nhận thông báo hồ sơ mới"
+        }
+      }
     }
   },
   "firestore": {
@@ -98,19 +226,27 @@
       "schema": {
         "$ref": "#/entities/SiteContent"
       },
-      "description": "Singleton collection for site content"
+      "description": "Nội dung trang (document \"main\"). Đọc: công khai. Ghi: chỉ quản trị viên (client SDK)."
     },
     "jobs/{jobId}": {
       "schema": {
         "$ref": "#/entities/Job"
       },
-      "description": "Collection of job postings"
+      "description": "Tin tuyển dụng. Đọc: công khai. Thêm/sửa/xóa: chỉ quản trị viên (client SDK), có kiểm tra dữ liệu."
     },
     "applications/{applicationId}": {
       "schema": {
         "$ref": "#/entities/Application"
       },
-      "description": "Collection of candidate job applications"
+      "access": "server-only",
+      "description": "Hồ sơ ứng viên (dữ liệu cá nhân). CHỈ máy chủ truy cập qua Firebase Admin SDK; firestore.rules chặn mọi truy cập từ trình duyệt. Quản trị viên dùng API /api/applications."
+    },
+    "settings/smtp": {
+      "schema": {
+        "$ref": "#/entities/SmtpSettings"
+      },
+      "access": "server-only",
+      "description": "Cấu hình SMTP. CHỈ máy chủ truy cập qua Firebase Admin SDK; firestore.rules chặn mọi truy cập từ trình duyệt. Quản trị viên dùng API /api/smtp-settings."
     }
   }
 }
