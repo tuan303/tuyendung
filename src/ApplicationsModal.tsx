@@ -54,6 +54,111 @@ export function formatTimestamp(timestamp: any): string {
   return String(timestamp);
 }
 
+/** Trả về URL nếu là link http(s) tuyệt đối hợp lệ; ngược lại null (bỏ qua javascript:, data:, link tương đối...). */
+export function getSafeHttpUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+  } catch {
+    // không phải URL tuyệt đối
+  }
+  return null;
+}
+
+export function isGoogleDriveUrl(value: string): boolean {
+  try {
+    const { hostname } = new URL(value);
+    return hostname === 'drive.google.com' || hostname === 'docs.google.com';
+  } catch {
+    return false;
+  }
+}
+
+/** Link CV an toàn của hồ sơ (hỗ trợ bản ghi cũ dùng downloadURL). */
+export function getApplicationCvUrl(app: Application): string | null {
+  return getSafeHttpUrl(app.cvUrl) || getSafeHttpUrl(app.downloadURL);
+}
+
+export function CvAttachment({ app }: { app: Application }) {
+  const cvUrl = getApplicationCvUrl(app);
+
+  if (cvUrl) {
+    const onDrive = app.cvStorage === 'drive' || isGoogleDriveUrl(cvUrl);
+    return (
+      <a
+        href={cvUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center space-x-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition border border-blue-200 max-w-full"
+        title={onDrive ? 'Mở CV trên Google Drive' : 'Mở CV'}
+      >
+        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+        <span className="truncate">{app.fileName || 'Mở CV'}</span>
+        {onDrive && (
+          <span className="shrink-0 text-[10px] font-semibold bg-white text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded">
+            Google Drive
+          </span>
+        )}
+      </a>
+    );
+  }
+
+  if (app.cvStorage === 'email_failed') {
+    return (
+      <span
+        className="inline-flex items-center space-x-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-1 rounded max-w-full"
+        title="Email thông báo không gửi được nên file CV ứng viên gửi kèm đã bị mất. Hãy liên hệ ứng viên để xin lại CV."
+      >
+        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+        <span className="truncate">
+          CV KHÔNG gửi được — cần liên hệ ứng viên{app.fileName ? ` (${app.fileName})` : ''}
+        </span>
+      </span>
+    );
+  }
+
+  if (app.cvStorage === 'email' || app.fileName) {
+    return (
+      <span
+        className="inline-flex items-center space-x-1.5 text-xs text-gray-600 italic bg-gray-100 px-2 py-1 rounded max-w-full"
+        title={app.fileName ? `Tên file: ${app.fileName}` : undefined}
+      >
+        <Mail className="w-3.5 h-3.5 shrink-0 text-gray-500" />
+        <span className="truncate">
+          CV gửi kèm email tuyển dụng{app.fileName ? ` (${app.fileName})` : ''}
+        </span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-xs text-gray-500 italic bg-gray-100 px-2 py-1 rounded">
+      Không có CV
+    </span>
+  );
+}
+
+/** Mô tả nơi lưu CV (dùng cho file Excel). */
+const getCvStorageLabel = (app: Application): string => {
+  const cvUrl = getApplicationCvUrl(app);
+  if (cvUrl) return app.cvStorage === 'drive' || isGoogleDriveUrl(cvUrl) ? 'Google Drive' : 'Link';
+  if (app.cvStorage === 'email_failed') return 'CV KHÔNG gửi được — cần liên hệ ứng viên';
+  if (app.cvStorage === 'email' || app.fileName) return 'Gửi kèm email tuyển dụng';
+  return 'Không có CV';
+};
+
+/** Ô CSV an toàn: escape dấu ngoặc kép và chặn công thức Excel (=, +, -, @) từ dữ liệu ứng viên. */
+const csvCell = (value: unknown): string => {
+  let text = value === null || value === undefined ? '' : String(value);
+  if (/^[=+\-@\t\r]/.test(text)) {
+    text = `'${text}`;
+  }
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
 export const exportApplicationsToCSV = (apps: Application[], jobTitle?: string) => {
   const headers = ['STT', 'Họ và tên', 'Ngày sinh', 'Số điện thoại', 'Email', 'Vị trí ứng tuyển', 'File CV', 'Link CV', 'Trạng thái', 'Ghi chú', 'Thời gian nộp'];
   const statusLabels: Record<string, string> = {
@@ -66,16 +171,16 @@ export const exportApplicationsToCSV = (apps: Application[], jobTitle?: string) 
 
   const rows = apps.map((app, index) => [
     index + 1,
-    `"${(app.name || '').replace(/"/g, '""')}"`,
-    `"${(app.dob || '').replace(/"/g, '""')}"`,
-    `"${(app.phone || '').replace(/"/g, '""')}"`,
-    `"${(app.email || '').replace(/"/g, '""')}"`,
-    `"${(app.jobTitle || '').replace(/"/g, '""')}"`,
-    `"${(app.fileName || '').replace(/"/g, '""')}"`,
-    `"${(app.cvUrl || '').replace(/"/g, '""')}"`,
-    `"${statusLabels[app.status || 'new'] || app.status || 'Mới nộp'}"`,
-    `"${(app.notes || '').replace(/"/g, '""')}"`,
-    `"${formatTimestamp(app.createdAt)}"`
+    csvCell(app.name),
+    csvCell(app.dob),
+    csvCell(app.phone),
+    csvCell(app.email),
+    csvCell(app.jobTitle),
+    csvCell(app.fileName),
+    csvCell(getApplicationCvUrl(app) || getCvStorageLabel(app)),
+    csvCell(statusLabels[app.status || 'new'] || app.status || 'Mới nộp'),
+    csvCell(app.notes),
+    csvCell(formatTimestamp(app.createdAt))
   ]);
 
   const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -189,6 +294,11 @@ export default function ApplicationsModal({
       alert("Vui lòng nhập họ tên và số điện thoại.");
       return;
     }
+    const cvUrlInput = newCvUrl.trim();
+    if (cvUrlInput && !getSafeHttpUrl(cvUrlInput)) {
+      alert("Link CV phải là đường dẫn bắt đầu bằng http:// hoặc https://");
+      return;
+    }
     setIsSubmittingNew(true);
     try {
       if (onCreateApplication) {
@@ -199,12 +309,10 @@ export default function ApplicationsModal({
           phone: newPhone.trim(),
           email: newEmail.trim(),
           dob: newDob.trim(),
-          cvUrl: newCvUrl.trim(),
-          downloadURL: newCvUrl.trim(),
-          fileName: newFileName.trim() || (newCvUrl ? 'CV_DinhKem.pdf' : ''),
+          cvUrl: cvUrlInput,
+          fileName: newFileName.trim() || (cvUrlInput ? 'CV_DinhKem.pdf' : ''),
           notes: newNotes.trim(),
-          status: newStatus,
-          createdAt: new Date().toISOString()
+          status: newStatus
         });
       }
       setShowAddForm(false);
@@ -662,24 +770,10 @@ export default function ApplicationsModal({
 
                   {/* CV & Attachments */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs text-gray-600">File CV:</span>
-                      {app.cvUrl ? (
-                        <a
-                          href={app.cvUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition border border-blue-200"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>{app.fileName || 'Xem & Tải CV đính kèm'}</span>
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-500 italic bg-gray-100 px-2 py-1 rounded">
-                          {app.fileName ? `${app.fileName} (Gửi qua email)` : 'Không có đính kèm trực tiếp'}
-                        </span>
-                      )}
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+                      <span className="text-xs text-gray-600 shrink-0">File CV:</span>
+                      <CvAttachment app={app} />
                     </div>
 
                     {/* Notes Trigger */}
@@ -711,6 +805,7 @@ export default function ApplicationsModal({
                         onChange={(e) => setNotesValue(e.target.value)}
                         placeholder="Nhập ghi chú (VD: Đã hẹn phỏng vấn thứ Sáu lúc 9h30, đánh giá chuyên môn tốt...)"
                         rows={2}
+                        maxLength={5000}
                         className="w-full text-xs p-2.5 bg-white border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-800"
                       />
                       <div className="flex justify-end space-x-2">

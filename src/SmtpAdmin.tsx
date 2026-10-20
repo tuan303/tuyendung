@@ -1,143 +1,150 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Save } from 'lucide-react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { Mail, Save, Server } from 'lucide-react';
+import { authJson, parseJsonResponse, ApiError } from './api';
+
+interface SmtpSettingsResponse {
+  success: boolean;
+  data?: {
+    host?: string;
+    port?: string | number;
+    user?: string;
+    recipient?: string;
+    hasPassword?: boolean;
+    passwordUsable?: boolean;
+  };
+}
+
+const UNUSABLE_PASSWORD_MESSAGE =
+  'Mật khẩu SMTP đã lưu KHÔNG dùng được (do phiên bản cũ của hệ thống lưu, hoặc khóa SMTP_ENCRYPTION_KEY đã thay đổi) nên hiện hệ thống KHÔNG gửi được email thông báo hồ sơ. ' +
+  'Phiên bản cũ từng để lộ mật khẩu này: hãy thu hồi Mật khẩu ứng dụng cũ (myaccount.google.com/apppasswords), tạo mật khẩu mới, nhập vào ô "Mật khẩu ứng dụng" bên dưới rồi bấm "Lưu cấu hình". ' +
+  'Đồng thời kiểm tra lại SMTP Host, Email gửi và Email nhận hồ sơ có đúng của nhà trường không.';
+
+type StorageMode = 'firestore' | 'local-file' | 'unconfigured';
+
+const STORAGE_MODE_INFO: Record<StorageMode, { label: string; description: string; type: 'success' | 'info' | 'error' }> = {
+  firestore: {
+    label: 'Firestore (Firebase)',
+    description: 'Hồ sơ ứng tuyển và cấu hình email được lưu an toàn trên Firestore. Đây là chế độ hoạt động chuẩn.',
+    type: 'success'
+  },
+  'local-file': {
+    label: 'File trên máy chủ (chế độ thử nghiệm)',
+    description: 'Máy chủ chưa có biến môi trường FIREBASE_SERVICE_ACCOUNT nên đang lưu dữ liệu vào file trong thư mục data/. Chế độ này chỉ dùng khi chạy thử trên máy cá nhân.',
+    type: 'info'
+  },
+  unconfigured: {
+    label: 'Chưa cấu hình',
+    description: 'Máy chủ CHƯA được cấu hình nơi lưu trữ (thiếu biến môi trường FIREBASE_SERVICE_ACCOUNT trên Vercel). Hồ sơ ứng tuyển sẽ không được lưu — cần cấu hình ngay.',
+    type: 'error'
+  }
+};
+
+const getRequestErrorMessage = (error: any, fallback: string): string => {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại.';
+    if (error.status === 403) return 'Tài khoản của bạn không có quyền quản trị cấu hình email.';
+    return error.message;
+  }
+  if (error?.name === 'AbortError') {
+    return 'Quá thời gian chờ phản hồi từ máy chủ. Vui lòng thử lại.';
+  }
+  if (error instanceof TypeError) {
+    return 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng.';
+  }
+  return error?.message || fallback;
+};
 
 export default function SmtpAdmin() {
   const [host, setHost] = useState('');
   const [port, setPort] = useState('');
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
+  const [hasPassword, setHasPassword] = useState(false);
   const [recipient, setRecipient] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [health, setHealth] = useState<{ text: string; type: string } | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchSmtpSettings = async () => {
       setIsLoading(true);
       try {
-        const docRef = doc(db, 'settings', 'smtp');
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setHost(data.host || '');
-          setPort(data.port || '');
-          setUser(data.user || '');
-          setRecipient(data.recipient || '');
-          
-          if (data.pass) {
-            // Decrypt password
-            try {
-              const response = await fetch('/api/decrypt-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ encryptedPassword: data.pass }),
-              });
-              if (response.ok) {
-                const result = await response.json();
-                if (result.decryptedPassword === "__DECRYPTION_FAILED__") {
-                  setMessage({ text: '⚠️ Mật khẩu SMTP hiện tại không thể giải mã (do thay đổi khóa hệ thống). Vui lòng nhập lại mật khẩu mới.', type: 'error' });
-                  setPass('');
-                } else {
-                  setPass(result.decryptedPassword || '');
-                }
-              }
-            } catch (e) {
-              console.error("Decryption request failed:", e);
-            }
-          }
+        const result = await authJson<SmtpSettingsResponse>('/api/smtp-settings');
+        if (cancelled) return;
+        const data = result.data || {};
+        setHost(data.host || '');
+        setPort(data.port !== undefined && data.port !== null ? String(data.port) : '');
+        setUser(data.user || '');
+        setRecipient(data.recipient || '');
+        const unusable = !!data.hasPassword && data.passwordUsable === false;
+        // Mật khẩu đã lưu nhưng không dùng được: bắt buộc nhập lại (ô mật khẩu trở thành bắt buộc).
+        setHasPassword(!!data.hasPassword && !unusable);
+        setPass('');
+        if (unusable) {
+          setMessage({ text: UNUSABLE_PASSWORD_MESSAGE, type: 'error' });
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (cancelled) return;
         console.error("Error fetching SMTP settings:", error);
-        setMessage({ text: 'Lỗi khi tải cấu hình SMTP', type: 'error' });
+        setMessage({ text: `Lỗi khi tải cấu hình SMTP: ${getRequestErrorMessage(error, 'Lỗi không xác định')}`, type: 'error' });
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     fetchSmtpSettings();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const buildPayload = () => {
+    const payload: Record<string, string> = {
+      host: host.trim(),
+      port: String(port).trim(),
+      user: user.trim(),
+      recipient: recipient.trim()
+    };
+    if (pass) payload.pass = pass;
+    return payload;
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
     setMessage({ text: '', type: '' });
 
-    try {
-      // Encrypt password - Try multiple prefixes
-      let encryptResponse;
-      let usedPrefix = '/api';
-      
-      try {
-        encryptResponse = await fetch('/api/encrypt-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass }),
-        });
-        const text = await encryptResponse.clone().text();
-        if (!encryptResponse.ok || text.includes('<!doctype html>')) {
-          throw new Error('Primary API failed');
-        }
-      } catch (e) {
-        console.warn("Primary API failed, trying fallback prefix...");
-        usedPrefix = '/backend-api';
-        encryptResponse = await fetch('/backend-api/encrypt-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass }),
-        });
-      }
-      
-      const status = encryptResponse.status;
-      const responseText = await encryptResponse.text();
-      
-      if (!encryptResponse.ok) {
-        let errorMessage = `Server error ${status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = `${errorMessage}: ${responseText.substring(0, 50) || 'Empty response'}`;
-        }
-        throw new Error(errorMessage);
-      }
-      
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        if (responseText.includes('<!doctype html>')) {
-          throw new Error(`API returned HTML instead of JSON. Prefix ${usedPrefix} might be blocked.`);
-        }
-        throw new Error(`Invalid JSON response (Status ${status}): ${responseText.substring(0, 50) || 'Empty'}`);
-      }
-      
-      const { encryptedPassword } = responseData;
+    if (!pass && !hasPassword) {
+      setMessage({ text: 'Vui lòng nhập mật khẩu ứng dụng SMTP.', type: 'error' });
+      return;
+    }
 
-      // Save to Firestore
-      const docRef = doc(db, 'settings', 'smtp');
-      await setDoc(docRef, {
-        host,
-        port,
-        user,
-        pass: encryptedPassword,
-        recipient
+    setIsSaving(true);
+    try {
+      await authJson('/api/smtp-settings', {
+        method: 'PUT',
+        body: JSON.stringify(buildPayload())
       });
 
+      if (pass) {
+        setHasPassword(true);
+        setPass('');
+      }
       setMessage({ text: 'Lưu cấu hình thành công!', type: 'success' });
     } catch (error: any) {
       console.error("Error saving SMTP settings:", error);
-      setMessage({ text: `Lỗi khi lưu cấu hình: ${error.message || 'Lỗi không xác định'}`, type: 'error' });
+      setMessage({ text: `Lỗi khi lưu cấu hình: ${getRequestErrorMessage(error, 'Lỗi không xác định')}`, type: 'error' });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleTestSmtp = async () => {
-    if (!host || !port || !user || !pass || !recipient) {
+    if (!host.trim() || !String(port).trim() || !user.trim() || !recipient.trim() || (!pass && !hasPassword)) {
       setMessage({ text: 'Vui lòng nhập đầy đủ thông tin SMTP trước khi kiểm tra', type: 'error' });
       return;
     }
@@ -149,83 +156,53 @@ export default function SmtpAdmin() {
     const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
     try {
-      let usedPrefix = '/api';
-      let response = await fetch('/api/test-smtp', {
+      const data = await authJson<{ success: boolean; message?: string }>('/api/test-smtp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ host, port, user, pass, recipient }),
+        body: JSON.stringify(buildPayload()),
         signal: controller.signal
       });
-
-      let responseText = await response.text();
-
-      // Fallback to GET or different prefix if POST is blocked (405) or returns HTML/Empty
-      if (response.status === 405 || !responseText || responseText.includes('<!doctype html>')) {
-        console.warn("Primary POST failed or blocked, trying fallback prefix...");
-        usedPrefix = '/backend-api';
-        try {
-          response = await fetch('/backend-api/test-smtp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ host, port, user, pass, recipient }),
-            signal: controller.signal
-          });
-          responseText = await response.text();
-        } catch (e) {
-          console.error("Fallback POST failed:", e);
-        }
-      }
-
-      // Final fallback to GET if POST still fails or returns HTML
-      if (response.status === 405 || !responseText || responseText.includes('<!doctype html>')) {
-        console.warn("POST still failed, trying GET fallback...");
-        try {
-          const query = new URLSearchParams({ host, port, user, pass, recipient }).toString();
-          response = await fetch(`/backend-api/test-smtp?${query}`, {
-            method: 'GET',
-            signal: controller.signal
-          });
-          responseText = await response.text();
-        } catch (e) {
-          console.error("GET fallback failed:", e);
-        }
-      }
-
-      clearTimeout(timeoutId);
-      const contentType = response.headers.get("content-type");
-
-      if (contentType && contentType.includes("application/json") && responseText && !responseText.includes('<!doctype html>')) {
-        try {
-          const data = JSON.parse(responseText);
-          if (response.ok) {
-            setMessage({ text: data.message || 'Kết nối SMTP thành công!', type: 'success' });
-          } else {
-            setMessage({ text: `Lỗi SMTP (${response.status}): ${data.error || 'Không thể kết nối'}`, type: 'error' });
-            console.error("SMTP Error Details:", data.details, data.raw);
-          }
-        } catch (e) {
-          setMessage({ text: `Lỗi xử lý dữ liệu JSON (${response.status}): ${responseText.substring(0, 100)}`, type: 'error' });
-        }
-      } else {
-        // Not JSON - likely HTML or empty
-        if (response.status === 405) {
-          setMessage({ text: `Lỗi 405: Phương thức POST bị từ chối. Điều này thường do tường lửa (Firewall) của tên miền hoặc máy chủ đang chặn các yêu cầu POST. Vui lòng liên hệ quản trị viên mạng.`, type: 'error' });
-        } else if (responseText.includes("<!doctype html>") || responseText.includes("<html>")) {
-          setMessage({ text: `Lỗi hệ thống: API đang trả về trang giao diện (HTML) thay vì dữ liệu. Prefix ${usedPrefix} có thể bị chặn.`, type: 'error' });
-        } else {
-          setMessage({ text: `Lỗi kết nối (${response.status}): ${responseText.substring(0, 100) || 'Phản hồi trống từ server. Có thể do kết nối bị ngắt hoặc timeout.'}`, type: 'error' });
-        }
-      }
+      setMessage({ text: data.message || 'Kết nối SMTP thành công!', type: 'success' });
     } catch (error: any) {
-      clearTimeout(timeoutId);
       console.error("SMTP Test Error:", error);
-      if (error.name === 'AbortError') {
+      if (error?.name === 'AbortError') {
         setMessage({ text: 'Lỗi: Quá thời gian kết nối (Timeout). Máy chủ SMTP phản hồi quá chậm.', type: 'error' });
+      } else if (error instanceof ApiError && error.status !== 401 && error.status !== 403) {
+        setMessage({ text: `Lỗi SMTP (${error.status}): ${error.message}`, type: 'error' });
       } else {
-        setMessage({ text: `Lỗi kết nối API: ${error.message || 'Lỗi không xác định'}`, type: 'error' });
+        setMessage({ text: `Lỗi kiểm tra SMTP: ${getRequestErrorMessage(error, 'Lỗi không xác định')}`, type: 'error' });
       }
     } finally {
+      clearTimeout(timeoutId);
       setIsTesting(false);
+    }
+  };
+
+  const handleCheckHealth = async () => {
+    setIsCheckingHealth(true);
+    setHealth({ text: 'Đang kiểm tra kết nối máy chủ...', type: 'info' });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const res = await fetch('/api/health', { signal: controller.signal, cache: 'no-store' });
+      const data = await parseJsonResponse<{ status?: string; storage?: string }>(res);
+      if (data.status !== 'ok') {
+        setHealth({ text: 'Máy chủ phản hồi nhưng trạng thái không bình thường. Vui lòng thử lại sau.', type: 'error' });
+        return;
+      }
+      const info = STORAGE_MODE_INFO[data.storage as StorageMode];
+      if (info) {
+        setHealth({ text: `Máy chủ đang hoạt động. Nơi lưu trữ: ${info.label}. ${info.description}`, type: info.type });
+      } else {
+        setHealth({ text: `Máy chủ đang hoạt động. Nơi lưu trữ: ${data.storage || 'không xác định'}.`, type: 'info' });
+      }
+    } catch (error: any) {
+      console.error("Health check error:", error);
+      setHealth({ text: `Không kết nối được máy chủ: ${getRequestErrorMessage(error, 'Lỗi không xác định')}`, type: 'error' });
+    } finally {
+      clearTimeout(timeoutId);
+      setIsCheckingHealth(false);
     }
   };
 
@@ -247,7 +224,7 @@ export default function SmtpAdmin() {
 
       {message.text && (
         <div className={`p-4 rounded-xl mb-6 ${
-          message.type === 'success' ? 'bg-green-50 text-green-700' : 
+          message.type === 'success' ? 'bg-green-50 text-green-700' :
           message.type === 'info' ? 'bg-blue-50 text-blue-700' :
           'bg-red-50 text-red-700'
         }`}>
@@ -299,11 +276,17 @@ export default function SmtpAdmin() {
             type="password"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
+            autoComplete="new-password"
             className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-            placeholder="Nhập mật khẩu ứng dụng"
-            required
+            placeholder={hasPassword ? 'Đã lưu — để trống nếu không đổi' : 'Nhập mật khẩu ứng dụng'}
+            required={!hasPassword}
           />
-          <p className="mt-2 text-xs text-gray-500">Lưu ý: Nếu dùng Gmail, hãy sử dụng Mật khẩu ứng dụng (App Password), không dùng mật khẩu đăng nhập.</p>
+          <p className="mt-2 text-xs text-gray-500">
+            {hasPassword
+              ? 'Mật khẩu đã được lưu và mã hóa trên máy chủ (không hiển thị lại). Chỉ nhập khi muốn thay đổi. '
+              : ''}
+            Lưu ý: Nếu dùng Gmail, hãy sử dụng Mật khẩu ứng dụng (App Password), không dùng mật khẩu đăng nhập.
+          </p>
         </div>
 
         <div className="pt-6 border-t border-gray-100">
@@ -340,130 +323,24 @@ export default function SmtpAdmin() {
 
           <button
             type="button"
-            onClick={async () => {
-              try {
-                // Test API ping
-                const pingRes = await fetch('/api/ping');
-                const pingStatus = pingRes.status;
-                const pingText = await pingRes.text();
-                
-                // Test API test
-                const apiRes = await fetch('/api/test');
-                const apiStatus = apiRes.status;
-                const apiText = await apiRes.text();
-                
-                const isPingJson = pingRes.headers.get("content-type")?.includes("application/json");
-                const isApiJson = apiRes.headers.get("content-type")?.includes("application/json");
-
-                if (pingStatus === 200 && apiStatus === 200 && isPingJson && isApiJson) {
-                  alert("✅ KẾT NỐI API THÀNH CÔNG!\n\nBackend server đang hoạt động và trả về đúng định dạng dữ liệu.\nBạn có thể thực hiện 'Gửi email thử nghiệm' để kiểm tra SMTP.");
-                } else if (pingStatus === 200 && (pingText.includes("<!doctype html>") || pingText.includes("<html>"))) {
-                  alert("⚠️ CẢNH BÁO: API đang trả về trang HTML.\n\nĐiều này thường xảy ra khi server đang khởi động lại hoặc cấu hình chưa khớp. Vui lòng đợi 10-20 giây và thử lại.");
-                } else {
-                  alert(`❌ LỖI KẾT NỐI API!\nStatus: ${pingStatus}/${apiStatus}\nType: ${pingRes.headers.get("content-type")}\n\nVui lòng kiểm tra lại server.`);
-                }
-              } catch (e: any) {
-                alert(`❌ LỖI KẾT NỐI API: ${e.message}`);
-              }
-            }}
-            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition text-sm"
+            onClick={handleCheckHealth}
+            disabled={isCheckingHealth}
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-6 py-3 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition text-sm disabled:opacity-70"
           >
-            <span>Kiểm tra API Backend</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const results: any = {};
-                
-                // Test 1: Root Ping V5
-                try {
-                  const r1 = await fetch('/ping-v5');
-                  results.rootPingV5 = { status: r1.status, text: await r1.text() };
-                } catch (e: any) { results.rootPingV5 = { error: e.message }; }
-
-                // Test 2: API Ping V5
-                try {
-                  const r2 = await fetch('/api/ping-v5');
-                  results.apiPingV5 = { status: r2.status, text: await r2.text() };
-                } catch (e: any) { results.apiPingV5 = { error: e.message }; }
-
-                // Test 3: Backend API Ping V5
-                try {
-                  const r3 = await fetch('/backend-api/ping-v5');
-                  results.backendApiPingV5 = { status: r3.status, text: await r3.text() };
-                } catch (e: any) { results.backendApiPingV5 = { error: e.message }; }
-
-                // Test 4: Simple Test
-                try {
-                  const r4 = await fetch('/simple-test');
-                  results.simpleTest = { status: r4.status, text: await r4.text() };
-                } catch (e: any) { results.simpleTest = { error: e.message }; }
-
-                alert(`DIAGNOSTIC RESULTS V5:\n${JSON.stringify(results, null, 2)}`);
-              } catch (e: any) {
-                alert(`DIAGNOSTIC ERROR: ${e.message}`);
-              }
-            }}
-            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 border border-blue-200 text-blue-500 rounded-xl hover:bg-blue-50 transition text-xs"
-          >
-            <span>Chẩn đoán hệ thống</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const res = await fetch('/api/post-test', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ test: "hello" })
-                });
-                const text = await res.text();
-                try {
-                  const data = JSON.parse(text);
-                  alert(`DEBUG POST TEST SUCCESS:\nStatus: ${res.status}\nData: ${JSON.stringify(data, null, 2)}`);
-                } catch (e) {
-                  alert(`DEBUG POST TEST FAILED (Not JSON):\nStatus: ${res.status}\nRaw Response: ${text || '(empty)'}`);
-                }
-              } catch (e: any) {
-                alert(`DEBUG POST TEST ERROR:\n${e.message}`);
-              }
-            }}
-            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 border border-gray-200 text-gray-400 rounded-xl hover:bg-gray-50 transition text-xs"
-          >
-            <span>Debug POST</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                let res = await fetch('/api/post-test', { method: 'GET' });
-                let text = await res.text();
-                
-                if (text.includes('<!doctype html>')) {
-                  console.warn("Primary GET returned HTML, trying fallback prefix...");
-                  res = await fetch('/backend-api/post-test', { method: 'GET' });
-                  text = await res.text();
-                }
-
-                try {
-                  const data = JSON.parse(text);
-                  alert(`DEBUG GET TEST SUCCESS:\nStatus: ${res.status}\nData: ${JSON.stringify(data, null, 2)}`);
-                } catch (e) {
-                  alert(`DEBUG GET TEST FAILED (Not JSON):\nStatus: ${res.status}\nRaw Response: ${text.substring(0, 200) || '(empty)'}`);
-                }
-              } catch (e: any) {
-                alert(`DEBUG GET TEST ERROR:\n${e.message}`);
-              }
-            }}
-            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 border border-gray-200 text-gray-400 rounded-xl hover:bg-gray-50 transition text-xs"
-          >
-            <span>Debug GET</span>
+            <Server className="w-4 h-4" />
+            <span>{isCheckingHealth ? 'Đang kiểm tra...' : 'Kiểm tra kết nối máy chủ'}</span>
           </button>
         </div>
+
+        {health && (
+          <div className={`p-4 rounded-xl text-sm ${
+            health.type === 'success' ? 'bg-green-50 text-green-700' :
+            health.type === 'info' ? 'bg-blue-50 text-blue-700' :
+            'bg-red-50 text-red-700'
+          }`}>
+            {health.text}
+          </div>
+        )}
       </form>
     </div>
   );

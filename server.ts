@@ -1,509 +1,60 @@
+import dotenv from "dotenv";
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import fs from "fs/promises";
-import nodemailer from "nodemailer";
-import cors from "cors";
-import crypto from "crypto";
-import { initializeApp as initializeClientApp } from "firebase/app";
-import { getFirestore as getClientFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-import { getApplications, addApplication, updateApplication, deleteApplication, saveUploadedFile } from "./src/server/applicationsStore";
+import { createApp } from "./src/server/app.js";
+import { getStorageMode } from "./src/server/applicationsStore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBtsC_4jAhCI7YJd8J-SiTYg9t7WH6Mvm8",
-  authDomain: "graphic-pattern-482103-m6.firebaseapp.com",
-  projectId: "graphic-pattern-482103-m6",
-  storageBucket: "graphic-pattern-482103-m6.firebasestorage.app",
-  messagingSenderId: "525030358816",
-  appId: "1:525030358816:web:31f20398d053bee7c3a145",
-  measurementId: "G-B7XB9K7X2N"
-};
-
-const clientApp = initializeClientApp(firebaseConfig, "serverApp");
-const clientDb = getClientFirestore(clientApp);
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '12345678901234567890123456789012';
-if (!process.env.GEMINI_API_KEY) {
-  console.warn("WARNING: GEMINI_API_KEY is not set. Using default encryption key. Decryption of existing data will fail if the previous key was different.");
-}
-
-const ENCRYPTION_KEY = crypto.createHash('sha256').update(String(GEMINI_API_KEY)).digest();
-const IV_LENGTH = 16;
-
-function encrypt(text: string) {
-  if (!text) return text;
-  try {
-    let iv = crypto.randomBytes(IV_LENGTH);
-    let cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(text);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return iv.toString('hex') + ':' + encrypted.toString('hex');
-  } catch (e: any) {
-    console.error("Encryption error:", e);
-    throw new Error(`Lỗi mã hóa: ${e.message}`);
-  }
-}
-
-function decrypt(text: string) {
-  if (!text) return "";
-  if (!text.includes(':')) {
-    console.warn("Decryption warning: Text is not in encrypted format (missing ':')");
-    return text;
-  }
-  try {
-    let textParts = text.split(':');
-    let iv = Buffer.from(textParts.shift()!, 'hex');
-    let encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    let decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
-  } catch (e: any) {
-    console.error("Decryption error details:", {
-      message: e.message,
-      stack: e.stack,
-      textLength: text.length,
-      hasKey: !!GEMINI_API_KEY
-    });
-    // Return a special marker so we know it failed due to key mismatch
-    return "__DECRYPTION_FAILED__";
-  }
-}
-
-// Test encryption on startup
-try {
-  const testPass = "test-password";
-  const encrypted = encrypt(testPass);
-  const decrypted = decrypt(encrypted);
-  if (testPass === decrypted) {
-    console.log("Encryption self-test passed");
-  } else {
-    console.error("Encryption self-test failed: Decrypted value does not match");
-  }
-} catch (e) {
-  console.error("Encryption self-test error:", e);
-}
+// Local dev: load server secrets from .env.local / .env (on Vercel they come from Project Settings).
+dotenv.config({ path: [".env.local", ".env"], quiet: true });
 
 async function startServer() {
-  console.log("Starting server process...");
-  const app = express();
-  const PORT = 3000;
+  const app = createApp();
+  const PORT = Number(process.env.PORT) || 3000;
+  const isDev = process.env.NODE_ENV !== "production";
+  // Dev server listens on this machine only unless HOST is set (e.g. HOST=0.0.0.0 to test from a phone/LAN).
+  const HOST = process.env.HOST || (isDev ? "127.0.0.1" : "0.0.0.0");
 
-  // 1. GLOBAL MIDDLEWARE - MUST BE FIRST
-  app.use(cors());
-  app.use(express.json({ limit: '100mb' }));
-  const urlencodedLimit = '100mb';
-  const uploadsDir = path.resolve(process.cwd(), 'data', 'uploads');
-  fs.mkdir(uploadsDir, { recursive: true }).catch(console.error);
-  app.use('/api/uploads', express.static(uploadsDir));
-  app.use('/backend-api/uploads', express.static(uploadsDir));
-
-  // Error handler for JSON parsing and other middleware errors
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (req.path.startsWith('/api/') || req.path.startsWith('/backend-api/')) {
-      console.error(`[API Error] ${req.method} ${req.path}:`, err);
-      return res.status(err.status || 500).json({ 
-        error: err.message || "Internal Server Error",
-        status: err.status || 500
-      });
-    }
-    next(err);
-  });
-
-  // 2. LOGGING MIDDLEWARE
-  app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Host: ${req.headers.host}`);
-    next();
-  });
-
-  // 3. DIAGNOSTIC ROUTES (At the very top, no prefix)
-  app.get("/ping-v5", (req, res) => {
-    res.json({ status: "ok", message: "ROOT PING V5", time: new Date().toISOString() });
-  });
-
-  app.get("/api/ping-v5", (req, res) => {
-    res.json({ status: "ok", message: "API PING V5", time: new Date().toISOString() });
-  });
-
-  app.get("/backend-api/ping-v5", (req, res) => {
-    res.json({ status: "ok", message: "BACKEND API PING V5", time: new Date().toISOString() });
-  });
-
-  // 4. API ROUTER
-  const apiRouter = express.Router();
-  
-  apiRouter.get("/ping", (req, res) => {
-    res.json({ status: "ok", message: "API PING OK", version: "v5" });
-  });
-
-  apiRouter.get("/test", (req, res) => {
-    res.json({ message: "API is working", version: "v5", time: new Date().toISOString() });
-  });
-
-  // Simple POST/GET test to debug 405/Empty errors
-  apiRouter.all("/post-test", (req, res) => {
-    console.log(`Hit API post-test [${req.method}]`);
-    res.json({ 
-      message: `${req.method} is working`, 
-      version: "v5",
-      received: req.body,
-      method: req.method,
-      headers: req.headers
-    });
-  });
-
-  apiRouter.post("/encrypt-password", async (req, res) => {
-    console.log("Processing encryption request...");
-    try {
-      const { password } = req.body;
-      if (password === undefined) {
-        return res.status(400).json({ error: "Mật khẩu không được để trống" });
-      }
-      const encryptedPass = encrypt(password);
-      res.status(200).json({ encryptedPassword: encryptedPass });
-    } catch (error: any) {
-      console.error("Failed to encrypt password:", error);
-      res.status(500).json({ error: `Lỗi mã hóa: ${error.message}` });
-    }
-  });
-
-  apiRouter.post("/decrypt-password", async (req, res) => {
-    try {
-      const { encryptedPassword } = req.body;
-      if (!encryptedPassword) {
-        return res.status(400).json({ error: "Dữ liệu mã hóa không được để trống" });
-      }
-      const decryptedPass = decrypt(encryptedPassword);
-      res.json({ decryptedPassword: decryptedPass });
-    } catch (error: any) {
-      console.error("Failed to decrypt password:", error);
-      res.status(500).json({ error: `Lỗi giải mã: ${error.message}` });
-    }
-  });
-
-  apiRouter.all("/test-smtp", async (req, res) => {
-    console.log(`>>> Hit API test-smtp [${req.method}]`);
-    
-    let host, port, user, pass, recipient;
-
-    if (req.method === 'POST') {
-      ({ host, port, user, pass, recipient } = req.body);
-    } else if (req.method === 'GET') {
-      ({ host, port, user, pass, recipient } = req.query as any);
-      console.log("SMTP Test via GET (Query Params)");
-    } else {
-      return res.status(405).json({ error: `Method ${req.method} not allowed.` });
-    }
-
-    try {
-      console.log("SMTP Test Params:", { host, port, user, recipient, hasPass: !!pass });
-      
-      if (!host || !port || !user || !pass || !recipient) {
-        console.warn("Missing SMTP params");
-        return res.status(400).json({ 
-          error: "Vui lòng nhập đầy đủ thông tin SMTP để kiểm tra",
-          received: { host, port, user, recipient, hasPass: !!pass }
-        });
-      }
-
-      console.log(`Attempting SMTP connection to ${host}:${port}...`);
-
-      const transporter = nodemailer.createTransport({
-        host: host,
-        port: parseInt(port),
-        secure: parseInt(port) === 465,
-        auth: {
-          user: user,
-          pass: pass,
-        },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 15000,
-      });
-
-      console.log("Verifying transporter...");
-      await transporter.verify();
-      console.log("Transporter verified successfully.");
-      
-      console.log("Sending test email...");
-      await transporter.sendMail({
-        from: `"Hệ thống Tuyển dụng" <${user}>`,
-        to: recipient,
-        subject: "Kiểm tra cấu hình SMTP - Tuyển dụng",
-        text: "Chúc mừng! Cấu hình SMTP của bạn đã hoạt động chính xác.",
-        html: "<h2>Kiểm tra cấu hình SMTP</h2><p>Chúc mừng! Cấu hình SMTP của bạn đã hoạt động chính xác.</p><p>Hệ thống đã có thể gửi email thông báo hồ sơ ứng tuyển.</p>",
-      });
-      console.log("Test email sent successfully.");
-
-      res.status(200).json({ success: true, message: "Kết nối SMTP thành công và đã gửi email thử nghiệm!" });
-    } catch (error: any) {
-      console.error("!!! SMTP Test Error:", error);
-      let errorMessage = error.message || "Lỗi không xác định khi kết nối SMTP";
-      
-      if (error.code === 'EAUTH') {
-        errorMessage = "Lỗi xác thực: Sai email hoặc mật khẩu ứng dụng. Nếu dùng Gmail, hãy đảm bảo đã bật Mật khẩu ứng dụng (App Password).";
-      } else if (error.code === 'ECONNREFUSED') {
-        errorMessage = "Lỗi kết nối: Không thể kết nối tới máy chủ SMTP. Kiểm tra lại Host và Port.";
-      } else if (error.code === 'ETIMEDOUT') {
-        errorMessage = "Lỗi hết thời gian: Kết nối tới máy chủ SMTP quá lâu. Kiểm tra lại mạng hoặc Port.";
-      } else if (error.syscall === 'getaddrinfo') {
-        errorMessage = "Lỗi DNS: Không tìm thấy máy chủ SMTP. Kiểm tra lại Host.";
-      }
-      
-      res.status(500).json({ 
-        error: errorMessage, 
-        details: error.code || error.name,
-        raw: error.message
-      });
-    }
-  });
-
-let cachedSmtpSettings: any = null;
-let lastSmtpCacheTime = 0;
-const SMTP_CACHE_TTL = 60 * 1000; // 1 minute
-
-  apiRouter.all("/send-email", async (req, res) => {
-    console.log(`>>> Hit API send-email [${req.method}]`);
-    const bodySize = JSON.stringify(req.body).length;
-    console.log(`[Email API] Received request. Body size: ${Math.round(bodySize / 1024)} KB`);
-    try {
-      let data;
-      if (req.method === 'POST') {
-        data = req.body;
-      } else if (req.method === 'GET') {
-        data = req.query;
-        console.log("Sending email via GET (Query Params) fallback");
-      } else {
-        return res.status(405).json({ error: `Method ${req.method} not allowed.` });
-      }
-
-      const { name, dob, phone, email, position, downloadURL, fileData, fileName, jobId } = data;
-      if (!name || !phone || !email || !position) {
-        return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
-      }
-
-      // If candidate attached file data, save to disk
-      let resolvedCvUrl = downloadURL || '';
-      if (fileData && fileName) {
-        try {
-          resolvedCvUrl = await saveUploadedFile(fileName, fileData);
-          console.log(`[Email API] Saved uploaded CV: ${resolvedCvUrl}`);
-        } catch (uploadSaveErr) {
-          console.error("[Email API] Error saving uploaded CV file:", uploadSaveErr);
-        }
-      }
-
-      // 1. ALWAYS persist application in server storage FIRST (Guaranteed capture)
-      let savedAppRecord = null;
-      try {
-        savedAppRecord = await addApplication({
-          jobId: jobId || '',
-          jobTitle: position,
-          name,
-          dob: dob || '',
-          phone,
-          email,
-          cvUrl: resolvedCvUrl,
-          downloadURL: resolvedCvUrl,
-          fileName: fileName || '',
-          status: 'new',
-          notes: '',
-          createdAt: new Date().toISOString()
-        });
-        console.log(`[Email API] Application saved to persistent storage: ${savedAppRecord.id} for "${position}" (${name})`);
-      } catch (storeError) {
-        console.error("[Email API] Error saving application to storage:", storeError);
-      }
-
-      // 2. Attempt to forward via SMTP email in background (non-blocking for candidate)
-      let emailDispatched = false;
-      try {
-        let smtpSettings = null;
-        if (cachedSmtpSettings && Date.now() - lastSmtpCacheTime < SMTP_CACHE_TTL) {
-          smtpSettings = cachedSmtpSettings;
-        } else {
-          const docRef = doc(clientDb, "settings", "smtp");
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            smtpSettings = docSnap.data();
-            cachedSmtpSettings = smtpSettings;
-            lastSmtpCacheTime = Date.now();
-          }
-        }
-
-        if (smtpSettings && smtpSettings.host && smtpSettings.port && smtpSettings.user && smtpSettings.pass && smtpSettings.recipient) {
-          const decryptedPass = decrypt(smtpSettings.pass);
-          if (decryptedPass !== "__DECRYPTION_FAILED__") {
-            const transporter = nodemailer.createTransport({
-              host: smtpSettings.host,
-              port: parseInt(smtpSettings.port),
-              secure: parseInt(smtpSettings.port) === 465,
-              auth: {
-                user: smtpSettings.user,
-                pass: decryptedPass,
-              },
-              connectionTimeout: 20000,
-              greetingTimeout: 20000,
-              socketTimeout: 30000,
-            });
-
-            const subject = `[Ứng tuyển] ${position} - ${name}`;
-            const cvLinkToUse = resolvedCvUrl || downloadURL;
-            const textBody = `Họ và tên: ${name}\nNgày sinh: ${dob || 'Không cung cấp'}\nĐiện thoại: ${phone}\nEmail: ${email}\nVị trí ứng tuyển: ${position}\n\n${cvLinkToUse ? `Link CV đính kèm: ${cvLinkToUse}` : `(File CV được đính kèm trong email này)`}`.trim();
-            const htmlBody = `<h2>Thông tin ứng viên ứng tuyển</h2><p><strong>Họ và tên:</strong> ${name}</p><p><strong>Ngày sinh:</strong> ${dob || 'Không cung cấp'}</p><p><strong>Điện thoại:</strong> ${phone}</p><p><strong>Email:</strong> ${email}</p><p><strong>Vị trí ứng tuyển:</strong> ${position}</p><br/><p>${cvLinkToUse ? `<strong>Link CV đính kèm:</strong> <a href="${cvLinkToUse}">${cvLinkToUse}</a>` : `<em>(File CV được đính kèm trong email này)</em>`}</p>`;
-            
-            const mailOptions: any = {
-              from: `"Hệ thống Tuyển dụng" <${smtpSettings.user}>`,
-              replyTo: email,
-              to: smtpSettings.recipient,
-              subject: subject,
-              text: textBody,
-              html: htmlBody,
-            };
-
-            if (fileData && fileName) {
-              const base64Data = fileData.split(',')[1];
-              mailOptions.attachments = [
-                {
-                  filename: fileName,
-                  content: base64Data,
-                  encoding: 'base64'
-                }
-              ];
-            }
-
-            transporter.sendMail(mailOptions)
-              .then((info) => {
-                console.log("[Email API] Email forwarded successfully! MessageId:", info.messageId);
-              })
-              .catch((smtpSendErr) => {
-                console.error("[Email API] Warning: Background SMTP send failed:", smtpSendErr.message);
-              });
-
-            emailDispatched = true;
-          } else {
-            console.warn("[Email API] SMTP password decryption failed. Application saved to database, email forwarding skipped.");
-          }
-        } else {
-          console.log("[Email API] SMTP not configured. Application saved to database.");
-        }
-      } catch (smtpErr: any) {
-        console.error("[Email API] Warning: SMTP configuration or forwarding error:", smtpErr.message);
-      }
-
-      res.status(200).json({ 
-        success: true, 
-        message: "Hồ sơ của bạn đã được tiếp nhận thành công",
-        applicationId: savedAppRecord?.id,
-        emailDispatched
-      });
-    } catch (error) {
-      console.error("Error processing application:", error);
-      res.status(500).json({ error: "Failed to process application", details: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  // GET /api/applications - list all applications
-  apiRouter.get("/applications", async (req, res) => {
-    try {
-      const apps = await getApplications();
-      res.status(200).json({ success: true, data: apps });
-    } catch (error: any) {
-      console.error("Error fetching applications:", error);
-      res.status(500).json({ error: "Failed to fetch applications", details: error.message });
-    }
-  });
-
-  // POST /api/applications - create application (manual or test)
-  apiRouter.post("/applications", async (req, res) => {
-    try {
-      const appData = req.body;
-      if (!appData.jobTitle || !appData.name || !appData.phone) {
-        return res.status(400).json({ error: "Thiếu thông tin bắt buộc (jobTitle, name, phone)" });
-      }
-      const newApp = await addApplication(appData);
-      res.status(201).json({ success: true, data: newApp });
-    } catch (error: any) {
-      console.error("Error creating application:", error);
-      res.status(500).json({ error: "Failed to create application", details: error.message });
-    }
-  });
-
-  // PATCH /api/applications/:id - update application status/notes
-  apiRouter.patch("/applications/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
-      const updated = await updateApplication(id, updates);
-      if (!updated) {
-        return res.status(404).json({ error: "Application not found" });
-      }
-      res.status(200).json({ success: true, data: updated });
-    } catch (error: any) {
-      console.error("Error updating application:", error);
-      res.status(500).json({ error: "Failed to update application", details: error.message });
-    }
-  });
-
-  // DELETE /api/applications/:id - delete application
-  apiRouter.delete("/applications/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const deleted = await deleteApplication(id);
-      if (!deleted) {
-        return res.status(404).json({ error: "Application not found" });
-      }
-      res.status(200).json({ success: true, message: "Application deleted successfully" });
-    } catch (error: any) {
-      console.error("Error deleting application:", error);
-      res.status(500).json({ error: "Failed to delete application", details: error.message });
-    }
-  });
-
-  // Mount API Router on both /api and /backend-api for redundancy
-  app.use("/api", apiRouter);
-  app.use("/backend-api", apiRouter);
-
-  // Catch-all for /api and /backend-api to detect 404/405
-  app.all(["/api/*", "/backend-api/*"], (req, res) => {
-    console.warn(`[API Unhandled] ${req.method} ${req.originalUrl}`);
-    res.status(404).json({ error: `API route ${req.originalUrl} not found`, version: "v5" });
-  });
-
-  // 5. VITE MIDDLEWARE
-  if (process.env.NODE_ENV !== "production") {
+  if (isDev) {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        fs: {
+          // Setting "deny" replaces Vite's defaults, so they are repeated here.
+          // "**/data/**" keeps the local dev data (applications.json, smtp-settings.json) from being
+          // served as static files (a pattern without the leading "**/" does not match in Vite 6).
+          deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/data/**"],
+        },
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
 
-    // Explicit fallback for SPA routes in dev
-    app.get('*', async (req, res, next) => {
-      const url = req.originalUrl;
-      // Skip API routes
-      if (url.startsWith('/api/') || url.startsWith('/backend-api/')) {
-        return next();
-      }
+    // Explicit SPA fallback in dev (API routes are already answered by createApp()).
+    app.get("*", async (req, res, next) => {
       try {
-        let template = await fs.readFile(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-        template = await vite.transformIndexHtml(url, template);
-        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+        let template = await fs.readFile(path.resolve(process.cwd(), "index.html"), "utf-8");
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+        res.status(200).set({ "Content-Type": "text/html" }).end(template);
       } catch (e) {
         next(e);
       }
     });
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server is listening on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Server is listening on http://${HOST}:${PORT} (lưu trữ hồ sơ: ${getStorageMode()})`);
   });
 }
 
-startServer();
+startServer().catch((error) => {
+  console.error("Không khởi động được server:", error);
+  process.exit(1);
+});

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { 
   Users, Search, Filter, Download, Plus, Clock, Phone, Mail, 
-  Calendar, FileText, ExternalLink, Trash2, Check, Copy, MessageSquare, 
+  Calendar, FileText, Trash2, Check, Copy, MessageSquare,
   Briefcase, CheckCircle2, UserCheck, AlertCircle, UserPlus 
 } from 'lucide-react';
 import { Job, Application } from './Admin';
-import { formatTimestamp, exportApplicationsToCSV } from './ApplicationsModal';
+import { formatTimestamp, exportApplicationsToCSV, CvAttachment, getSafeHttpUrl } from './ApplicationsModal';
 
 interface ApplicationsTabProps {
   jobs: Job[];
@@ -118,6 +118,11 @@ export default function ApplicationsTab({
       alert("Vui lòng chọn vị trí tuyển dụng.");
       return;
     }
+    const cvUrlInput = newCvUrl.trim();
+    if (cvUrlInput && !getSafeHttpUrl(cvUrlInput)) {
+      alert("Link CV phải là đường dẫn bắt đầu bằng http:// hoặc https://");
+      return;
+    }
 
     setIsSubmittingNew(true);
     try {
@@ -129,12 +134,10 @@ export default function ApplicationsTab({
           phone: newPhone.trim(),
           email: newEmail.trim(),
           dob: newDob.trim(),
-          cvUrl: newCvUrl.trim(),
-          downloadURL: newCvUrl.trim(),
-          fileName: newCvUrl ? 'CV_DinhKem.pdf' : '',
+          cvUrl: cvUrlInput,
+          fileName: cvUrlInput ? 'CV_DinhKem.pdf' : '',
           notes: newNotes.trim(),
-          status: newStatus,
-          createdAt: new Date().toISOString()
+          status: newStatus
         });
       }
       setShowAddForm(false);
@@ -592,24 +595,10 @@ export default function ApplicationsTab({
 
                   {/* CV & Notes */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs text-gray-600">File CV:</span>
-                      {app.cvUrl ? (
-                        <a
-                          href={app.cvUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition border border-blue-200"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>{app.fileName || 'Xem & Tải CV đính kèm'}</span>
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-500 italic bg-gray-100 px-2 py-1 rounded">
-                          {app.fileName ? `${app.fileName} (Gửi qua email)` : 'Không có link CV'}
-                        </span>
-                      )}
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+                      <span className="text-xs text-gray-600 shrink-0">File CV:</span>
+                      <CvAttachment app={app} />
                     </div>
 
                     {/* Notes Trigger */}
@@ -641,6 +630,7 @@ export default function ApplicationsTab({
                         onChange={(e) => setNotesValue(e.target.value)}
                         placeholder="Nhập ghi chú ứng viên..."
                         rows={2}
+                        maxLength={5000}
                         className="w-full text-xs p-2.5 bg-white border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-800"
                       />
                       <div className="flex justify-end space-x-2">

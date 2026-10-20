@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+.env.local
+
+# Dữ liệu cục bộ khi chạy dev không có FIREBASE_SERVICE_ACCOUNT
+# (hồ sơ ứng viên, cấu hình SMTP) — tuyệt đối không commit lên git
+data/
+
+# Thư mục cấu hình của Vercel CLI
+.vercel
