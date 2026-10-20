@@ -9,6 +9,7 @@ import {
   deleteApplication,
   generateApplicationId,
   getStorageMode,
+  isValidApplicationId,
   listApplications,
   setApplicationCvStorage,
   StoreUnavailableError,
@@ -16,6 +17,16 @@ import {
   type ApplicationUpdate,
   type CvStorage,
 } from "./applicationsStore.js";
+import {
+  cvContentDisposition,
+  CvFileCorruptError,
+  cvResponseContentType,
+  deleteCvFile,
+  getCvFile,
+  hasRoomForCvFile,
+  saveCvFile,
+  type CvFile,
+} from "./cvFiles.js";
 import {
   buildApplicationEmail,
   createSmtpTransport,
@@ -30,6 +41,7 @@ import {
 import {
   checkEmail,
   checkLength,
+  CV_MIME_TYPES,
   EMAIL_RE,
   isAllowedDriveUrl,
   isHttpUrl,
@@ -40,6 +52,7 @@ import {
   sanitizeFileName,
   singleLine,
   ValidationError,
+  withFileExtension,
   type ParsedCvFile,
 } from "./validation.js";
 
@@ -51,7 +64,11 @@ const CV_NOT_DELIVERED_MESSAGE =
   "Vui lòng thử nộp lại sau ít phút hoặc gửi CV qua email tuyendung@hoangmaistarschool.edu.vn";
 const SUBMISSION_EMAIL_BUDGET_MS = 20000;
 const SUBMISSION_SAVE_TIMEOUT_MS = 15000;
+const SUBMISSION_FILE_SAVE_TIMEOUT_MS = 15000;
+const CV_QUOTA_CHECK_TIMEOUT_MS = 3000;
 const MARK_CV_LOST_TIMEOUT_MS = 5000;
+const CV_FILE_CLEANUP_TIMEOUT_MS = 5000;
+const CV_FILE_DELETE_TIMEOUT_MS = 10000;
 const TEST_SMTP_BUDGET_MS = 25000;
 
 function isApiPath(url: string): boolean {
@@ -113,14 +130,15 @@ function parseSubmission(body: any): Submission {
       throw new ValidationError("File CV không hợp lệ. Vui lòng chọn lại file PDF hoặc DOCX.");
     }
     file = parseCvDataUrl(body.fileData, fileName);
-    const base = fileName || sanitizeFileName(`CV_${name}`);
-    fileName = base.toLowerCase().endsWith(file.extension) ? base : sanitizeFileName(`${base}${file.extension}`);
+    // The stored/emailed name always ends with the extension of the real type (a long name is cut first).
+    fileName = withFileExtension(fileName || sanitizeFileName(`CV_${name}`), file.extension);
   }
 
   return { name, dob, phone, email, position, jobId, cvUrl, fileName, file };
 }
 
-async function sendSubmissionEmail(sub: Submission, startedAt: number): Promise<void> {
+/** `fileBeingStored`: the inline CV file is also being saved on the server (the result is not known yet). */
+async function sendSubmissionEmail(sub: Submission, startedAt: number, fileBeingStored: boolean): Promise<void> {
   const settings = await withTimeout(loadSmtpSettings(), 8000, "Tải cấu hình SMTP");
   if (!isSmtpComplete(settings)) {
     throw new Error("SMTP chưa được cấu hình đầy đủ trong trang quản trị");
@@ -138,6 +156,8 @@ async function sendSubmissionEmail(sub: Submission, startedAt: number): Promise<
     position: sub.position,
     cvUrl: sub.cvUrl,
     attachmentName: sub.file ? sub.fileName : undefined,
+    // The file is saved concurrently with this email (see POST /send-email), so the note is conditional.
+    attachmentMayBeStored: fileBeingStored,
   });
 
   const transporter = createSmtpTransport(
@@ -261,9 +281,26 @@ export function createApp(): express.Express {
       }
 
       const id = generateApplicationId();
-      const cvStorage: CvStorage = sub.cvUrl ? "drive" : sub.file ? "email" : "none";
+      // An inline CV file (no Drive link) is stored on the server so admins can open it, and is also
+      // attached to the HR email. The record, the file and the email are handled concurrently.
+      const inlineFile = !sub.cvUrl ? sub.file : null;
+      // This form is public: the file is only stored while under the storage limits (hasRoomForCvFile).
+      // Otherwise (or if the check fails) the CV still reaches HR as the email attachment ("email").
+      let fileToStore: ParsedCvFile | null = null;
+      if (inlineFile) {
+        try {
+          if (await withTimeout(hasRoomForCvFile(inlineFile.content.length), CV_QUOTA_CHECK_TIMEOUT_MS, "Kiểm tra giới hạn lưu file CV")) {
+            fileToStore = inlineFile;
+          } else {
+            console.warn(`[send-email] Đã đạt giới hạn lưu file CV trên hệ thống: CV của hồ sơ ${id} chỉ được gửi kèm email`);
+          }
+        } catch (error: any) {
+          console.error(`[send-email] Không kiểm tra được giới hạn lưu file CV (không lưu file của hồ sơ ${id}):`, error?.message || error);
+        }
+      }
+      const cvStorage: CvStorage = sub.cvUrl ? "drive" : fileToStore ? "stored" : inlineFile ? "email" : "none";
 
-      const [saveResult, emailResult] = await Promise.allSettled([
+      const [saveResult, fileResult, emailResult] = await Promise.allSettled([
         withTimeout(
           createApplication({
             id,
@@ -282,32 +319,69 @@ export function createApp(): express.Express {
           SUBMISSION_SAVE_TIMEOUT_MS,
           "Lưu hồ sơ"
         ),
-        sendSubmissionEmail(sub, startedAt),
+        fileToStore
+          ? withTimeout(
+              saveCvFile(id, { fileName: sub.fileName, mimeType: fileToStore.mimeType, content: fileToStore.content }),
+              SUBMISSION_FILE_SAVE_TIMEOUT_MS,
+              "Lưu file CV"
+            )
+          : Promise.resolve(),
+        sendSubmissionEmail(sub, startedAt, !!fileToStore),
       ]);
 
       const saved = saveResult.status === "fulfilled";
+      const fileStored = !!fileToStore && fileResult.status === "fulfilled";
       const emailSent = emailResult.status === "fulfilled";
-      // The inline CV file only ever exists as the email attachment: if the email failed, it is lost.
-      const inlineCvLost = !!sub.file && !sub.cvUrl && !emailSent;
+      // The inline CV file is lost only when it could neither be stored nor emailed.
+      const inlineCvLost = !!inlineFile && !fileStored && !emailSent;
+      // withTimeout does not cancel the write: after a timeout the record may still be written later.
+      const saveMayLandLater =
+        saveResult.status === "rejected" && (saveResult.reason?.code === "ETIMEDOUT" || saveResult.reason?.code === 4); // 4 = gRPC DEADLINE_EXCEEDED
 
       if (saveResult.status === "rejected") {
         console.error(`[send-email] KHÔNG lưu được hồ sơ ${id}:`, saveResult.reason?.message || saveResult.reason);
+      }
+      if (fileResult.status === "rejected") {
+        console.error(`[send-email] KHÔNG lưu được file CV của hồ sơ ${id}:`, fileResult.reason?.message || fileResult.reason);
       }
       if (emailResult.status === "rejected") {
         console.error(`[send-email] KHÔNG gửi được email thông báo cho hồ sơ ${id}:`, emailResult.reason?.message || emailResult.reason);
       }
 
       let finalCvStorage: CvStorage = cvStorage;
-      if (saved && inlineCvLost) {
-        finalCvStorage = "email_failed";
-        try {
-          await withTimeout(setApplicationCvStorage(id, "email_failed"), MARK_CV_LOST_TIMEOUT_MS, "Đánh dấu CV chưa gửi được");
-        } catch (error: any) {
-          console.error(`[send-email] Không đánh dấu được CV chưa gửi cho hồ sơ ${id}:`, error?.message || error);
+      let cvStorageNotUpdated = false;
+      if (inlineFile && !fileStored) {
+        // Correct the record to where the CV actually is (it was written as "stored" or "email").
+        finalCvStorage = emailSent ? "email" : "email_failed";
+        if (saved && finalCvStorage !== cvStorage) {
+          try {
+            await withTimeout(setApplicationCvStorage(id, finalCvStorage), MARK_CV_LOST_TIMEOUT_MS, "Cập nhật nơi lưu CV");
+          } catch (error: any) {
+            cvStorageNotUpdated = true;
+            console.error(`[send-email] Không cập nhật được nơi lưu CV (${finalCvStorage}) cho hồ sơ ${id}:`, error?.message || error);
+          }
         }
       }
+      if (fileStored && !saved) {
+        if (saveMayLandLater) {
+          // Deleting now could leave a late-written "stored" record without its file. Keep the file:
+          // if the record does appear, deleting it in the admin page also deletes the file.
+          console.warn(
+            `[send-email] Giữ file CV của hồ sơ ${id}: lưu hồ sơ quá thời gian chờ, hồ sơ có thể vẫn được ghi sau (nếu không, file này không gắn với hồ sơ nào)`
+          );
+        } else {
+          // No record points to the stored file: remove it instead of keeping orphaned personal data.
+          try {
+            await withTimeout(deleteCvFile(id), CV_FILE_CLEANUP_TIMEOUT_MS, "Xóa file CV không có hồ sơ");
+            console.warn(`[send-email] Đã xóa file CV của hồ sơ ${id} vì hồ sơ không lưu được`);
+          } catch (error: any) {
+            console.error(`[send-email] Không xóa được file CV không có hồ sơ ${id}:`, error?.message || error);
+          }
+        }
+      }
+      const cvStorageLog = cvStorageNotUpdated ? `${finalCvStorage} (CHƯA cập nhật được, hồ sơ vẫn ghi ${cvStorage})` : finalCvStorage;
       console.log(
-        `[send-email] Hồ sơ ${id}: saved=${saved} emailSent=${emailSent} cvStorage=${finalCvStorage} (${Date.now() - startedAt} ms)`
+        `[send-email] Hồ sơ ${id}: saved=${saved} fileStored=${fileStored} emailSent=${emailSent} cvStorage=${cvStorageLog} (${Date.now() - startedAt} ms)`
       );
 
       if (!saved && !emailSent) {
@@ -355,6 +429,46 @@ export function createApp(): express.Express {
       const count = await countApplications();
       res.json({ success: true, count });
     }, "Không kiểm tra được số lượng hồ sơ. Vui lòng thử lại sau.")
+  );
+
+  // The CV file stored for an application (cvStorage "stored"), served inline so the admin page can show it.
+  router.get(
+    "/applications/:id/cv",
+    route(async (req, res) => {
+      const id = req.params.id;
+      if (!isValidApplicationId(id)) {
+        res.status(400).json({ error: "Mã hồ sơ không hợp lệ." });
+        return;
+      }
+      let file: CvFile | null;
+      try {
+        file = await getCvFile(id);
+      } catch (error: any) {
+        if (error instanceof CvFileCorruptError) {
+          console.error(`[applications] File CV của hồ sơ ${id} bị lỗi/không đầy đủ`);
+          res.status(500).json({ error: error.message });
+          return;
+        }
+        throw error;
+      }
+      if (!file) {
+        res.status(404).json({ error: "Hồ sơ này không có file CV lưu trên hệ thống." });
+        return;
+      }
+      const contentType = cvResponseContentType(file.mimeType);
+      const extension = CV_MIME_TYPES[contentType] || "";
+      const fallbackName = `CV_${id}${extension}`;
+      // The served name always ends with the extension of the served type (never e.g. ".htm" on a PDF).
+      const servedName = file.fileName && extension ? withFileExtension(file.fileName, extension) : file.fileName;
+      res.status(200);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", String(file.content.length));
+      res.setHeader("Content-Disposition", cvContentDisposition(servedName, fallbackName));
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+      res.end(file.content);
+    }, "Không tải được file CV. Vui lòng thử lại sau.")
   );
 
   router.post(
@@ -423,12 +537,28 @@ export function createApp(): express.Express {
   router.delete(
     "/applications/:id",
     route(async (req, res) => {
-      const deleted = await deleteApplication(req.params.id);
+      const id = req.params.id;
+      if (!isValidApplicationId(id)) {
+        res.status(404).json({ error: "Không tìm thấy hồ sơ." });
+        return;
+      }
+      // The stored CV file is deleted FIRST and must succeed: otherwise the record is kept so the admin
+      // can retry (a retry, even of an already deleted record, always deletes the file again — idempotent),
+      // instead of leaving the CV (personal data) behind with no record pointing to it.
+      try {
+        await withTimeout(deleteCvFile(id), CV_FILE_DELETE_TIMEOUT_MS, "Xóa file CV");
+      } catch (error: any) {
+        if (error instanceof StoreUnavailableError) throw error;
+        console.error(`[applications] Không xóa được file CV của hồ sơ ${id} (chưa xóa hồ sơ):`, error?.message || error);
+        res.status(500).json({ error: "Không xóa được file CV của hồ sơ nên hồ sơ chưa bị xóa. Vui lòng thử lại." });
+        return;
+      }
+      const deleted = await deleteApplication(id);
       if (!deleted) {
         res.status(404).json({ error: "Không tìm thấy hồ sơ." });
         return;
       }
-      console.log(`[applications] ${res.locals.adminEmail} đã xóa hồ sơ ${req.params.id}`);
+      console.log(`[applications] ${res.locals.adminEmail} đã xóa hồ sơ ${id}`);
       res.json({ success: true });
     }, "Không xóa được hồ sơ. Vui lòng thử lại sau.")
   );

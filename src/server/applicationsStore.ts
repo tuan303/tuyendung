@@ -4,9 +4,16 @@ import crypto from "crypto";
 import { getAdminDb, hasAdminCredentials, isVercel } from "./firebaseAdmin.js";
 import { isAllowedDriveUrl } from "./validation.js";
 
-// "email_failed" = the CV file was sent inline but the HR email could not be sent, so the file is lost.
-export type CvStorage = "drive" | "email" | "email_failed" | "link" | "none";
-const CV_STORAGE_VALUES: readonly CvStorage[] = ["drive", "email", "email_failed", "link", "none"];
+// Where the CV of an application is:
+//   "drive"        = uploaded to Google Drive by the Apps Script (cvUrl is the Drive link)
+//   "stored"       = the inline CV file is stored on the server (src/server/cvFiles.ts); admins open it
+//                    via GET /api/applications/:id/cv (it is also attached to the HR email)
+//   "email"        = the inline CV file only exists as the attachment of the HR notification email
+//   "email_failed" = the CV file was sent inline but could neither be stored nor emailed, so it is lost
+//   "link"         = a link entered by an admin
+//   "none"         = no CV
+export type CvStorage = "drive" | "stored" | "email" | "email_failed" | "link" | "none";
+const CV_STORAGE_VALUES: readonly CvStorage[] = ["drive", "stored", "email", "email_failed", "link", "none"];
 export type StorageMode = "firestore" | "local-file" | "unconfigured";
 
 export interface ApplicationRecord {

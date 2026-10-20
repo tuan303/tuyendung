@@ -4,7 +4,7 @@ import {
   MapPin, Phone, Mail, Building2, MousePointerClick, FileText, 
   CheckCircle2, Upload, ChevronDown, Facebook, Youtube, X,
   ChevronLeft, ChevronRight, Target, PenTool, CircleDollarSign, Layers, FileEdit, Globe, Calendar, Share2, Check,
-  Users, Lock
+  Users
 } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { db } from './firebase';
@@ -518,14 +518,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
               <Mail className="w-4 h-4 shrink-0" />
               <span>Email: tuyendung@hoangmaistarschool.edu.vn</span>
             </div>
-            <a 
-              href="/admin" 
-              className="flex items-center space-x-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition text-white shadow-xs cursor-pointer"
-              title="Đăng nhập trang quản trị tuyển dụng"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Quản trị Tuyển dụng</span>
-            </a>
           </div>
         </div>
       </div>
@@ -1273,10 +1265,6 @@ export default function MainPage({ previewContent }: { previewContent?: typeof d
             <div className="flex items-center space-x-6 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition">Điều khoản</a>
               <a href="#" className="hover:text-white transition">Bảo mật</a>
-              <a href="/admin" className="hover:text-white transition flex items-center gap-1.5 font-medium text-white/70">
-                <Lock className="w-3.5 h-3.5" />
-                <span>Quản trị viên</span>
-              </a>
             </div>
           </div>
         </div>

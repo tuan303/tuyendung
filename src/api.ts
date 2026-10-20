@@ -75,3 +75,62 @@ export async function authJson<T = any>(input: RequestInfo | URL, init: RequestI
   const res = await authFetch(input, init);
   return parseJsonResponse<T>(res);
 }
+
+/** File tải về qua authBlob. */
+export interface BlobResult {
+  blob: Blob;
+  /** Tên file lấy từ header Content-Disposition (rỗng nếu máy chủ không gửi). */
+  fileName: string;
+  /** MIME type (không kèm tham số), chữ thường. */
+  mimeType: string;
+}
+
+/**
+ * Lấy tên file từ header Content-Disposition: ưu tiên filename* (RFC 5987, UTF-8 percent-encoded),
+ * sau đó filename="...". Trả về '' nếu không có.
+ */
+export function parseContentDispositionFileName(header: string | null | undefined): string {
+  if (!header) return '';
+
+  const extended = /(?:^|;)\s*filename\*\s*=\s*([^;]+)/i.exec(header);
+  if (extended) {
+    const raw = extended[1].trim().replace(/^"(.*)"$/, '$1');
+    // charset'language'giá-trị-đã-mã-hóa
+    const parts = /^[^']*'[^']*'(.*)$/.exec(raw);
+    try {
+      const decoded = decodeURIComponent(parts ? parts[1] : raw).trim();
+      if (decoded) return decoded;
+    } catch {
+      // mã hóa sai: dùng filename= bên dưới
+    }
+  }
+
+  const plain = /(?:^|;)\s*filename\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^;]*))/i.exec(header);
+  if (plain) {
+    const value = plain[1] !== undefined ? plain[1].replace(/\\(.)/g, '$1') : (plain[2] || '');
+    return value.trim();
+  }
+
+  return '';
+}
+
+/**
+ * authFetch rồi đọc phản hồi dạng nhị phân (Blob). Ném ApiError (kèm thông báo lỗi JSON của máy chủ)
+ * nếu mã HTTP không phải 2xx.
+ */
+export async function authBlob(input: RequestInfo | URL, init: RequestInit = {}): Promise<BlobResult> {
+  const res = await authFetch(input, init);
+  if (!res.ok) {
+    // parseJsonResponse luôn ném ApiError khi !res.ok
+    await parseJsonResponse(res);
+    throw new ApiError(`Lỗi máy chủ (${res.status})`, res.status);
+  }
+
+  const blob = await res.blob();
+  const mimeType = (res.headers.get('Content-Type') || blob.type || 'application/octet-stream')
+    .split(';')[0]
+    .trim()
+    .toLowerCase();
+  const fileName = parseContentDispositionFileName(res.headers.get('Content-Disposition'));
+  return { blob, fileName, mimeType };
+}

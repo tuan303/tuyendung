@@ -181,6 +181,11 @@ export interface ApplicationEmailInput {
   position: string;
   cvUrl?: string;
   attachmentName?: string;
+  /**
+   * The attached CV file is also being saved on the server (viewable in the admin page if that succeeds).
+   * The email is sent before the result is known, so the note in the email is worded conditionally.
+   */
+  attachmentMayBeStored?: boolean;
 }
 
 export function buildApplicationEmail(input: ApplicationEmailInput): { subject: string; text: string; html: string } {
@@ -200,6 +205,12 @@ export function buildApplicationEmail(input: ApplicationEmailInput): { subject: 
   if (input.attachmentName) {
     cvLines.push(`File CV đính kèm trong email này: ${input.attachmentName}`);
     cvHtml.push(`<p><em>File CV đính kèm trong email này: ${escapeHtml(input.attachmentName)}</em></p>`);
+    if (input.attachmentMayBeStored) {
+      const storedNote =
+        "Nếu hồ sơ hiển thị nút \"Xem CV\" trong trang Quản trị Tuyển dụng (mục Hồ sơ ứng tuyển), có thể xem file CV trực tiếp tại đó.";
+      cvLines.push(storedNote);
+      cvHtml.push(`<p><small><em>${escapeHtml(storedNote)}</em></small></p>`);
+    }
   }
   if (!cvLines.length) {
     cvLines.push("(Ứng viên không gửi kèm CV)");

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
   X, Users, Search, Phone, Mail, Calendar, FileText, ExternalLink, 
-  Trash2, Download, Check, Copy, Clock, MessageSquare, Plus, AlertCircle, UserPlus 
+  Trash2, Download, Check, Copy, Clock, MessageSquare, Plus, AlertCircle, UserPlus, Eye
 } from 'lucide-react';
 import { Job, Application } from './Admin';
+import CvViewer from './CvViewer';
 
 interface ApplicationsModalProps {
   isOpen: boolean;
@@ -83,7 +84,36 @@ export function getApplicationCvUrl(app: Application): string | null {
 }
 
 export function CvAttachment({ app }: { app: Application }) {
+  const [viewerOpen, setViewerOpen] = useState(false);
   const cvUrl = getApplicationCvUrl(app);
+
+  // File CV lưu trên hệ thống: xem trực tiếp trong trang quản trị
+  if (app.cvStorage === 'stored') {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setViewerOpen(true)}
+          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition border border-blue-200 max-w-full min-w-0"
+          title={app.fileName ? `Xem CV: ${app.fileName}` : 'Xem CV'}
+        >
+          <Eye className="w-3.5 h-3.5 shrink-0" />
+          <span className="shrink-0">Xem CV</span>
+          {app.fileName && (
+            <span className="truncate font-normal text-blue-700/80">({app.fileName})</span>
+          )}
+        </button>
+        {viewerOpen && (
+          <CvViewer
+            applicationId={app.id}
+            fileName={app.fileName}
+            candidateName={app.name}
+            onClose={() => setViewerOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   if (cvUrl) {
     const onDrive = app.cvStorage === 'drive' || isGoogleDriveUrl(cvUrl);
@@ -143,6 +173,7 @@ export function CvAttachment({ app }: { app: Application }) {
 
 /** Mô tả nơi lưu CV (dùng cho file Excel). */
 const getCvStorageLabel = (app: Application): string => {
+  if (app.cvStorage === 'stored') return 'Lưu trên hệ thống';
   const cvUrl = getApplicationCvUrl(app);
   if (cvUrl) return app.cvStorage === 'drive' || isGoogleDriveUrl(cvUrl) ? 'Google Drive' : 'Link';
   if (app.cvStorage === 'email_failed') return 'CV KHÔNG gửi được — cần liên hệ ứng viên';
